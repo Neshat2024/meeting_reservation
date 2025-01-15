@@ -10,7 +10,12 @@ from services.log import add_log
 load_dotenv()
 
 commands = [types.BotCommand(command="/start", description="Start menu")]
-cancel = "/cancel"
+
+CANCEL, SELECT, REMOVE = "/cancel", "select", "remove"
+BACK_DATE, BACK_MAIN, BACK_USER = "backdate", "backmain", "backuser"
+BACK_ROOM = "backroom"
+START, END, CONFIRMED = "start", "end", "confirmed"
+DAYS_FOR_HEADERS = ["SA", "SU", "MO", "TU", "WE", "TH", "FR"]
 
 
 def get_user(call_or_message, session):
@@ -24,7 +29,7 @@ def get_user(call_or_message, session):
 
 def send_cancel_message(message, session):
     try:
-        if message.text.lower() == cancel:
+        if message.text.lower() == CANCEL:
             user = get_user(message, session)
             user.command = None
             session.commit()
@@ -67,3 +72,13 @@ def set_command_in_wraps(user, session, command):
         add_log(f"SQLAlchemyError in set_command_in_wraps: {e}")
     except Exception as e:
         add_log(f"Exception in set_command_in_wraps: {e}")
+
+
+def change_command_to_none(user, session):
+    try:
+        user.command = None
+        session.commit()
+    except SQLAlchemyError as e:
+        add_log(f"SQLAlchemyError in change_command_to_none: {e}")
+    except Exception as e:
+        add_log(f"Exception in change_command_to_none: {e}")

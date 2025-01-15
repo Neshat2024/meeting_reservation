@@ -1,28 +1,35 @@
 from sqlalchemy.exc import SQLAlchemyError
 from telebot.apihelper import ApiTelegramException
-from telebot.types import InlineKeyboardButton, InlineKeyboardMarkup
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as btn
 
 from models.reservations import Reservations
 from models.rooms import Rooms
 from models.users import Users
-from services.config import get_user, send_cancel_message, telegram_api_exception, set_command_in_wraps
+from services.config import get_user, send_cancel_message, telegram_api_exception, set_command_in_wraps, BACK_ROOM, \
+    change_command_to_none
 from services.log import add_log
 
 
 def process_manage_room(message, session, bot):
     chat_id = str(message.chat.id)
     key = InlineKeyboardMarkup()
-    key.add(InlineKeyboardButton(text="➕ Add Room", callback_data="add_room"))
+    key.add(btn(text="➕ Add Room", callback_data="add_room"))
     rooms = session.query(Rooms).all()
     if rooms:
         txt = "🚪 These Meeting Rooms has been added before:\n"
         for room in rooms:
             txt += f"{room.name}\n"
-        key.add(InlineKeyboardButton(text="✏️ Edit Rooms", callback_data="editroom"))
-        key.add(InlineKeyboardButton(text="🗑 Delete Rooms", callback_data="deleteroom"))
+        key.add(btn(text="✏️ Edit Rooms", callback_data="editroom"))
+        key.add(btn(text="🗑 Delete Rooms", callback_data="deleteroom"))
     else:
         txt = "No Meeting Room has been defined yet 🙁"
-    bot.send_message(chat_id, txt, reply_markup=key)
+    user = session.query(Users).filter_by(chat_id=chat_id).first()
+    if user.command == BACK_ROOM:
+        msg_id = message.id
+        bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
+        change_command_to_none(user, session)
+    else:
+        bot.send_message(chat_id=chat_id, text=txt, reply_markup=key)
 
 
 def process_add_room(message, session, bot):
@@ -42,7 +49,7 @@ def check_room(message, session, bot):
         if text is None:
             bot.send_message(chat_id, "Operation cancelled!")
             return
-        elif text and user.command.startswith("edit_room"):
+        elif text and user.command and user.command.startswith("edit_room"):
             update_room_in_db(message, session, bot)
             bot.send_message(chat_id, "Name of the Room updated successfully 👍🏻")
         elif text:
@@ -108,7 +115,7 @@ def send_message_to_admins(txt, session, bot):
         try:
             if admin.username != main_admin:
                 bot.send_message(admin.chat_id, txt)
-        except Exception as e:
+        except:
             pass
 
 
@@ -120,7 +127,7 @@ def send_edit_message_to_reserved_users(room_old, session, bot):
     for chat_id in users:
         try:
             bot.send_message(chat_id, txt)
-        except Exception as e:
+        except:
             pass
 
 
@@ -130,7 +137,8 @@ def process_update_room(call, session, bot):
     rooms = session.query(Rooms).all()
     key = InlineKeyboardMarkup()
     for room in rooms:
-        key.add(InlineKeyboardButton(text=f"{room.name}", callback_data=f"edit_{room.id}"))
+        key.add(btn(text=f"{room.name}", callback_data=f"edit_{room.id}"))
+    key.add(btn(text="⬅️ Back", callback_data="backroom"))
     try:
         bot.edit_message_text(chat_id=chat_id, message_id=msg_id, reply_markup=key, text=txt)
     except ApiTelegramException as e:
@@ -161,7 +169,8 @@ def process_delete_room(call, session, bot):
     rooms = session.query(Rooms).all()
     key = InlineKeyboardMarkup()
     for room in rooms:
-        key.add(InlineKeyboardButton(text=f"{room.name}", callback_data=f"delete_{room.id}"))
+        key.add(btn(text=f"{room.name}", callback_data=f"delete_{room.id}"))
+    key.add(btn(text="⬅️ Back", callback_data="backroom"))
     try:
         bot.edit_message_text(chat_id=chat_id, message_id=msg_id, reply_markup=key, text=txt)
     except ApiTelegramException as e:
@@ -197,5 +206,18 @@ def send_delete_message_to_reserved_users(room, session, bot):
     for chat_id in users:
         try:
             bot.send_message(chat_id, txt)
-        except Exception as e:
+        except:
             pass
+
+
+def process_back_room(message, session, bot):
+    try:
+        chat_id = str(message.chat.id)
+        user = session.query(Users).filter_by(chat_id=chat_id).first()
+        user.command = BACK_ROOM
+        session.commit()
+        return process_manage_room(message, session, bot)
+    except SQLAlchemyError as e:
+        add_log(f"SQLAlchemyError in process_back_room: {e}")
+    except Exception as e:
+        add_log(f"Exception in process_back_room: {e}")

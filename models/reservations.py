@@ -12,7 +12,7 @@ class Reservations(Base):
     date = Column(String)
     start_time = Column(String)
     end_time = Column(String)
-    status = Column(String)
+    status = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.timezone('Asia/Tehran', func.now()))
 
     def __repr__(self):
