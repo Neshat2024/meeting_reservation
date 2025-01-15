@@ -7,7 +7,7 @@ from functions.old_reserves import process_user_reservations, process_future_res
     process_delete_reservations, process_edit_reservations, process_edit_specific_reservation, \
     process_edit_specific_date, process_edit_specific_room, \
     process_edit_specific_hours, process_set_edit_date, process_set_edit_room, process_set_edit_hours, \
-    process_add_time_in_edit, process_remove_time_in_edit
+    process_add_time_in_edit, process_remove_time_in_edit, process_delete_specific_reservation
 from services.config import commands
 from services.wraps import set_command, check_name_in_db
 
@@ -135,13 +135,13 @@ def register_handle_edit_specific_hours(session, bot):
 
 
 def register_handle_add_time_in_edit(session, bot):
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("time_select"))
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("e-t_select_"))
     def handle_add_time_in_edit(call):
         return process_add_time_in_edit(call, session, bot)
 
 
 def register_handle_remove_time_in_edit(session, bot):
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("time_remove"))
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("e-t_remove_"))
     def handle_remove_time_in_edit(call):
         return process_remove_time_in_edit(call, session, bot)
 
@@ -162,6 +162,12 @@ def register_handle_delete_reservations(session, bot):
     @bot.callback_query_handler(func=lambda call: call.data.startswith("deletereservation"))
     def handle_delete_reservations(call):
         return process_delete_reservations(call, session, bot)
+
+
+def register_handle_delete_specific_reservation(session, bot):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("d_r_"))
+    def handle_delete_specific_reservation(call):
+        return process_delete_specific_reservation(call, session, bot)
 
 
 def register_handle_back_future(session, bot):
@@ -209,6 +215,7 @@ def reservation_command_handler(bot: TeleBot, session):
     register_handle_set_edit_hours(session, bot)
     register_handle_back_edit(session, bot)
     register_handle_delete_reservations(session, bot)
+    register_handle_delete_specific_reservation(session, bot)
     register_handle_back_future(session, bot)
     register_handle_past_reservations(session, bot)
     register_handle_back_user(session, bot)

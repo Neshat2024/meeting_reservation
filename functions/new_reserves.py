@@ -14,28 +14,34 @@ from services.log import add_log
 
 
 def process_reservation(message, session, bot):
-    chat_id = str(message.chat.id)
-    txt = 'Reserve a room anytime with «🚪 New Reservation» or manage reservations via «📝 My Reservations»'
-    markup = InlineKeyboardMarkup()
-    markup.add(btn(text="🚪 New Reservation", callback_data="new_reservation"))
-    markup.add(btn(text="👀 My Reservations", callback_data="user_reservations"))
-    user = session.query(Users).filter_by(chat_id=chat_id).first()
-    if user.command == BACK_MAIN:
-        msg_id = message.id
-        bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=markup)
-        change_command_to_none(user, session)
-    else:
-        bot.send_message(chat_id=chat_id, text=txt, reply_markup=markup)
+    try:
+        chat_id = str(message.chat.id)
+        txt = 'Reserve a room anytime with «🚪 New Reservation» or manage reservations via «📝 My Reservations»'
+        markup = InlineKeyboardMarkup()
+        markup.add(btn(text="🚪 New Reservation", callback_data="new_reservation"))
+        markup.add(btn(text="👀 My Reservations", callback_data="user_reservations"))
+        user = session.query(Users).filter_by(chat_id=chat_id).first()
+        if user.command == BACK_MAIN:
+            msg_id = message.id
+            bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=markup)
+            change_command_to_none(user, session)
+        else:
+            bot.send_message(chat_id=chat_id, text=txt, reply_markup=markup)
+    except Exception as e:
+        add_log(f"Exception in process_reservation: {e}")
 
 
 def process_new_reservation(call, session, bot):
-    chat_id, msg_id = str(call.message.chat.id), call.message.id
-    txt = '📅 Choose a Date for Your Meeting (Available up to Next Week)'
-    key = create_date_buttons()
-    user = session.query(Users).filter_by(chat_id=chat_id).first()
-    if user.command == BACK_DATE:
-        change_command_to_none(user, session)
-    bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
+    try:
+        chat_id, msg_id = str(call.message.chat.id), call.message.id
+        txt = '📅 Choose a Date for Your Meeting (Available up to Next Week)'
+        key = create_date_buttons()
+        user = session.query(Users).filter_by(chat_id=chat_id).first()
+        if user.command == BACK_DATE:
+            change_command_to_none(user, session)
+        bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
+    except Exception as e:
+        add_log(f"Exception in process_new_reservation: {e}")
 
 
 def process_back_main(call, session, bot):
@@ -52,12 +58,15 @@ def process_back_main(call, session, bot):
 
 
 def process_select_room(call, session, bot):
-    chat_id, msg_id = str(call.message.chat.id), call.message.id
-    date = call.data.split("_")[1]
-    weekday = dt.strptime(date, "%Y-%m-%d").strftime("%A")
-    txt = f'📅 Date: {date} ({weekday})\n❓ Room:\n'
-    markup = add_room_buttons(call, session)
-    bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=markup)
+    try:
+        chat_id, msg_id = str(call.message.chat.id), call.message.id
+        date = call.data.split("_")[1]
+        weekday = dt.strptime(date, "%Y-%m-%d").strftime("%A")
+        txt = f'📅 Date: {date} ({weekday})\n❓ Room:\n'
+        markup = add_room_buttons(call, session)
+        bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=markup)
+    except Exception as e:
+        add_log(f"Exception in process_select_room: {e}")
 
 
 def add_room_buttons(call, session):
@@ -84,15 +93,18 @@ def process_back_date(call, session, bot):
 
 
 def process_hour_selection(call, session, bot):
-    chat_id, msg_id = str(call.message.chat.id), call.message.id
-    call_list = call.data.split("_")
-    room, date = int(call_list[1]), call_list[2]
-    weekday = dt.strptime(date, "%Y-%m-%d").strftime("%A")
-    delete_status_select_end(call, session)
-    room_name = get_room_name(room, session)
-    txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n❓ From:'
-    key = create_hour_buttons(call, session)
-    bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
+    try:
+        chat_id, msg_id = str(call.message.chat.id), call.message.id
+        call_list = call.data.split("_")
+        room, date = int(call_list[1]), call_list[2]
+        weekday = dt.strptime(date, "%Y-%m-%d").strftime("%A")
+        delete_status_select_end(call, session)
+        room_name = get_room_name(room, session)
+        txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n❓ From:'
+        key = create_hour_buttons(call, session)
+        bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
+    except Exception as e:
+        add_log(f"Exception in process_hour_selection: {e}")
 
 
 def delete_status_select_end(call, session):
@@ -194,21 +206,24 @@ def add_new_date_to_db(call, session):
 
 
 def process_remove_time(call, session, bot):
-    chat_id, msg_id = str(call.message.chat.id), call.message.id
-    room, user_id, date, str_time = get_data_in_process_button(call, session)
-    room_name = get_room_name(room, session)
-    weekday = dt.strptime(date, "%Y-%m-%d").strftime("%A")
-    date_in_db = get_date_in_db(call, session)
-    if str_time == date_in_db.end_time:
-        date_in_db.end_time = None
-        date_in_db.status = START
-        session.commit()
-        txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {date_in_db.start_time}\n❓ To:'
-    else:
-        delete_status_select_end(call, session)
-        txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n❓ From:'
-    key = create_hour_buttons(call, session)
-    bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
+    try:
+        chat_id, msg_id = str(call.message.chat.id), call.message.id
+        room, user_id, date, str_time = get_data_in_process_button(call, session)
+        room_name = get_room_name(room, session)
+        weekday = dt.strptime(date, "%Y-%m-%d").strftime("%A")
+        date_in_db = get_date_in_db(call, session)
+        if str_time == date_in_db.end_time:
+            date_in_db.end_time = None
+            date_in_db.status = START
+            session.commit()
+            txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {date_in_db.start_time}\n❓ To:'
+        else:
+            delete_status_select_end(call, session)
+            txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n❓ From:'
+        key = create_hour_buttons(call, session)
+        bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
+    except Exception as e:
+        add_log(f"Exception in process_remove_time: {e}")
 
 
 def process_confirm_selection(call, session, bot):

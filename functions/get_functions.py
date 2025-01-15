@@ -71,20 +71,26 @@ def get_txt(h, m):
 
 
 def get_reserved_hours(call, session):
-    room, date = get_room_date_as_call(call)
-    reserved_rows = session.query(Reservations).filter_by(room_id=room, date=date, status=CONFIRMED).all()
-    reserved_times = [(row.start_time, row.end_time) for row in reserved_rows]
-    reserved_hours = get_reserved_hours_as_query(reserved_times)
-    return reserved_hours
+    try:
+        room, date = get_room_date_as_call(call)
+        reserved_rows = session.query(Reservations).filter_by(room_id=room, date=date, status=CONFIRMED).all()
+        reserved_times = [(row.start_time, row.end_time) for row in reserved_rows]
+        reserved_hours = get_reserved_hours_as_query(reserved_times)
+        return reserved_hours
+    except Exception as e:
+        add_log(f"Exception in get_reserved_hours: {e}")
 
 
 def get_room_date_as_call(call):
-    call_list = call.data.split("_")
-    if len(call_list) > 3:
-        room, date = int(call_list[3]), call_list[2]
-    else:
-        room, date = int(call_list[1]), call_list[2]
-    return room, date
+    try:
+        call_list = call.data.split("_")
+        if len(call_list) > 3:
+            room, date = int(call_list[3]), call_list[2]
+        else:
+            room, date = int(call_list[1]), call_list[2]
+        return room, date
+    except Exception as e:
+        add_log(f"Exception in get_room_date_as_call: {e}")
 
 
 def get_reserved_hours_as_query(reserved_times):
@@ -117,9 +123,9 @@ def get_date_in_db(call, session):
             (Reservations.status != CONFIRMED)
         ).first()
     except SQLAlchemyError as e:
-        add_log(f"SQLAlchemyError in get_db_status: {e}")
+        add_log(f"SQLAlchemyError in get_date_in_db: {e}")
     except Exception as e:
-        add_log(f"Exception in get_db_status: {e}")
+        add_log(f"Exception in get_date_in_db: {e}")
 
 
 def get_hour_buttons(call, session):
