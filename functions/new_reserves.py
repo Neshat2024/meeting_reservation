@@ -5,7 +5,8 @@ from telebot.apihelper import ApiTelegramException
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as btn
 
 from functions.get_functions import get_room_name, get_room_date_as_call, create_date_buttons, get_date_in_db, \
-    get_data_in_process_button, get_reservation_in_confirm, get_hour_buttons, get_date_query_in_add_time
+    get_data_in_process_button, get_reservation_in_confirm, get_hour_buttons, get_date_query_in_add_time, \
+    get_reserved_hours, get_reserved_hours_as_query
 from models.reservations import Reservations
 from models.rooms import Rooms
 from models.users import Users
@@ -101,7 +102,7 @@ def process_hour_selection(call, session, bot):
         delete_status_select_end(call, session)
         room_name = get_room_name(room, session)
         txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n❓ From:'
-        key = create_hour_buttons(call, session)
+        key = create_hour_buttons(call, session, bot)
         bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
     except Exception as e:
         add_log(f"Exception in process_hour_selection: {e}")
@@ -127,9 +128,9 @@ def delete_status_select_end(call, session):
         add_log(f"Exception in delete_status_select_end: {e}")
 
 
-def create_hour_buttons(call, session):
+def create_hour_buttons(call, session, bot):
     room, date = get_room_date_as_call(call)
-    markup = get_hour_buttons(call, session)
+    markup = get_hour_buttons(call, session, bot)
     markup.add(btn(text="🟢 Confirm 🟢", callback_data=f"confirm-hours_{room}_{date}"))
     markup.add(btn(text="⬅️ Back", callback_data=f"room_{date}"))
     return markup
@@ -141,13 +142,13 @@ def process_add_time(call, session, bot):
     date, room, str_time = call_list[2], int(call_list[3]), call_list[4]
     room_name = get_room_name(room, session)
     weekday = dt.strptime(date, "%Y-%m-%d").strftime("%A")
-    process_hour_as_status(call, session)
+    process_hour_as_status(call, session, bot)
     date_in_db = get_date_in_db(call, session)
     if date_in_db.status == START:
         txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {date_in_db.start_time}\n❓ To:'
     else:
         txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {date_in_db.start_time}\n◀️ To: {str_time}'
-    key = create_hour_buttons(call, session)
+    key = create_hour_buttons(call, session, bot)
     try:
         bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
     except ApiTelegramException:
@@ -156,31 +157,58 @@ def process_add_time(call, session, bot):
         add_log(f"Exception in process_add_time: {e}")
 
 
-def process_hour_as_status(call, session):
+def process_hour_as_status(call, session, bot):
     reserves = get_date_query_in_add_time(call, session)
     for reserve in reserves:
         if reserve.status == START:
-            return process_start_hour(call, session, reserve)
+            return process_start_hour(call, session, [reserve, bot])
         elif reserve.status == END:
             return process_end_hour(call, session, reserve)
     else:
         return add_new_date_to_db(call, session)
 
 
-def process_start_hour(call, session, reserve):
+def process_start_hour(call, session, reserve_bot):
     try:
+        reserve, bot = reserve_bot[0], reserve_bot[1]
         e_time = call.data.split("_")[4]
         e_hour, e_min = int(e_time.split(":")[0]), int(e_time.split(":")[1])
         s_time = reserve.start_time
         s_hour, s_min = int(s_time.split(":")[0]), int(s_time.split(":")[1])
-        if (60 * s_hour) + s_min < (60 * e_hour) + e_min:
-            reserve.end_time = e_time
-            reserve.status = END
-            session.commit()
+        reserved_times = [(s_time, e_time)]
+        hours = get_reserved_hours_as_query(reserved_times)
+        reserved_hours = get_reserved_hours(call, session)
+        for hour in hours:
+            if hour in reserved_hours:
+                bot.answer_callback_query(call.id, "Reserved times can't be selected ⛔️", show_alert=True)
+                break
+        else:
+            if (60 * s_hour) + s_min < (60 * e_hour) + e_min:
+                reserve.end_time = e_time
+                reserve.status = END
+                session.commit()
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in process_start_hour: {e}")
     except Exception as e:
         add_log(f"Exception in process_start_hour: {e}")
+
+
+# def process_start_hour(call, session, reserve_bot):
+#     try:
+#         reserve, bot = reserve_bot
+#         e_time = call.data.split("_")[4]
+#         e_hour, e_min = map(int, e_time.split(":"))
+#         s_hour, s_min = map(int, reserve.start_time.split(":"))
+#         reserved_times = [(reserve.start_time, e_time)]
+#         hours = get_reserved_hours_as_query(reserved_times)
+#         if all(hour not in get_reserved_hours(call, session) for hour in hours) and (60 * s_hour + s_min) < (
+#                 60 * e_hour + e_min):
+#             reserve.end_time, reserve.status = e_time, END
+#             session.commit()
+#     except SQLAlchemyError as e:
+#         add_log(f"SQLAlchemyError in process_start_hour: {e}")
+#     except Exception as e:
+#         add_log(f"Exception in process_start_hour: {e}")
 
 
 def process_end_hour(call, session, reserve):
@@ -220,7 +248,7 @@ def process_remove_time(call, session, bot):
         else:
             delete_status_select_end(call, session)
             txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n❓ From:'
-        key = create_hour_buttons(call, session)
+        key = create_hour_buttons(call, session, bot)
         bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
     except Exception as e:
         add_log(f"Exception in process_remove_time: {e}")
@@ -243,3 +271,40 @@ def process_confirm_selection(call, session, bot):
         add_log(f"SQLAlchemyError in process_confirm_selection: {e}")
     except Exception as e:
         add_log(f"Exception in process_confirm_selection: {e}")
+
+
+def process_who_reserved(call, session, bot):
+    try:
+        call_list = call.data.split("_")
+        date, room, hour = call_list[1], call_list[2], call_list[3]
+        reserves = session.query(Reservations).filter_by(date=date, room_id=room, status=CONFIRMED).all()
+        reserved_times = [(row.start_time, row.end_time, row.user_id) for row in reserves]
+        reserved_hours = get_reserved_hours_in_who_reserved(reserved_times)
+        name = None
+        for reserve in reserved_hours:
+            if hour in reserve[0]:
+                name = session.query(Users).filter_by(id=int(reserve[1])).first().name
+                break
+        bot.answer_callback_query(call.id, f"❗️ User ({name}) has been reserved this hour.", show_alert=True)
+    except Exception as e:
+        add_log(f"Exception in process_who_reserved: {e}")
+
+
+def get_reserved_hours_in_who_reserved(reserved_times):
+    reserved_hours = []
+    for s_e in reserved_times:
+        start, end = s_e[0], s_e[1]
+        s_hour, s_min = int(start.split(":")[0]), int(start.split(":")[1])
+        e_hour, e_min = int(end.split(":")[0]), int(end.split(":")[1])
+        start_time_as_min = (60 * s_hour) + s_min
+        end_time_as_min = (60 * e_hour) + e_min
+        for h in range(s_hour, e_hour + 1):
+            for m in range(0, 60 + 1, 15):
+                time_as_min = (60 * h) + m
+                if start_time_as_min <= time_as_min <= end_time_as_min:
+                    h_m = f"{str(h).zfill(2)}:{str(m).zfill(2)}"
+                    str_hour = h_m if m != 60 else f"{str(h + 1).zfill(2)}:00"
+                    reserved_hours.append((str_hour, s_e[2]))
+                else:
+                    pass
+    return reserved_hours

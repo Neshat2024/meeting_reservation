@@ -39,7 +39,7 @@ def process_future_reservations(call, session, bot):
         chat_id, msg_id = str(call.message.chat.id), call.message.id
         uid = session.query(Users).filter_by(chat_id=chat_id).first().id
         confs = session.query(Reservations).filter_by(user_id=uid, status=CONFIRMED).all()
-        future_reserves = [reserve for reserve in confs if future_date(reserve.date)]
+        future_reserves = [reserve for reserve in confs if future_date(reserve)]
         txt_2 = ""
         for reserve in future_reserves:
             room_name = get_room_name(reserve.room_id, session)
@@ -58,8 +58,9 @@ def process_future_reservations(call, session, bot):
         add_log(f"Exception in process_future_reservations: {e}")
 
 
-def future_date(reserve_date):
-    reserve_date = dt.strptime(reserve_date, "%Y-%m-%d")
+def future_date(reserve):
+    str_time = f"{reserve.date} {reserve.end_time}"
+    reserve_date = dt.strptime(str_time, "%Y-%m-%d %H:%M")
     current_date = dt.now()
     return reserve_date >= current_date
 
@@ -69,7 +70,7 @@ def process_edit_reservations(call, session, bot):
         chat_id, msg_id = str(call.message.chat.id), call.message.id
         uid = session.query(Users).filter_by(chat_id=chat_id).first().id
         confs = session.query(Reservations).filter_by(user_id=uid, status=CONFIRMED).all()
-        future_reserves = [reserve for reserve in confs if future_date(reserve.date)]
+        future_reserves = [reserve for reserve in confs if future_date(reserve)]
         txt = "📝 Choose the Reservation you'd like to edit:"
         markup = InlineKeyboardMarkup()
         for reserve in future_reserves:
@@ -98,6 +99,7 @@ def process_edit_specific_reservation(call, session, bot):
         bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=markup)
     except Exception as e:
         add_log(f"Exception in process_edit_specific_reservation: {e}")
+
 
 def process_edit_specific_date(call, session, bot):
     try:
@@ -178,11 +180,16 @@ def add_room_buttons_in_edit(call, session):
 
 
 def process_set_edit_room(call, session, bot):
-    room, db_id = int(call.data.split("_")[3]), int(call.data.split("_")[2])
-    reserve = session.query(Reservations).filter_by(id=db_id).first()
-    reserve.room_id = room
-    session.commit()
-    return process_edit_specific_reservation(call, session, bot)
+    try:
+        room, db_id = int(call.data.split("_")[3]), int(call.data.split("_")[2])
+        reserve = session.query(Reservations).filter_by(id=db_id).first()
+        reserve.room_id = room
+        session.commit()
+        return process_edit_specific_reservation(call, session, bot)
+    except SQLAlchemyError as e:
+        add_log(f"SQLAlchemyError in process_set_edit_room: {e}")
+    except Exception as e:
+        add_log(f"Exception in process_set_edit_room: {e}")
 
 
 def process_edit_specific_hours(call, session, bot):
@@ -211,15 +218,16 @@ def get_hour_buttons_in_edit(call, session):
     markup, buttons = InlineKeyboardMarkup(row_width=4), []
     for h in range(8, 21):
         for m in range(0, 46, 15):
-            str_time = f"{h:02}:{m:02}"
-            cb = get_callbacks_in_edit(call, str_time)
-            if str_time in reserved_hours:
-                buttons.append(btn(text="🟨", callback_data="NON"))
-            elif hours and str_time == hours[0]:
+            time = f"{h:02}:{m:02}"
+            cb = get_callbacks_in_edit(call, time)
+            if time in reserved_hours:
+                date, room = get_date_room_from_db_id(call, session)
+                buttons.append(btn(text="🟨", callback_data=f"who_{date}_{room}_{time}"))
+            elif hours and time == hours[0]:
                 buttons.append(btn(text="▶️", callback_data=cb[1]))
-            elif hours and len(hours) > 1 and str_time == hours[-1]:
+            elif hours and len(hours) > 1 and time == hours[-1]:
                 buttons.append(btn(text="◀️", callback_data=cb[1]))
-            elif str_time in hours:
+            elif time in hours:
                 buttons.append(btn(text="✅", callback_data=cb[0]))
             else:
                 buttons.append(btn(text=get_txt(h, m), callback_data=cb[0]))
@@ -236,7 +244,7 @@ def get_hours_and_reserved_in_edit(call, session):
         db_id = call.data.split("_")[2]
         reserve = session.query(Reservations).filter_by(id=db_id).first()
         hours = [] if reserve.status is None else get_hours_as_db_status_in_edit(call, session)
-        reserved_hours = get_reserved_hours(call, session)
+        reserved_hours = get_reserved_hours_in_edit(call, session)
         return hours, reserved_hours
     except Exception as e:
         add_log(f"Exception in get_hours_and_reserved_in_edit: {e}")
@@ -247,6 +255,12 @@ def get_callbacks_in_edit(call, str_time):
     select_cb = f"e-t_select_{db_id}_{str_time}"
     remove_cb = f"e-t_remove_{db_id}_{str_time}"
     return [select_cb, remove_cb]
+
+
+def get_date_room_from_db_id(call, session):
+    db_id = call.data.split("_")[2]
+    reserve = session.query(Reservations).filter_by(id=db_id).first()
+    return reserve.date, reserve.room_id
 
 
 def get_hours_as_db_status_in_edit(call, session):
@@ -260,7 +274,7 @@ def get_hours_as_db_status_in_edit(call, session):
     return hours
 
 
-def get_reserved_hours(call, session):
+def get_reserved_hours_in_edit(call, session):
     db_id = call.data.split("_")[2]
     reserve = session.query(Reservations).filter_by(id=db_id).first()
     reserved_rows = session.query(Reservations).filter(
@@ -277,7 +291,7 @@ def get_reserved_hours(call, session):
 def process_add_time_in_edit(call, session, bot):
     chat_id, msg_id = str(call.message.chat.id), call.message.id
     db_id, str_time = int(call.data.split("_")[2]), call.data.split("_")[3]
-    change_status_as_selection(call, session)
+    change_status_as_selection(call, session, bot)
     reserve = session.query(Reservations).filter_by(id=db_id).first()
     room_name = get_room_name(reserve.room_id, session)
     weekday = dt.strptime(reserve.date, "%Y-%m-%d").strftime("%A")
@@ -293,10 +307,10 @@ def process_add_time_in_edit(call, session, bot):
     except ApiTelegramException:
         bot.answer_callback_query(call.id, "The end time can't be before the start time 🗿", show_alert=True)
     except Exception as e:
-        add_log(f"Exception in process_add_time: {e}")
+        add_log(f"Exception in process_add_time_in_edit: {e}")
 
 
-def change_status_as_selection(call, session):
+def change_status_as_selection(call, session, bot):
     try:
         db_id, str_time = int(call.data.split("_")[2]), call.data.split("_")[3]
         reserve = session.query(Reservations).filter_by(id=db_id).first()
@@ -311,7 +325,7 @@ def change_status_as_selection(call, session):
             reserve.start_time, reserve.end_time = str_time, None
             reserve.status = START
         elif db_status == START:
-            process_start_hour_in_edit(call, session, reserve)
+            process_start_hour_in_edit(call, session, [reserve, bot])
         else:
             reserve.start_time, reserve.end_time = str_time, None
             reserve.status = START
@@ -322,20 +336,29 @@ def change_status_as_selection(call, session):
         add_log(f"Exception in change_status_as_selection: {e}")
 
 
-def process_start_hour_in_edit(call, session, reserve):
+def process_start_hour_in_edit(call, session, reserve_bot):
     try:
+        reserve, bot = reserve_bot
         e_time = call.data.split("_")[3]
         e_hour, e_min = int(e_time.split(":")[0]), int(e_time.split(":")[1])
         s_time = reserve.start_time
         s_hour, s_min = int(s_time.split(":")[0]), int(s_time.split(":")[1])
-        if (60 * s_hour) + s_min < (60 * e_hour) + e_min:
-            reserve.end_time = e_time
-            reserve.status = END
-            session.commit()
+        reserved_times = [(s_time, e_time)]
+        hours = get_reserved_hours_as_query(reserved_times)
+        reserved_hours = get_reserved_hours_in_edit(call, session)
+        for hour in hours:
+            if hour in reserved_hours:
+                bot.answer_callback_query(call.id, "Reserved times can't be selected ⛔️", show_alert=True)
+                break
+        else:
+            if (60 * s_hour) + s_min < (60 * e_hour) + e_min:
+                reserve.end_time = e_time
+                reserve.status = END
+                session.commit()
     except SQLAlchemyError as e:
-        add_log(f"SQLAlchemyError in process_start_hour: {e}")
+        add_log(f"SQLAlchemyError in process_start_hour_in_edit: {e}")
     except Exception as e:
-        add_log(f"Exception in process_start_hour: {e}")
+        add_log(f"Exception in process_start_hour_in_edit: {e}")
 
 
 def process_remove_time_in_edit(call, session, bot):
@@ -381,9 +404,9 @@ def process_set_edit_hours(call, session, bot):
         else:
             bot.answer_callback_query(call.id, "You can't confirm before completing the hours ⛔️", show_alert=True)
     except SQLAlchemyError as e:
-        add_log(f"SQLAlchemyError in process_confirm_selection: {e}")
+        add_log(f"SQLAlchemyError in process_set_edit_hours: {e}")
     except Exception as e:
-        add_log(f"Exception in process_confirm_selection: {e}")
+        add_log(f"Exception in process_set_edit_hours: {e}")
 
 
 def process_delete_reservations(call, session, bot):
@@ -391,7 +414,7 @@ def process_delete_reservations(call, session, bot):
         chat_id, msg_id = str(call.message.chat.id), call.message.id
         uid = session.query(Users).filter_by(chat_id=chat_id).first().id
         confs = session.query(Reservations).filter_by(user_id=uid, status=CONFIRMED).all()
-        future_reserves = [reserve for reserve in confs if future_date(reserve.date)]
+        future_reserves = [reserve for reserve in confs if future_date(reserve)]
         txt = "🗑 Choose the Reservation you'd like to delete:"
         markup = InlineKeyboardMarkup()
         for reserve in future_reserves:
@@ -430,7 +453,7 @@ def process_past_reservations(call, session, bot, page=0):
     chat_id, msg_id = str(call.message.chat.id), call.message.id
     user = session.query(Users).filter_by(chat_id=chat_id).first()
     reserves = session.query(Reservations).filter_by(user_id=user.id, status=CONFIRMED).all()
-    past_reserves = [reserve for reserve in reserves if not future_date(reserve.date)]
+    past_reserves = [reserve for reserve in reserves if not future_date(reserve)]
     items_per_page = 8
     start_idx = page * items_per_page
     end_idx = start_idx + items_per_page

@@ -2,7 +2,8 @@ from telebot import TeleBot
 from telebot import types
 
 from functions.new_reserves import process_reservation, process_hour_selection, process_select_room, process_add_time, \
-    process_remove_time, process_back_date, process_confirm_selection, process_new_reservation, process_back_main
+    process_remove_time, process_back_date, process_confirm_selection, process_new_reservation, process_back_main, \
+    process_who_reserved
 from functions.old_reserves import process_user_reservations, process_future_reservations, process_past_reservations, \
     process_delete_reservations, process_edit_reservations, process_edit_specific_reservation, \
     process_edit_specific_date, process_edit_specific_room, \
@@ -189,6 +190,12 @@ def register_handle_back_user(session, bot):
         return process_user_reservations(call, session, bot)
 
 
+def register_handle_who_reserved(session, bot):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("who_"))
+    def handle_who_reserved(call):
+        return process_who_reserved(call, session, bot)
+
+
 def reservation_command_handler(bot: TeleBot, session):
     add_reservation_command()
     register_reservation_command(session, bot)
@@ -219,3 +226,4 @@ def reservation_command_handler(bot: TeleBot, session):
     register_handle_back_future(session, bot)
     register_handle_past_reservations(session, bot)
     register_handle_back_user(session, bot)
+    register_handle_who_reserved(session, bot)

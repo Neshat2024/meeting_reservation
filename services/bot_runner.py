@@ -42,7 +42,7 @@ def backup_database(bot):
         txt = f"Backup created at: {backup_file}"
         add_log(txt, backup_file)
     except subprocess.CalledProcessError as e:
-        add_log(f"Error during backup: {e}", bot.get_me().username)
+        add_log(f"Error during backup: {e}")
     finally:
         if "PGPASSWORD" in os.environ:
             del os.environ["PGPASSWORD"]
@@ -59,6 +59,6 @@ def runnner(bot):
     add_log(f"Bot Started at {dt.now(tehran_tz).strftime('%Y-%m-%d %H:%M:%S')}")
     print("Bot is polling...")
     threading.Thread(target=run_scheduler, daemon=True).start()
-    schedule.every(12).hours.do(job_func=backup_database, bot=bot)
+    schedule.every(24).hours.do(job_func=backup_database, bot=bot)
     bot.infinity_polling()
     add_log(f"Bot Stopped at {dt.now(tehran_tz).strftime('%Y-%m-%d %H:%M:%S')}")

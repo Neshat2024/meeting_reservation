@@ -128,19 +128,19 @@ def get_date_in_db(call, session):
         add_log(f"Exception in get_date_in_db: {e}")
 
 
-def get_hour_buttons(call, session):
+def get_hour_buttons(call, session, bot):
     date_in_db, db_status = get_date_and_status(call, session)
     hours, reserved_hours = get_hours_and_reserved(call, session, date_in_db)
     room, date = get_room_date_as_call(call)
     markup, buttons = InlineKeyboardMarkup(row_width=4), []
     for h in range(8, 21):
         for m in range(0, 46, 15):
-            str_time = f"{h:02}:{m:02}"
-            cb = get_callbacks(date, room, str_time)
-            if str_time in reserved_hours:
-                buttons.append(btn(text="🟨", callback_data="NON"))
+            time = f"{h:02}:{m:02}"
+            cb = get_callbacks(date, room, time)
+            if time in reserved_hours:
+                buttons.append(btn(text="🟨", callback_data=f"who_{date}_{room}_{time}"))
             elif db_status == START or db_status == END:
-                buttons.append(get_new_buttons([db_status, str_time, hours, h, m], cb))
+                buttons.append(get_new_buttons([db_status, time, hours, reserved_hours, get_txt(h, m), cb, call.id], bot))
             else:
                 buttons.append(btn(text=get_txt(h, m), callback_data=cb[0]))
             if len(buttons) == 4:
@@ -181,10 +181,15 @@ def get_hours_as_db_status(date_in_db):
     return hours
 
 
-def get_new_buttons(s_t_hr_h_m, callback):
-    db_status, str_time, hours = s_t_hr_h_m[0], s_t_hr_h_m[1], s_t_hr_h_m[2]
-    h, m = s_t_hr_h_m[3], s_t_hr_h_m[4]
+def get_new_buttons(data, bot):
+    db_status, str_time, hours = data[0], data[1], data[2]
+    reserved_hours, txt, callback, call_id = data[3], data[4], data[5], data[6]
     select_cb, remove_cb = callback[0], callback[1]
+    # for hour in hours:
+    #     if hour in reserved_hours:
+    #         bot.answer_callback_query(call_id, "Reserved times cannot be selected ⛔️", show_alert=True)
+    #         break
+    # else:
     if db_status == START and str_time in hours:
         return btn(text="▶️", callback_data=remove_cb)
     elif db_status == END and str_time == hours[0]:
@@ -194,7 +199,7 @@ def get_new_buttons(s_t_hr_h_m, callback):
     elif db_status == END and str_time in hours:
         return btn(text="✅", callback_data=select_cb)
     else:
-        return btn(text=get_txt(h, m), callback_data=select_cb)
+        return btn(text=txt, callback_data=select_cb)
 
 
 def get_callbacks(date, room, str_time):
