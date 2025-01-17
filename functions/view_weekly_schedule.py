@@ -22,7 +22,7 @@ def process_view_weekly_schedule(message, session, bot):
 def create_image(session):
     try:
         # Replace this path with the path to a Persian font on your system
-        font_path = "/home/arz/Code/Meeting_Reservation/Fonts/Pinar-FD-SemiBold.ttf"  # Example: "B Nazanin.ttf"
+        font_path = "./Fonts/Pinar-FD-SemiBold.ttf"  # Example: "B Nazanin.ttf"
         persian_font = font_manager.FontProperties(fname=font_path)
     except Exception as e:
         print(f"Error loading font: {e}")
