@@ -1,114 +1,156 @@
 import os
 from datetime import datetime as dt, timedelta
-import matplotlib
-matplotlib.use('Agg')  # Set the backend to 'Agg'
+
+import arabic_reshaper
+import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
-from matplotlib import font_manager
-from functions.get_functions import get_room_name
+from bidi.algorithm import get_display
+from matplotlib.font_manager import FontProperties
+from sqlalchemy.exc import SQLAlchemyError
+
+from functions.get_functions import get_data_in_create_image
 from models.reservations import Reservations
-from models.users import Users
-from services.config import CONFIRMED
+from models.rooms import Rooms
+from services.config import CONFIRMED, day_in_persian
+from services.log import add_log
+
 
 def process_view_weekly_schedule(message, session, bot):
-    image_path = create_image(session)
-    with open(image_path, 'rb') as photo:
-        bot.send_photo(
-            chat_id=message.chat.id,
-            photo=photo,
-            caption="Here are the reservations up to next week!"  # Caption for the photo
-        )
-    os.remove(image_path)
-
-def create_image(session):
     try:
-        # Replace this path with the path to a Persian font on your system
-        font_path = "./Fonts/Pinar-FD-SemiBold.ttf"  # Example: "B Nazanin.ttf"
-        persian_font = font_manager.FontProperties(fname=font_path)
+        rooms = session.query(Rooms).all()
+        for room in rooms:
+            image_path = create_image(session, room)
+            if image_path is not None:
+                with open(image_path, 'rb') as photo:
+                    bot.send_photo(
+                        chat_id=message.chat.id,
+                        photo=photo,
+                        caption=f"📊 Chart {room.name}"  # Caption for the photo
+                    )
+                os.remove(image_path)
+    except SQLAlchemyError as e:
+        add_log(f"SQLAlchemyError in process_view_weekly_schedule: {e}")
     except Exception as e:
-        print(f"Error loading font: {e}")
-        persian_font = None  # Fallback to default font if the specified font is not found
+        add_log(f"Exception in process_view_weekly_schedule: {e}")
 
-    # Fetch reservations from the database
-    reserves = session.query(Reservations).filter_by(status=CONFIRMED).all()
-    reserves_list = []
+
+def create_image(session, room):
+    try:
+        today, next_week = main_data_in_create_image()
+        schedule, employees = get_schedule_employees(session, room, [today, next_week])
+        # تخصیص هر روز به یک موقعیت در محور y
+        day_positions = {value: i for i, (key, value) in enumerate(day_in_persian.items())}
+        # ایجاد شکل و محور
+        fig, ax = plt.subplots(figsize=(12, 6))
+        process_plot_for_employees([schedule, employees], day_positions, ax)
+        process_ax(ax, room, employees)
+        # بهبود چیدمان نمودار
+        plt.tight_layout()
+        # ذخیره نمودار به صورت تصویر
+        plt.savefig('weekly_schedule_timeline_fa.png', dpi=300, bbox_inches='tight')
+        plt.close()
+        return "weekly_schedule_timeline_fa.png"
+    except SQLAlchemyError as e:
+        add_log(f"SQLAlchemyError in create_image: {e}")
+    except Exception as e:
+        add_log(f"Exception in create_image: {e}")
+
+
+def main_data_in_create_image():
     today = dt.now()
     today = dt(year=today.year, month=today.month, day=today.day)
     next_week = today + timedelta(days=7)
     next_week = dt(year=next_week.year, month=next_week.month, day=next_week.day, hour=23)
-    for reserve in reserves:
-        time = f"{reserve.date} {reserve.start_time}"
-        date = dt.strptime(time, "%Y-%m-%d %H:%M")
-        if today <= date <= next_week:
-            reserves_list.append(date)
-    # Prepare data for the table
-    reserves_list = sorted(reserves_list)
-    data = []
-    columns = ["Name", "Date", "Start Time", "End Time", "Room"]
+    return today, next_week
 
-    # Parse and sort reservations by date and start_time
-    parsed_reserves = []
-    for reserve in reserves:
-        room = get_room_name(reserve.room_id, session)
-        uname = session.query(Users).filter_by(id=reserve.user_id).first().name
 
-        # Parse date and time strings into datetime objects for sorting
-        date_obj = dt.strptime(reserve.date, "%Y-%m-%d")  # Parse date (e.g., "2025-17-01")
-        start_time_obj = dt.strptime(reserve.start_time, "%H:%M")  # Parse start time (e.g., "11:45")
-        end_time = reserve.end_time if reserve.end_time else ""  # Handle None values
+def get_schedule_employees(session, room, today_next_week):
+    try:
+        today, next_week = today_next_week
+        employees, schedule = {}, {}
+        reserves = session.query(Reservations).filter_by(status=CONFIRMED).all()
+        for reserve in reserves:
+            if reserve.room_id == room.id:
+                name, date, start, end, color = get_data_in_create_image(reserve, session)
+                weekday = dt.strptime(date, "%Y-%m-%d").strftime("%A")
+                if name not in employees:
+                    employees[name] = color
+                date = dt.strptime(f"{date} {start}", "%Y-%m-%d %H:%M")
+                if today <= date <= next_week and name not in schedule:
+                    schedule[name] = [(day_in_persian[weekday], start, end)]
+                elif today <= date <= next_week:
+                    schedule[name].append((day_in_persian[weekday], start, end))
+        return schedule, employees
+    except SQLAlchemyError as e:
+        add_log(f"SQLAlchemyError in get_schedule_employees: {e}")
+    except Exception as e:
+        add_log(f"Exception in get_schedule_employees: {e}")
 
-        parsed_reserves.append({
-            "name": uname,
-            "date_obj": date_obj,
-            "date_str": date_obj.strftime("%Y-%m-%d"),  # Format date for display
-            "start_time_obj": start_time_obj,
-            "start_time_str": start_time_obj.strftime("%H:%M"),  # Format start time for display
-            "end_time": end_time,
-            "room": room
-        })
 
-    # Sort reservations by date and start time
-    parsed_reserves.sort(key=lambda x: (x["date_obj"], x["start_time_obj"]))
+def get_display_text(text):
+    reshaped_text = arabic_reshaper.reshape(text)  # شکل‌دهی حروف
+    bidi_text = get_display(reshaped_text)  # راست‌چین کردن متن
+    return bidi_text
 
-    # Prepare table data
-    for reserve in parsed_reserves:
-        data.append([
-            reserve["name"],
-            reserve["date_str"],  # Formatted date
-            reserve["start_time_str"],  # Formatted start time
-            reserve["end_time"],  # End time (already handled for None values)
-            reserve["room"]
-        ])
 
-    # Create a figure and axis
-    fig, ax = plt.subplots(figsize=(19.20, 10.80))  # 1920x1080 resolution (in inches at 100 DPI)
-    fig.patch.set_facecolor('white')
-    ax.set_facecolor('white')
-    ax.axis('off')  # Hide axes
+def process_plot_for_employees(schedule_employees, day_positions, ax):
+    schedule, employees = schedule_employees
+    for employee, blocks in schedule.items():
+        for block in blocks:
+            day, start, end = block
+            y = day_positions[day]
 
-    # Create the table
-    table = ax.table(
-        cellText=data,
-        colLabels=columns,
-        loc='center',
-        cellLoc='center',
-        colColours=['#f2f2f2'] * len(columns),  # Light gray background for header
-        cellColours=[['#ffffff'] * len(columns) for _ in range(len(data))]  # White background for cells
-    )
+            # Convert start and end times to datetime objects
+            start_time = dt.strptime(start, "%H:%M")
+            end_time = dt.strptime(end, "%H:%M")
 
-    # Adjust table style
-    table.auto_set_font_size(False)
-    table.set_fontsize(40)  # Set font size for table cells
-    table.scale(1, 3)  # Scale cell sizes
+            # Calculate the duration in hours
+            reference_time = dt.strptime("08:00", "%H:%M")  # Reference time is 8:00 AM
+            start_hours = (start_time - reference_time).seconds / 3600
+            end_hours = (end_time - reference_time).seconds / 3600
 
-    # Set font for Persian text
-    if persian_font:
-        for key, cell in table.get_celld().items():
-            cell_text = cell.get_text()
-            cell_text.set_fontproperties(persian_font)  # Apply Persian font to text
+            # Calculate the duration
+            duration = end_hours - start_hours
 
-    # Save the image to a temporary file
-    image_path = "reserves_table.png"
-    plt.savefig(image_path, dpi=100, bbox_inches='tight')
-    plt.close()  # Close the plot to free up memory
+            # Plot the bar
+            ax.broken_barh([(start_hours, duration)], (y - 0.4, 0.8), facecolors=employees[employee])
 
-    return image_path
+
+def process_ax(ax, room, employees):
+    font_path = './Fonts/Vazir.ttf'
+    font_prop = FontProperties(fname=font_path)
+    # تنظیم محور y با نام روزها به فارسی
+    ax.set_yticks(range(len(day_in_persian)))
+    y_labels = [get_display_text(value) for key, value in day_in_persian.items()]
+    ax.set_yticklabels(y_labels, fontproperties=font_prop, fontsize=12)
+    # تنظیم محور x با ساعت‌های روز (از ۸ تا ۲۱)
+    ax.set_xlim(0, 13)  # 8 AM to 9 PM is 13 hours
+    # Create x-axis ticks and labels for every 15 minutes
+    x_ticks, x_labels = get_x_ticks_and_x_labels()
+    ax.set_xticks(x_ticks)
+    ax.set_xticklabels(x_labels, rotation=45, ha='right', fontsize=10)
+    ax.set_xlabel(get_display_text('ساعت‌های روز (۸ تا ۲۱)'), fontproperties=font_prop, fontsize=14)
+    # تنظیم محدوده محور y
+    ax.set_ylim(-0.5, len(day_in_persian) - 0.5)
+    # تنظیم عنوان نمودار به فارسی
+    ax.set_title(get_display_text(f'{room.name} نمودار اتاق'), fontproperties=font_prop, fontsize=16)
+    # افزودن راهنما (Legend) برای رنگ‌های کارمندان
+    legend_patches = [mpatches.Patch(color=color, label=get_display_text(employee)) for employee, color in
+                      employees.items()]
+    ax.legend(handles=legend_patches, title=get_display_text('کارمندان'), bbox_to_anchor=(1.05, 1), loc='upper left',
+              prop=font_prop)
+    # افزودن خطوط شبکه برای محور x
+    ax.grid(True, axis='x', linestyle='--', alpha=0.5)
+    # حذف خطوط اطراف نمودار
+    for spine in ['top', 'right', 'left', 'bottom']:
+        ax.spines[spine].set_visible(False)
+
+
+def get_x_ticks_and_x_labels():
+    x_ticks = []
+    x_labels = []
+    for hour in range(8, 21):  # From 8 AM to 9 PM
+        for minute in [0, 15, 30, 45]:  # Every 15 minutes
+            x_ticks.append((hour - 8) + (minute / 60))  # Convert to hours since 8 AM
+            x_labels.append(f"{hour}:{minute:02d}")  # Format as "HH:MM"
+    return x_ticks, x_labels

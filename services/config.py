@@ -16,6 +16,8 @@ BACK_DATE, BACK_MAIN, BACK_USER = "backdate", "backmain", "backuser"
 BACK_ROOM = "backroom"
 START, END, CONFIRMED = "start", "end", "confirmed"
 DAYS_FOR_HEADERS = ["SA", "SU", "MO", "TU", "WE", "TH", "FR"]
+day_in_persian = {"Friday": "جمعه", "Thursday": "پنج‌شنبه", "Wednesday": "چهارشنبه", "Tuesday": "سه‌شنبه",
+                  "Monday": "دوشنبه", "Sunday": "یکشنبه", "Saturday": "شنبه"}
 
 
 def get_user(call_or_message, session):

@@ -1,7 +1,4 @@
-import os
-
 from dotenv import load_dotenv
-from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 
 from functions.name import process_name

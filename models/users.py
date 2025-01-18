@@ -17,6 +17,7 @@ class Users(Base):
     command = Column(String)
     reservation = relationship(Reservations, backref="main_user")
     room = relationship(Rooms, backref="admin")
+    color = Column(String)
     created_at = Column(DateTime(timezone=True), server_default=func.timezone('Asia/Tehran', func.now()))
 
     def __repr__(self):

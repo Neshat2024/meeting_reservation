@@ -1,3 +1,4 @@
+import random
 from datetime import datetime as dt, timedelta
 
 from sqlalchemy.exc import SQLAlchemyError
@@ -140,7 +141,8 @@ def get_hour_buttons(call, session, bot):
             if time in reserved_hours:
                 buttons.append(btn(text="🟨", callback_data=f"who_{date}_{room}_{time}"))
             elif db_status == START or db_status == END:
-                buttons.append(get_new_buttons([db_status, time, hours, reserved_hours, get_txt(h, m), cb, call.id], bot))
+                buttons.append(
+                    get_new_buttons([db_status, time, hours, reserved_hours, get_txt(h, m), cb, call.id]))
             else:
                 buttons.append(btn(text=get_txt(h, m), callback_data=cb[0]))
             if len(buttons) == 4:
@@ -181,15 +183,10 @@ def get_hours_as_db_status(date_in_db):
     return hours
 
 
-def get_new_buttons(data, bot):
+def get_new_buttons(data):
     db_status, str_time, hours = data[0], data[1], data[2]
     reserved_hours, txt, callback, call_id = data[3], data[4], data[5], data[6]
     select_cb, remove_cb = callback[0], callback[1]
-    # for hour in hours:
-    #     if hour in reserved_hours:
-    #         bot.answer_callback_query(call_id, "Reserved times cannot be selected ⛔️", show_alert=True)
-    #         break
-    # else:
     if db_status == START and str_time in hours:
         return btn(text="▶️", callback_data=remove_cb)
     elif db_status == END and str_time == hours[0]:
@@ -241,3 +238,17 @@ def get_reservation_in_confirm(call, session):
         add_log(f"SQLAlchemyError in get_reservation_in_confirm: {e}")
     except Exception as e:
         add_log(f"Exception in get_reservation_in_confirm: {e}")
+
+
+def get_data_in_create_image(reserve, session):
+    user = session.query(Users).filter_by(id=reserve.user_id).first()
+    return user.name, reserve.date, reserve.start_time, reserve.end_time, user.color
+
+
+def generate_random_hex_color():
+    red = random.randint(0, 255)
+    green = random.randint(0, 255)
+    blue = random.randint(0, 255)
+    hex_color = "#{:02x}{:02x}{:02x}".format(red, green, blue)
+
+    return hex_color

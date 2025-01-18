@@ -6,6 +6,7 @@ from telebot import TeleBot
 from handlers.manage_room import manage_room_command_handler
 from handlers.main import start_help_handler
 from handlers.reservation import reservation_command_handler
+from handlers.set_color import set_color_for_all_users
 from handlers.view_weekly_schedule import view_weekly_schedule_command_handler
 from models.reserve_bot import init_db, SessionLocal
 from services.bot_runner import runnner
@@ -20,6 +21,7 @@ session = SessionLocal()
 init_db(bot)
 
 # Register handlers
+set_color_for_all_users(session)
 reservation_command_handler(bot, session)
 manage_room_command_handler(bot, session)
 view_weekly_schedule_command_handler(bot, session)
