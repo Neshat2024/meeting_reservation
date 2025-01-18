@@ -20,13 +20,18 @@ def check_name(message, session, bot):
     try:
         chat_id = message.chat.id
         text = check_text_in_name(message, session)
+        print(text)
         if text is None:
             bot.send_message(chat_id, "Operation cancelled!")
             return
         elif text:
-            add_name_in_db(message, session)
-            bot.send_message(chat_id, "Your name submitted successfully 👍🏻")
-            return run_user_command(message, session, bot)
+            name_set = add_name_in_db(message, session)
+            if name_set:
+                bot.send_message(chat_id, "Your name submitted successfully 👍🏻")
+                return run_user_command(message, session, bot)
+            else:
+                bot.send_message(chat_id, "This name has already been used. Please choose a different one ⛔️")
+                return process_name(message, session, bot)
         else:
             bot.send_message(chat_id, "Your name must be a string and should not contain any digits or symbols ⛔️")
             return process_name(message, session, bot)
@@ -48,8 +53,12 @@ def check_text_in_name(message, session):
 def add_name_in_db(message, session):
     try:
         user = get_user(message, session)
-        user.name = message.text
-        session.commit()
+        try:
+            user.name = message.text
+            session.commit()
+            return True
+        except SQLAlchemyError:
+            return False
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in add_name_in_db: {e}")
     except Exception as e:
