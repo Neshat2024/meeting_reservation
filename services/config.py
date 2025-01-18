@@ -29,12 +29,9 @@ def get_user(call_or_message, session):
         return session.query(Users).filter_by(chat_id=chat_id).first()
 
 
-def send_cancel_message(message, session):
+def send_cancel_message(message):
     try:
         if message.text.lower() == CANCEL:
-            user = get_user(message, session)
-            user.command = None
-            session.commit()
             return True
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in send_cancel_message: {e}")

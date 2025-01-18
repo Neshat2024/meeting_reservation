@@ -45,7 +45,7 @@ def check_room(message, session, bot):
     try:
         chat_id = str(message.chat.id)
         user = get_user(message, session)
-        text = check_text_in_room(message, session)
+        text = check_text_in_room(message)
         if text is None:
             bot.send_message(chat_id, "Operation cancelled!")
             return
@@ -65,8 +65,8 @@ def check_room(message, session, bot):
         add_log(f"Exception in check_room: {e}")
 
 
-def check_text_in_room(message, session):
-    if send_cancel_message(message, session):
+def check_text_in_room(message):
+    if send_cancel_message(message):
         return
     elif contains_no_underscore_or_at_sign(message.text):
         return True
