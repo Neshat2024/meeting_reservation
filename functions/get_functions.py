@@ -94,24 +94,33 @@ def get_room_date_as_call(call):
         add_log(f"Exception in get_room_date_as_call: {e}")
 
 
-def get_reserved_hours_as_query(reserved_times):
+def get_reserved_hours_as_query(reserved_times, from_db=None):
     reserved_hours = []
     for s_e in reserved_times:
         start, end = s_e[0], s_e[1]
         s_hour, s_min = int(start.split(":")[0]), int(start.split(":")[1])
         e_hour, e_min = int(end.split(":")[0]), int(end.split(":")[1])
-        start_time_as_min = (60 * s_hour) + s_min
-        end_time_as_min = (60 * e_hour) + e_min
+        s_time_min = (60 * s_hour) + s_min
+        e_time_min = (60 * e_hour) + e_min
         for h in range(s_hour, e_hour + 1):
             for m in range(0, 60 + 1, 15):
-                time_as_min = (60 * h) + m
-                if start_time_as_min <= time_as_min <= end_time_as_min:
+                time_min = (60 * h) + m
+                condition = get_condition([s_time_min, time_min, e_time_min], from_db)
+                if condition:
                     h_m = f"{str(h).zfill(2)}:{str(m).zfill(2)}"
                     str_hour = h_m if m != 60 else f"{str(h + 1).zfill(2)}:00"
                     reserved_hours.append(str_hour)
                 else:
                     pass
     return reserved_hours
+
+
+def get_condition(s_t_e, from_db):
+    s_time_min, time_min, e_time_min = s_t_e
+    if from_db:
+        return s_time_min <= time_min <= e_time_min
+    else:
+        return s_time_min <= time_min < e_time_min
 
 
 def get_date_in_db(call, session):
@@ -129,7 +138,7 @@ def get_date_in_db(call, session):
         add_log(f"Exception in get_date_in_db: {e}")
 
 
-def get_hour_buttons(call, session, bot):
+def get_hour_buttons(call, session):
     date_in_db, db_status = get_date_and_status(call, session)
     hours, reserved_hours = get_hours_and_reserved(call, session, date_in_db)
     room, date = get_room_date_as_call(call)
@@ -179,8 +188,28 @@ def get_hours_as_db_status(date_in_db):
         hours = [date_in_db.start_time]
     else:
         reserved_times = [(date_in_db.start_time, date_in_db.end_time)]
-        hours = get_reserved_hours_as_query(reserved_times)
+        hours = get_reserved_hours_as_query(reserved_times, True)
     return hours
+
+
+def get_reserved_hours_as_db_status(reserved_times):
+    reserved_hours = []
+    for s_e in reserved_times:
+        start, end = s_e[0], s_e[1]
+        s_hour, s_min = int(start.split(":")[0]), int(start.split(":")[1])
+        e_hour, e_min = int(end.split(":")[0]), int(end.split(":")[1])
+        start_time_as_min = (60 * s_hour) + s_min
+        end_time_as_min = (60 * e_hour) + e_min
+        for h in range(s_hour, e_hour + 1):
+            for m in range(0, 60 + 1, 15):
+                time_as_min = (60 * h) + m
+                if start_time_as_min <= time_as_min < end_time_as_min:
+                    h_m = f"{str(h).zfill(2)}:{str(m).zfill(2)}"
+                    str_hour = h_m if m != 60 else f"{str(h + 1).zfill(2)}:00"
+                    reserved_hours.append(str_hour)
+                else:
+                    pass
+    return reserved_hours
 
 
 def get_new_buttons(data):

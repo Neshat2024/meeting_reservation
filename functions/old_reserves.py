@@ -270,7 +270,7 @@ def get_hours_as_db_status_in_edit(call, session):
         hours = [reserve.start_time]
     else:
         reserved_times = [(reserve.start_time, reserve.end_time)]
-        hours = get_reserved_hours_as_query(reserved_times)
+        hours = get_reserved_hours_as_query(reserved_times, True)
     return hours
 
 
@@ -344,7 +344,7 @@ def process_start_hour_in_edit(call, session, reserve_bot):
         s_time = reserve.start_time
         s_hour, s_min = int(s_time.split(":")[0]), int(s_time.split(":")[1])
         reserved_times = [(s_time, e_time)]
-        hours = get_reserved_hours_as_query(reserved_times)
+        hours = get_reserved_hours_as_query(reserved_times, True)
         reserved_hours = get_reserved_hours_in_edit(call, session)
         for hour in hours:
             if hour in reserved_hours:

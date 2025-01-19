@@ -102,7 +102,7 @@ def process_hour_selection(call, session, bot):
         delete_status_select_end(call, session)
         room_name = get_room_name(room, session)
         txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n❓ From:'
-        key = create_hour_buttons(call, session, bot)
+        key = create_hour_buttons(call, session)
         bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
     except Exception as e:
         add_log(f"Exception in process_hour_selection: {e}")
@@ -128,9 +128,9 @@ def delete_status_select_end(call, session):
         add_log(f"Exception in delete_status_select_end: {e}")
 
 
-def create_hour_buttons(call, session, bot):
+def create_hour_buttons(call, session):
     room, date = get_room_date_as_call(call)
-    markup = get_hour_buttons(call, session, bot)
+    markup = get_hour_buttons(call, session)
     markup.add(btn(text="🟢 Confirm 🟢", callback_data=f"confirm-hours_{room}_{date}"))
     markup.add(btn(text="⬅️ Back", callback_data=f"room_{date}"))
     return markup
@@ -148,7 +148,7 @@ def process_add_time(call, session, bot):
         txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {date_in_db.start_time}\n❓ To:'
     else:
         txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {date_in_db.start_time}\n◀️ To: {str_time}'
-    key = create_hour_buttons(call, session, bot)
+    key = create_hour_buttons(call, session)
     try:
         bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
     except ApiTelegramException:
@@ -176,7 +176,7 @@ def process_start_hour(call, session, reserve_bot):
         s_time = reserve.start_time
         s_hour, s_min = int(s_time.split(":")[0]), int(s_time.split(":")[1])
         reserved_times = [(s_time, e_time)]
-        hours = get_reserved_hours_as_query(reserved_times)
+        hours = get_reserved_hours_as_query(reserved_times, True)
         reserved_hours = get_reserved_hours(call, session)
         for hour in hours:
             if hour in reserved_hours:
@@ -248,7 +248,7 @@ def process_remove_time(call, session, bot):
         else:
             delete_status_select_end(call, session)
             txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n❓ From:'
-        key = create_hour_buttons(call, session, bot)
+        key = create_hour_buttons(call, session)
         bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
     except Exception as e:
         add_log(f"Exception in process_remove_time: {e}")

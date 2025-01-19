@@ -66,24 +66,16 @@ def main_data_in_create_image():
 
 
 def get_day_positions_and_labels(today):
-    # Create a list of dates for the next 8 days starting from today (including today and the same day next week)
     dates = [today + timedelta(days=i) for i in range(8)]
-
-    # Reverse the list of dates so that today is at the top
     dates.reverse()
-
-    # Map each date to its Persian day name and formatted date
     day_positions = {}
     y_labels = []
     for i, date in enumerate(dates):
-        weekday = date.strftime("%A")  # Get the day name (e.g., "Sunday")
-        persian_day = day_in_persian[weekday]  # Get the Persian day name
-        formatted_date = date.strftime("%Y-%m-%d")  # Format the date as "YYYY-MM-DD"
-
-        # Use the formatted date as the key to ensure uniqueness
-        day_positions[formatted_date] = i  # Assign position for the day
-        y_labels.append(f"{get_display_text(persian_day)} {gregorian_to_jalali(formatted_date)}")  # Combine day name and date
-
+        weekday = date.strftime("%A")
+        persian_day = day_in_persian[weekday]
+        formatted_date = date.strftime("%Y-%m-%d")
+        day_positions[formatted_date] = i
+        y_labels.append(f"{get_display_text(persian_day)} {gregorian_to_jalali(formatted_date)}")
     return day_positions, y_labels
 
 
