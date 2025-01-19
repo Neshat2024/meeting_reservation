@@ -10,13 +10,13 @@ from services.wraps import set_command, check_name_in_db, check_admin
 
 def add_manage_room_command():
     commands.append(
-        types.BotCommand(command="/manage_rooms", description="🛠 Manage Meeting Rooms")
+        types.BotCommand(command="/admin_commands", description="🔧 Admins can manage Meeting Rooms")
     )
 
 
 def register_manage_room_command(session, bot):
-    @bot.message_handler(commands=["manage_rooms"])
-    @set_command("manage_rooms", session)
+    @bot.message_handler(commands=["admin_commands"])
+    @set_command("admin_commands", session)
     @check_admin(session, bot)
     @check_name_in_db(session, bot)
     def manage_room_command(message):
@@ -59,7 +59,7 @@ def register_handle_back_room(session, bot):
         return process_back_room(call.message, session, bot)
 
 
-def manage_room_command_handler(bot: TeleBot, session):
+def admin_commands_handler(bot: TeleBot, session):
     add_manage_room_command()
     register_manage_room_command(session, bot)
     register_handle_add_room(session, bot)

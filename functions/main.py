@@ -32,7 +32,7 @@ def process_help(message, bot):
         "🚪 Meeting Reservation Bot 🚪\n\nAvailable Commands:\n"
         "/start - Start the bot to select from menu\n"
         "/reservation - 🚪 Submit-View-Edit Meeting Reservations\n"
-        "/manage_rooms - 🛠 Manage Meeting Rooms (just admins can view-add-edit)\n"
+        "/admin_commands - 🔧 Admins can manage Meeting Rooms (view-add-edit)\n"
         "/view_weekly_schedule - 🗓 View Weekly Schedule for Meeting Rooms\n"
         "/help - ℹ️ Get help information\n"
     )
