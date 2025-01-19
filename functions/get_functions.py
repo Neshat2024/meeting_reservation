@@ -7,7 +7,7 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as btn
 from models.reservations import Reservations
 from models.rooms import Rooms
 from models.users import Users
-from services.config import DAYS_FOR_HEADERS, CONFIRMED, START, END
+from services.config import DAYS_FOR_HEADERS, CONFIRMED, FIRST, SECOND
 from services.log import add_log
 
 
@@ -68,7 +68,12 @@ def get_room_name(room_id, session):
 
 
 def get_txt(h, m):
-    return f"{h}" if m == 0 else f"{h}:{m}"
+    if m == 45:
+        return f"{h}:{m}-{h + 1}"
+    elif m == 0:
+        return f"{h}-{h}:{m + 15}"
+    else:
+        return f"{h}:{m}-{h}:{m + 15}"
 
 
 def get_reserved_hours(call, session):
@@ -117,15 +122,12 @@ def get_reserved_hours_as_query(reserved_times, from_db=None):
 
 def get_condition(s_t_e, from_db):
     s_time_min, time_min, e_time_min = s_t_e
-    if from_db:
-        return s_time_min <= time_min <= e_time_min
-    else:
-        return s_time_min <= time_min < e_time_min
+    return s_time_min <= time_min < e_time_min
 
 
 def get_date_in_db(call, session):
     try:
-        room, user_id, date, str_time = get_data_in_process_button(call, session)
+        room, user_id, date, s_time, e_time = get_data_in_process_button(call, session)
         return session.query(Reservations).filter(
             (Reservations.room_id == room) &
             (Reservations.user_id == user_id) &
@@ -142,19 +144,19 @@ def get_hour_buttons(call, session):
     date_in_db, db_status = get_date_and_status(call, session)
     hours, reserved_hours = get_hours_and_reserved(call, session, date_in_db)
     room, date = get_room_date_as_call(call)
-    markup, buttons = InlineKeyboardMarkup(row_width=4), []
+    markup, buttons = InlineKeyboardMarkup(row_width=2), []
     for h in range(8, 21):
         for m in range(0, 46, 15):
             time = f"{h:02}:{m:02}"
             cb = get_callbacks(date, room, time)
             if time in reserved_hours:
                 buttons.append(btn(text="🟨", callback_data=f"who_{date}_{room}_{time}"))
-            elif db_status == START or db_status == END:
+            elif db_status == FIRST or db_status == SECOND:
                 buttons.append(
                     get_new_buttons([db_status, time, hours, reserved_hours, get_txt(h, m), cb, call.id]))
             else:
                 buttons.append(btn(text=get_txt(h, m), callback_data=cb[0]))
-            if len(buttons) == 4:
+            if len(buttons) == 2:
                 markup.row(*buttons)
                 buttons = []
     if buttons:
@@ -184,7 +186,7 @@ def get_hours_and_reserved(call, session, date_in_db):
 
 
 def get_hours_as_db_status(date_in_db):
-    if date_in_db.status == START:
+    if date_in_db.status == FIRST:
         hours = [date_in_db.start_time]
     else:
         reserved_times = [(date_in_db.start_time, date_in_db.end_time)]
@@ -216,13 +218,13 @@ def get_new_buttons(data):
     db_status, str_time, hours = data[0], data[1], data[2]
     reserved_hours, txt, callback, call_id = data[3], data[4], data[5], data[6]
     select_cb, remove_cb = callback[0], callback[1]
-    if db_status == START and str_time in hours:
+    if db_status == FIRST and str_time in hours:
         return btn(text="▶️", callback_data=remove_cb)
-    elif db_status == END and str_time == hours[0]:
+    elif db_status == SECOND and str_time == hours[0]:
         return btn(text="▶️", callback_data=remove_cb)
-    elif db_status == END and str_time == hours[-1]:
+    elif db_status == SECOND and str_time == hours[-1]:
         return btn(text="◀️", callback_data=remove_cb)
-    elif db_status == END and str_time in hours:
+    elif db_status == SECOND and str_time in hours:
         return btn(text="✅", callback_data=select_cb)
     else:
         return btn(text=txt, callback_data=select_cb)
@@ -236,7 +238,7 @@ def get_callbacks(date, room, str_time):
 
 def get_date_query_in_add_time(call, session):
     try:
-        room, user_id, date, str_time = get_data_in_process_button(call, session)
+        room, user_id, date, s_time, e_time = get_data_in_process_button(call, session)
         return session.query(Reservations).filter_by(room_id=room, user_id=user_id, date=date).all()
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in get_date_query_in_add_time: {e}")
@@ -248,13 +250,23 @@ def get_data_in_process_button(call, session):
     try:
         chat_id = str(call.message.chat.id)
         call_list = call.data.split("_")
-        date, room, str_time = call_list[2], int(call_list[3]), call_list[4]
+        date, room, s_time = call_list[2], int(call_list[3]), call_list[4]
+        e_time = get_end_time(s_time)
         user_id = session.query(Users).filter_by(chat_id=chat_id).first().id
-        return room, user_id, date, str_time
+        return room, user_id, date, s_time, e_time
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in get_data_in_process_button: {e}")
     except Exception as e:
         add_log(f"Exception in get_data_in_process_button: {e}")
+
+
+def get_end_time(s_time):
+    s_hour, s_min = s_time.split(":")
+    s_hour, s_min = int(s_hour), int(s_min)
+    if s_min == 45:
+        return f"{str(s_hour + 1).zfill(2)}:00"
+    else:
+        return f"{str(s_hour).zfill(2)}:{str(s_min + 15).zfill(2)}"
 
 
 def get_reservation_in_confirm(call, session):
@@ -262,7 +274,12 @@ def get_reservation_in_confirm(call, session):
         room, date = get_room_date_as_call(call)
         chat_id = str(call.message.chat.id)
         user = session.query(Users).filter_by(chat_id=chat_id).first()
-        return session.query(Reservations).filter_by(user_id=user.id, room_id=room, date=date, status=END).first()
+        return session.query(Reservations).filter(
+            (Reservations.room_id == room) &
+            (Reservations.user_id == user.id) &
+            (Reservations.date == date) &
+            ((Reservations.status == FIRST) | (Reservations.status == SECOND))
+        ).first()
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in get_reservation_in_confirm: {e}")
     except Exception as e:

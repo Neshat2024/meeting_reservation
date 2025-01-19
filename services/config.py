@@ -14,7 +14,7 @@ commands = [types.BotCommand(command="/start", description="Start menu")]
 CANCEL, SELECT, REMOVE = "/cancel", "select", "remove"
 BACK_DATE, BACK_MAIN, BACK_USER = "backdate", "backmain", "backuser"
 BACK_ROOM = "backroom"
-START, END, CONFIRMED = "start", "end", "confirmed"
+FIRST, SECOND, CONFIRMED = "first", "second", "confirmed"
 DAYS_FOR_HEADERS = ["SA", "SU", "MO", "TU", "WE", "TH", "FR"]
 day_in_persian = {"Friday": "جمعه", "Thursday": "پنج‌شنبه", "Wednesday": "چهارشنبه", "Tuesday": "سه‌شنبه",
                   "Monday": "دوشنبه", "Sunday": "یکشنبه", "Saturday": "شنبه"}

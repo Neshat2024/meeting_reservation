@@ -6,11 +6,11 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as btn
 
 from functions.get_functions import get_room_name, get_room_date_as_call, create_date_buttons, get_date_in_db, \
     get_data_in_process_button, get_reservation_in_confirm, get_hour_buttons, get_date_query_in_add_time, \
-    get_reserved_hours, get_reserved_hours_as_query
+    get_reserved_hours, get_reserved_hours_as_query, get_end_time
 from models.reservations import Reservations
 from models.rooms import Rooms
 from models.users import Users
-from services.config import BACK_DATE, change_command_to_none, CONFIRMED, START, END, BACK_MAIN
+from services.config import BACK_DATE, change_command_to_none, CONFIRMED, FIRST, SECOND, BACK_MAIN
 from services.log import add_log
 
 
@@ -144,10 +144,10 @@ def process_add_time(call, session, bot):
     weekday = dt.strptime(date, "%Y-%m-%d").strftime("%A")
     process_hour_as_status(call, session, bot)
     date_in_db = get_date_in_db(call, session)
-    if date_in_db.status == START:
-        txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {date_in_db.start_time}\n❓ To:'
+    if date_in_db.status == FIRST:
+        txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {date_in_db.start_time}\n◀️ To: {date_in_db.end_time}\n(You can change the end time)'
     else:
-        txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {date_in_db.start_time}\n◀️ To: {str_time}'
+        txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {date_in_db.start_time}\n◀️ To: {date_in_db.end_time}'
     key = create_hour_buttons(call, session)
     try:
         bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
@@ -160,9 +160,9 @@ def process_add_time(call, session, bot):
 def process_hour_as_status(call, session, bot):
     reserves = get_date_query_in_add_time(call, session)
     for reserve in reserves:
-        if reserve.status == START:
+        if reserve.status == FIRST:
             return process_start_hour(call, session, [reserve, bot])
-        elif reserve.status == END:
+        elif reserve.status == SECOND:
             return process_end_hour(call, session, reserve)
     else:
         return add_new_date_to_db(call, session)
@@ -184,31 +184,16 @@ def process_start_hour(call, session, reserve_bot):
                 break
         else:
             if (60 * s_hour) + s_min < (60 * e_hour) + e_min:
-                reserve.end_time = e_time
-                reserve.status = END
+                if e_min == 45:
+                    reserve.end_time = f"{str(e_hour + 1).zfill(2)}:00"
+                else:
+                    reserve.end_time = f"{str(e_hour).zfill(2)}:{str(e_min + 15).zfill(2)}"
+                reserve.status = SECOND
                 session.commit()
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in process_start_hour: {e}")
     except Exception as e:
         add_log(f"Exception in process_start_hour: {e}")
-
-
-# def process_start_hour(call, session, reserve_bot):
-#     try:
-#         reserve, bot = reserve_bot
-#         e_time = call.data.split("_")[4]
-#         e_hour, e_min = map(int, e_time.split(":"))
-#         s_hour, s_min = map(int, reserve.start_time.split(":"))
-#         reserved_times = [(reserve.start_time, e_time)]
-#         hours = get_reserved_hours_as_query(reserved_times)
-#         if all(hour not in get_reserved_hours(call, session) for hour in hours) and (60 * s_hour + s_min) < (
-#                 60 * e_hour + e_min):
-#             reserve.end_time, reserve.status = e_time, END
-#             session.commit()
-#     except SQLAlchemyError as e:
-#         add_log(f"SQLAlchemyError in process_start_hour: {e}")
-#     except Exception as e:
-#         add_log(f"Exception in process_start_hour: {e}")
 
 
 def process_end_hour(call, session, reserve):
@@ -223,8 +208,8 @@ def process_end_hour(call, session, reserve):
 
 def add_new_date_to_db(call, session):
     try:
-        room, user_id, date, str_time = get_data_in_process_button(call, session)
-        new_date = Reservations(room_id=room, user_id=user_id, date=date, start_time=str_time, status=START)
+        room, user_id, date, s_time, e_time = get_data_in_process_button(call, session)
+        new_date = Reservations(room_id=room, user_id=user_id, date=date, start_time=s_time, end_time=e_time, status=FIRST)
         session.add(new_date)
         session.commit()
     except SQLAlchemyError as e:
@@ -236,15 +221,18 @@ def add_new_date_to_db(call, session):
 def process_remove_time(call, session, bot):
     try:
         chat_id, msg_id = str(call.message.chat.id), call.message.id
-        room, user_id, date, str_time = get_data_in_process_button(call, session)
+        room, user_id, date, selected_time, e_time = get_data_in_process_button(call, session)
         room_name = get_room_name(room, session)
         weekday = dt.strptime(date, "%Y-%m-%d").strftime("%A")
         date_in_db = get_date_in_db(call, session)
-        if str_time == date_in_db.end_time:
-            date_in_db.end_time = None
-            date_in_db.status = START
+        if selected_time == date_in_db.start_time:
+            delete_status_select_end(call, session)
+            txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n❓ From:'
+        elif get_end_time(selected_time) == date_in_db.end_time:
+            date_in_db.end_time = get_end_time(date_in_db.start_time)
+            date_in_db.status = FIRST
             session.commit()
-            txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {date_in_db.start_time}\n❓ To:'
+            txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {date_in_db.start_time}\n◀️ To: {date_in_db.end_time}\n(You can change the end time)'
         else:
             delete_status_select_end(call, session)
             txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n❓ From:'
@@ -258,7 +246,7 @@ def process_confirm_selection(call, session, bot):
     try:
         chat_id, msg_id = str(call.message.chat.id), call.message.id
         reserve = get_reservation_in_confirm(call, session)
-        if reserve:
+        if reserve.status:
             reserve.status = CONFIRMED
             session.commit()
             room_name = get_room_name(reserve.room_id, session)
@@ -301,7 +289,7 @@ def get_reserved_hours_in_who_reserved(reserved_times):
         for h in range(s_hour, e_hour + 1):
             for m in range(0, 60 + 1, 15):
                 time_as_min = (60 * h) + m
-                if start_time_as_min <= time_as_min <= end_time_as_min:
+                if start_time_as_min <= time_as_min < end_time_as_min:
                     h_m = f"{str(h).zfill(2)}:{str(m).zfill(2)}"
                     str_hour = h_m if m != 60 else f"{str(h + 1).zfill(2)}:00"
                     reserved_hours.append((str_hour, s_e[2]))
