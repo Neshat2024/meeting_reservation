@@ -2,6 +2,7 @@ import os
 from datetime import datetime as dt, timedelta
 
 import arabic_reshaper
+import jdatetime
 import matplotlib.patches as mpatches
 import matplotlib.pyplot as plt
 from bidi.algorithm import get_display
@@ -39,11 +40,11 @@ def create_image(session, room):
         today, next_week = main_data_in_create_image()
         schedule, employees = get_schedule_employees(session, room, [today, next_week])
         # تخصیص هر روز به یک موقعیت در محور y
-        day_positions = {value: i for i, (key, value) in enumerate(day_in_persian.items())}
+        day_positions, y_labels = get_day_positions_and_labels(today)
         # ایجاد شکل و محور
         fig, ax = plt.subplots(figsize=(12, 6))
         process_plot_for_employees([schedule, employees], day_positions, ax)
-        process_ax(ax, room, employees)
+        process_ax(ax, room, employees, y_labels)
         # بهبود چیدمان نمودار
         plt.tight_layout()
         # ذخیره نمودار به صورت تصویر
@@ -64,6 +65,28 @@ def main_data_in_create_image():
     return today, next_week
 
 
+def get_day_positions_and_labels(today):
+    # Create a list of dates for the next 8 days starting from today (including today and the same day next week)
+    dates = [today + timedelta(days=i) for i in range(8)]
+
+    # Reverse the list of dates so that today is at the top
+    dates.reverse()
+
+    # Map each date to its Persian day name and formatted date
+    day_positions = {}
+    y_labels = []
+    for i, date in enumerate(dates):
+        weekday = date.strftime("%A")  # Get the day name (e.g., "Sunday")
+        persian_day = day_in_persian[weekday]  # Get the Persian day name
+        formatted_date = date.strftime("%Y-%m-%d")  # Format the date as "YYYY-MM-DD"
+
+        # Use the formatted date as the key to ensure uniqueness
+        day_positions[formatted_date] = i  # Assign position for the day
+        y_labels.append(f"{get_display_text(persian_day)} {gregorian_to_jalali(formatted_date)}")  # Combine day name and date
+
+    return day_positions, y_labels
+
+
 def get_schedule_employees(session, room, today_next_week):
     try:
         today, next_week = today_next_week
@@ -75,11 +98,13 @@ def get_schedule_employees(session, room, today_next_week):
                 weekday = dt.strptime(date, "%Y-%m-%d").strftime("%A")
                 if name not in employees:
                     employees[name] = color
-                date = dt.strptime(f"{date} {start}", "%Y-%m-%d %H:%M")
-                if today <= date <= next_week and name not in schedule:
-                    schedule[name] = [(day_in_persian[weekday], start, end)]
-                elif today <= date <= next_week:
-                    schedule[name].append((day_in_persian[weekday], start, end))
+                date_obj = dt.strptime(f"{date} {start}", "%Y-%m-%d %H:%M")
+                if today <= date_obj <= next_week:
+                    persian_day = day_in_persian[weekday]
+                    if name not in schedule:
+                        schedule[name] = [(persian_day, start, end, date)]
+                    else:
+                        schedule[name].append((persian_day, start, end, date))
         return schedule, employees
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in get_schedule_employees: {e}")
@@ -97,8 +122,8 @@ def process_plot_for_employees(schedule_employees, day_positions, ax):
     schedule, employees = schedule_employees
     for employee, blocks in schedule.items():
         for block in blocks:
-            day, start, end = block
-            y = day_positions[day]
+            day, start, end, date = block
+            y = day_positions[date]  # Use the date as the key to get the correct y-position
 
             # Convert start and end times to datetime objects
             start_time = dt.strptime(start, "%H:%M")
@@ -116,31 +141,39 @@ def process_plot_for_employees(schedule_employees, day_positions, ax):
             ax.broken_barh([(start_hours, duration)], (y - 0.4, 0.8), facecolors=employees[employee])
 
 
-def process_ax(ax, room, employees):
+def process_ax(ax, room, employees, y_labels):
     font_path = './Fonts/Vazir.ttf'
     font_prop = FontProperties(fname=font_path)
-    # تنظیم محور y با نام روزها به فارسی
-    ax.set_yticks(range(len(day_in_persian)))
-    y_labels = [get_display_text(value) for key, value in day_in_persian.items()]
+
+    # تنظیم محور y با نام روزها و تاریخ به فارسی
+    ax.set_yticks(range(len(y_labels)))
     ax.set_yticklabels(y_labels, fontproperties=font_prop, fontsize=12)
+
     # تنظیم محور x با ساعت‌های روز (از ۸ تا ۲۱)
     ax.set_xlim(0, 13)  # 8 AM to 9 PM is 13 hours
+
     # Create x-axis ticks and labels for every 15 minutes
     x_ticks, x_labels = get_x_ticks_and_x_labels()
     ax.set_xticks(x_ticks)
     ax.set_xticklabels(x_labels, rotation=45, ha='right', fontsize=10)
+
     ax.set_xlabel(get_display_text('ساعت‌های روز (۸ تا ۲۱)'), fontproperties=font_prop, fontsize=14)
+
     # تنظیم محدوده محور y
-    ax.set_ylim(-0.5, len(day_in_persian) - 0.5)
+    ax.set_ylim(-0.5, len(y_labels) - 0.5)
+
     # تنظیم عنوان نمودار به فارسی
     ax.set_title(get_display_text(f'{room.name} نمودار اتاق'), fontproperties=font_prop, fontsize=16)
+
     # افزودن راهنما (Legend) برای رنگ‌های کارمندان
     legend_patches = [mpatches.Patch(color=color, label=get_display_text(employee)) for employee, color in
                       employees.items()]
     ax.legend(handles=legend_patches, title=get_display_text('کارمندان'), bbox_to_anchor=(1.05, 1), loc='upper left',
               prop=font_prop)
+
     # افزودن خطوط شبکه برای محور x
     ax.grid(True, axis='x', linestyle='--', alpha=0.5)
+
     # حذف خطوط اطراف نمودار
     for spine in ['top', 'right', 'left', 'bottom']:
         ax.spines[spine].set_visible(False)
@@ -154,3 +187,10 @@ def get_x_ticks_and_x_labels():
             x_ticks.append((hour - 8) + (minute / 60))  # Convert to hours since 8 AM
             x_labels.append(f"{hour}:{minute:02d}")  # Format as "HH:MM"
     return x_ticks, x_labels
+
+
+def gregorian_to_jalali(date_str):
+    gregorian_date = dt.strptime(date_str, '%Y-%m-%d')
+    jalali_date = jdatetime.date.fromgregorian(date=gregorian_date)
+    jalali_date_str = jalali_date.strftime('%Y/%m/%d')
+    return jalali_date_str
