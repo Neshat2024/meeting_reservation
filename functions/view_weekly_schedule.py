@@ -3,12 +3,14 @@ from datetime import datetime as dt, timedelta
 
 import arabic_reshaper
 import jdatetime
+import matplotlib
 import matplotlib.patches as mpatches
-import matplotlib.pyplot as plt
 from bidi.algorithm import get_display
 from matplotlib.font_manager import FontProperties
 from sqlalchemy.exc import SQLAlchemyError
 
+matplotlib.use('Agg')  # Set the backend to 'Agg' (non-interactive)
+import matplotlib.pyplot as plt
 from functions.get_functions import get_data_in_create_image
 from models.reservations import Reservations
 from models.rooms import Rooms
@@ -41,8 +43,8 @@ def create_image(session, room):
         schedule, employees = get_schedule_employees(session, room, [today, next_week])
         # تخصیص هر روز به یک موقعیت در محور y
         day_positions, y_labels = get_day_positions_and_labels(today)
-        # ایجاد شکل و محور
-        fig, ax = plt.subplots(figsize=(12, 6))
+        # ایجاد شکل و محور با اندازه بزرگ‌تر
+        fig, ax = plt.subplots(figsize=(18, 10))  # Increase the figure size (width, height)
         process_plot_for_employees([schedule, employees], day_positions, ax)
         process_ax(ax, room, employees, y_labels)
         # بهبود چیدمان نمودار
