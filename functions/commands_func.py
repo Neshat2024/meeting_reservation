@@ -1,9 +1,9 @@
-from functions.manage_room import process_manage_room
+from functions.admin_commands import process_admin_commands
 from functions.new_reserves import process_reservation
 from functions.view_weekly_schedule import process_view_weekly_schedule
 
 commands_dict = {
     "reservation": process_reservation,
-    "manage_rooms": process_manage_room,
-    "view": process_view_weekly_schedule,
+    "admin_commands": process_admin_commands,
+    "view": process_view_weekly_schedule
 }
