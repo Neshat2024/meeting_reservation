@@ -3,7 +3,7 @@ import os
 from dotenv import load_dotenv
 from telebot import TeleBot
 
-from handlers.manage_room import admin_commands_handler
+from handlers.admin_commands import admin_commands_handler
 from handlers.main import start_help_handler
 from handlers.reservation import reservation_command_handler
 from handlers.set_color import set_color_for_all_users
