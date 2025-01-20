@@ -3,7 +3,7 @@ from telebot import types
 
 from functions.admin_commands import process_admin_commands, process_add_room, process_update_room, \
     process_update_specific_room, \
-    process_delete_room, process_delete_specific_room, process_back_room
+    process_delete_room, process_delete_specific_room, process_back_room, process_view_users
 from services.config import commands
 from services.wraps import set_command, check_name_in_db, check_admin
 
@@ -53,6 +53,12 @@ def register_handle_delete_specific_room(session, bot):
         return process_delete_specific_room(call, session, bot)
 
 
+def register_handle_view_users(session, bot):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("view_users"))
+    def handle_view_users(call):
+        return process_view_users(call, session, bot)
+
+
 def register_handle_back_room(session, bot):
     @bot.callback_query_handler(func=lambda call: call.data.startswith("backroom"))
     def handle_back_room(call):
@@ -67,4 +73,5 @@ def admin_commands_handler(bot: TeleBot, session):
     register_handle_edit_specific_room(session, bot)
     register_handle_delete_room(session, bot)
     register_handle_delete_specific_room(session, bot)
+    register_handle_view_users(session, bot)
     register_handle_back_room(session, bot)

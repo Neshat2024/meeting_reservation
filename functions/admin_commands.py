@@ -36,7 +36,7 @@ def get_text_key_in_admin_commands(session):
         key.add(btn(text="🗑 Delete Rooms", callback_data="deleteroom"))
     else:
         txt = "No meeting room has been added yet 🙁"
-    key.add(btn(text="🔍 View All Users", callback_data="view-users"))
+    key.add(btn(text="🔍 View All Users", callback_data="view_users"))
     return txt, key
 
 
@@ -209,7 +209,7 @@ def process_delete_specific_room(call, session, bot):
         if room:
             session.delete(room)
             session.commit()
-            txt , key = get_text_key_in_admin_commands(session)
+            txt, key = get_text_key_in_admin_commands(session)
             txt = f"The Room with the name «{room.name}» deleted successfully 🗑\n" + txt
             bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
             txt_for_admins = f"🗑 This admin deleted «{room.name}» Room.\n👤 Name: {user.name}\n✍🏻 TG Username: @{user.username}"
@@ -243,6 +243,21 @@ def send_delete_message_to_reserved_users(room, session, bot):
             bot.send_message(chat_id, txt)
         except:
             pass
+
+
+def process_view_users(call, session, bot):
+    chat_id, msg_id = call.message.chat.id, call.message.id
+    users = session.query(Users).all()
+    txt = "👥 Users:\nName | TG Username\n\n"
+    for user in users:
+        if user.role:
+            txt += f"*{user.name} 👉🏻 @{user.username}\n"
+        else:
+            txt += f"{user.name} 👉🏻 @{user.username}\n"
+    key = InlineKeyboardMarkup()
+    key.add(btn(text="⬅️ Back", callback_data="backroom"))
+    txt += "\n(* before user's name means that he is admin)"
+    bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
 
 
 def process_back_room(message, session, bot):
