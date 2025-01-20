@@ -62,7 +62,7 @@ def future_date(reserve):
     str_time = f"{reserve.date} {reserve.end_time}"
     reserve_date = dt.strptime(str_time, "%Y-%m-%d %H:%M")
     current_date = dt.now()
-    return reserve_date >= current_date
+    return reserve_date > current_date
 
 
 def process_edit_reservations(call, session, bot):
@@ -314,23 +314,35 @@ def change_status_as_selection(call, session, bot):
     try:
         db_id, str_time = int(call.data.split("_")[2]), call.data.split("_")[3]
         reserve = session.query(Reservations).filter_by(id=db_id).first()
+        now = dt.now()
+        dt_time = dt.strptime(f"{reserve.date} {str_time}", "%Y-%m-%d %H:%M")
         db_status = reserve.status
-        print(db_status, str_time, reserve.start_time, reserve.end_time)
         if db_status == CONFIRMED and str_time == reserve.start_time:
             reserve.start_time, reserve.end_time = None, None
             reserve.status = None
+            session.commit()
         elif db_status == CONFIRMED and get_end_time(str_time) == reserve.end_time:
             reserve.end_time = get_end_time(reserve.start_time)
             reserve.status = FIRST
-        elif db_status == CONFIRMED and :
-            reserve.end_time = get_end_time(str_time)
-            reserve.status = SECOND
+            session.commit()
+        elif db_status == CONFIRMED and get_end_time(reserve.start_time) == reserve.end_time and dt_time > now:
+            if dt_time > dt.strptime(f"{reserve.date} {reserve.start_time}", "%Y-%m-%d %H:%M"):
+                reserve.end_time = get_end_time(str_time)
+                reserve.status = SECOND
+            else:
+                reserve.start_time, reserve.end_time = str_time, get_end_time(str_time)
+                reserve.status = FIRST
+            session.commit()
+        elif db_status == CONFIRMED and get_end_time(reserve.start_time) == reserve.end_time:
+            bot.answer_callback_query(call.id, "Only future times can be reserved ⛔️", show_alert=True)
         elif db_status == FIRST:
             process_start_hour_in_edit(call, session, [reserve, bot])
-        else:
+        elif dt_time > now:
             reserve.start_time, reserve.end_time = str_time, get_end_time(str_time)
             reserve.status = FIRST
-        session.commit()
+            session.commit()
+        else:
+            bot.answer_callback_query(call.id, "Only future times can be reserved ⛔️", show_alert=True)
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in change_status_as_selection: {e}")
     except Exception as e:

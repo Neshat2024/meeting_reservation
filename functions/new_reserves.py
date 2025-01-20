@@ -144,10 +144,12 @@ def process_add_time(call, session, bot):
     weekday = dt.strptime(date, "%Y-%m-%d").strftime("%A")
     process_hour_as_status(call, session, bot)
     date_in_db = get_date_in_db(call, session)
-    if date_in_db.status == FIRST:
+    if date_in_db and date_in_db.status == FIRST:
         txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {date_in_db.start_time}\n◀️ To: {date_in_db.end_time}\n(You can change the end time)'
-    else:
+    elif date_in_db and date_in_db.status == SECOND:
         txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {date_in_db.start_time}\n◀️ To: {date_in_db.end_time}'
+    else:
+        txt = f'📅 Date: {date} ({weekday})\n🚪 Room: {room_name}\n❓ From'
     key = create_hour_buttons(call, session)
     try:
         bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
@@ -161,16 +163,19 @@ def process_hour_as_status(call, session, bot):
     reserves = get_date_query_in_add_time(call, session)
     for reserve in reserves:
         if reserve.status == FIRST:
+            print(FIRST)
             return process_start_hour(call, session, [reserve, bot])
         elif reserve.status == SECOND:
-            return process_end_hour(call, session, reserve)
+            print(SECOND)
+            return process_end_hour(call, session, [reserve, bot])
     else:
-        return add_new_date_to_db(call, session)
+        print("else")
+        return add_new_date_to_db(call, session, bot)
 
 
 def process_start_hour(call, session, reserve_bot):
     try:
-        reserve, bot = reserve_bot[0], reserve_bot[1]
+        reserve, bot = reserve_bot
         e_time = call.data.split("_")[4]
         e_hour, e_min = int(e_time.split(":")[0]), int(e_time.split(":")[1])
         s_time = reserve.start_time
@@ -196,22 +201,35 @@ def process_start_hour(call, session, reserve_bot):
         add_log(f"Exception in process_start_hour: {e}")
 
 
-def process_end_hour(call, session, reserve):
+def process_end_hour(call, session, reserve_bot):
     try:
-        session.delete(reserve)
-        add_new_date_to_db(call, session)
+        reserve, bot = reserve_bot
+        room, user_id, date, selected_time, e_time = get_data_in_process_button(call, session)
+        now_time = dt.now()
+        dt_time = dt.strptime(f"{date} {selected_time}", "%Y-%m-%d %H:%M")
+        if dt_time > now_time:
+            session.delete(reserve)
+            add_new_date_to_db(call, session, bot)
+        else:
+            bot.answer_callback_query(call.id, "Only future times can be reserved ⛔️", show_alert=True)
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in process_end_hour: {e}")
     except Exception as e:
         add_log(f"Exception in process_end_hour: {e}")
 
 
-def add_new_date_to_db(call, session):
+def add_new_date_to_db(call, session, bot):
     try:
-        room, user_id, date, s_time, e_time = get_data_in_process_button(call, session)
-        new_date = Reservations(room_id=room, user_id=user_id, date=date, start_time=s_time, end_time=e_time, status=FIRST)
-        session.add(new_date)
-        session.commit()
+        room, user_id, date, selected_time, e_time = get_data_in_process_button(call, session)
+        now_time = dt.now()
+        dt_time = dt.strptime(f"{date} {selected_time}", "%Y-%m-%d %H:%M")
+        if dt_time > now_time:
+            new_date = Reservations(room_id=room, user_id=user_id, date=date, start_time=selected_time, end_time=e_time,
+                                    status=FIRST)
+            session.add(new_date)
+            session.commit()
+        else:
+            bot.answer_callback_query(call.id, "Only future times can be reserved ⛔️", show_alert=True)
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in add_new_date_to_db: {e}")
     except Exception as e:
@@ -246,7 +264,7 @@ def process_confirm_selection(call, session, bot):
     try:
         chat_id, msg_id = str(call.message.chat.id), call.message.id
         reserve = get_reservation_in_confirm(call, session)
-        if reserve.status:
+        if reserve and reserve.status:
             reserve.status = CONFIRMED
             session.commit()
             room_name = get_room_name(reserve.room_id, session)
