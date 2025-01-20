@@ -118,19 +118,15 @@ def process_plot_for_employees(schedule_employees, day_positions, ax):
         for block in blocks:
             day, start, end, date = block
             y = day_positions[date]  # Use the date as the key to get the correct y-position
-
             # Convert start and end times to datetime objects
             start_time = dt.strptime(start, "%H:%M")
             end_time = dt.strptime(end, "%H:%M")
-
             # Calculate the duration in hours
             reference_time = dt.strptime("08:00", "%H:%M")  # Reference time is 8:00 AM
             start_hours = (start_time - reference_time).seconds / 3600
             end_hours = (end_time - reference_time).seconds / 3600
-
             # Calculate the duration
             duration = end_hours - start_hours
-
             # Plot the bar
             ax.broken_barh([(start_hours, duration)], (y - 0.4, 0.8), facecolors=employees[employee])
 
@@ -138,36 +134,27 @@ def process_plot_for_employees(schedule_employees, day_positions, ax):
 def process_ax(ax, room, employees, y_labels):
     font_path = './Fonts/Vazir.ttf'
     font_prop = FontProperties(fname=font_path)
-
     # تنظیم محور y با نام روزها و تاریخ به فارسی
     ax.set_yticks(range(len(y_labels)))
     ax.set_yticklabels(y_labels, fontproperties=font_prop, fontsize=12)
-
     # تنظیم محور x با ساعت‌های روز (از ۸ تا ۲۱)
     ax.set_xlim(0, 13)  # 8 AM to 9 PM is 13 hours
-
     # Create x-axis ticks and labels for every 15 minutes
     x_ticks, x_labels = get_x_ticks_and_x_labels()
     ax.set_xticks(x_ticks)
     ax.set_xticklabels(x_labels, rotation=45, ha='right', fontsize=10)
-
     ax.set_xlabel(get_display_text('ساعت‌های روز (۸ تا ۲۱)'), fontproperties=font_prop, fontsize=14)
-
     # تنظیم محدوده محور y
     ax.set_ylim(-0.5, len(y_labels) - 0.5)
-
     # تنظیم عنوان نمودار به فارسی
-    ax.set_title(get_display_text(f'{room.name} نمودار اتاق'), fontproperties=font_prop, fontsize=16)
-
+    ax.set_title(get_display_text(room.name), fontproperties=font_prop, fontsize=16)
     # افزودن راهنما (Legend) برای رنگ‌های کارمندان
     legend_patches = [mpatches.Patch(color=color, label=get_display_text(employee)) for employee, color in
                       employees.items()]
     ax.legend(handles=legend_patches, title=get_display_text('کارمندان'), bbox_to_anchor=(1.05, 1), loc='upper left',
               prop=font_prop)
-
     # افزودن خطوط شبکه برای محور x
     ax.grid(True, axis='x', linestyle='--', alpha=0.5)
-
     # حذف خطوط اطراف نمودار
     for spine in ['top', 'right', 'left', 'bottom']:
         ax.spines[spine].set_visible(False)
