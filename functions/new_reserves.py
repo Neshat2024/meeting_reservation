@@ -6,7 +6,8 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as btn
 
 from functions.get_functions import get_room_name, get_room_date_as_call, create_date_buttons, get_date_in_db, \
     get_data_in_process_button, get_reservation_in_confirm, get_hour_buttons, get_date_query_in_add_time, \
-    get_reserved_hours, get_reserved_hours_as_query, get_end_time
+    get_reserved_hours, get_reserved_hours_as_query, get_end_time, set_end_time_in_process_start, \
+    get_second_data_in_start
 from models.reservations import Reservations
 from models.rooms import Rooms
 from models.users import Users
@@ -163,38 +164,30 @@ def process_hour_as_status(call, session, bot):
     reserves = get_date_query_in_add_time(call, session)
     for reserve in reserves:
         if reserve.status == FIRST:
-            print(FIRST)
             return process_start_hour(call, session, [reserve, bot])
         elif reserve.status == SECOND:
-            print(SECOND)
             return process_end_hour(call, session, [reserve, bot])
     else:
-        print("else")
         return add_new_date_to_db(call, session, bot)
 
 
 def process_start_hour(call, session, reserve_bot):
     try:
         reserve, bot = reserve_bot
-        e_time = call.data.split("_")[4]
-        e_hour, e_min = int(e_time.split(":")[0]), int(e_time.split(":")[1])
-        s_time = reserve.start_time
-        s_hour, s_min = int(s_time.split(":")[0]), int(s_time.split(":")[1])
-        reserved_times = [(s_time, e_time)]
-        hours = get_reserved_hours_as_query(reserved_times, True)
-        reserved_hours = get_reserved_hours(call, session)
+        hours, reserved_hours = get_start_hour_data_one(call, session, reserve)
         for hour in hours:
             if hour in reserved_hours:
                 bot.answer_callback_query(call.id, "Reserved times can't be selected ⛔️", show_alert=True)
                 break
         else:
-            if (60 * s_hour) + s_min < (60 * e_hour) + e_min:
-                if e_min == 45:
-                    reserve.end_time = f"{str(e_hour + 1).zfill(2)}:00"
-                else:
-                    reserve.end_time = f"{str(e_hour).zfill(2)}:{str(e_min + 15).zfill(2)}"
+            s_in_min, e_in_min, e_min, e_hour, ok_duration, is_admin = get_second_data_in_start(
+                [call.data.split("_")[4], call], session, reserve)
+            if s_in_min < e_in_min and (ok_duration or is_admin):
+                set_end_time_in_process_start(e_min, e_hour, reserve)
                 reserve.status = SECOND
                 session.commit()
+            elif s_in_min < e_in_min:
+                bot.answer_callback_query(call.id, "The duration must be less than 4 hours ⛔️", show_alert=True)
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in process_start_hour: {e}")
     except Exception as e:
@@ -206,7 +199,7 @@ def process_end_hour(call, session, reserve_bot):
         reserve, bot = reserve_bot
         room, user_id, date, selected_time, e_time = get_data_in_process_button(call, session)
         now_time = dt.now()
-        dt_time = dt.strptime(f"{date} {selected_time}", "%Y-%m-%d %H:%M")
+        dt_time = dt.strptime(f"{date} {get_end_time(selected_time)}", "%Y-%m-%d %H:%M")
         if dt_time > now_time:
             session.delete(reserve)
             add_new_date_to_db(call, session, bot)
@@ -222,7 +215,7 @@ def add_new_date_to_db(call, session, bot):
     try:
         room, user_id, date, selected_time, e_time = get_data_in_process_button(call, session)
         now_time = dt.now()
-        dt_time = dt.strptime(f"{date} {selected_time}", "%Y-%m-%d %H:%M")
+        dt_time = dt.strptime(f"{date} {get_end_time(selected_time)}", "%Y-%m-%d %H:%M")
         if dt_time > now_time:
             new_date = Reservations(room_id=room, user_id=user_id, date=date, start_time=selected_time, end_time=e_time,
                                     status=FIRST)
@@ -234,6 +227,15 @@ def add_new_date_to_db(call, session, bot):
         add_log(f"SQLAlchemyError in add_new_date_to_db: {e}")
     except Exception as e:
         add_log(f"Exception in add_new_date_to_db: {e}")
+
+
+def get_start_hour_data_one(call, session, reserve):
+    e_time = call.data.split("_")[4]
+    s_time = reserve.start_time
+    reserved_times = [(s_time, e_time)]
+    hours = get_reserved_hours_as_query(reserved_times)
+    reserved_hours = get_reserved_hours(call, session)
+    return hours, reserved_hours
 
 
 def process_remove_time(call, session, bot):

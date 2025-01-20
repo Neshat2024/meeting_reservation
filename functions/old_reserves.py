@@ -5,7 +5,8 @@ from telebot.apihelper import ApiTelegramException
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as btn
 
 from functions.get_functions import get_room_name, get_start_end_week_date, add_free_buttons, \
-    get_reserved_hours_as_query, get_txt, get_end_time
+    get_reserved_hours_as_query, get_txt, get_end_time, admins, calc_duration, get_second_data_in_start, \
+    set_end_time_in_process_start, future_date
 from models.reservations import Reservations
 from models.rooms import Rooms
 from models.users import Users
@@ -56,13 +57,6 @@ def process_future_reservations(call, session, bot):
         bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=markup)
     except Exception as e:
         add_log(f"Exception in process_future_reservations: {e}")
-
-
-def future_date(reserve):
-    str_time = f"{reserve.date} {reserve.end_time}"
-    reserve_date = dt.strptime(str_time, "%Y-%m-%d %H:%M")
-    current_date = dt.now()
-    return reserve_date > current_date
 
 
 def process_edit_reservations(call, session, bot):
@@ -270,7 +264,7 @@ def get_hours_as_db_status_in_edit(call, session):
         hours = [reserve.start_time]
     else:
         reserved_times = [(reserve.start_time, reserve.end_time)]
-        hours = get_reserved_hours_as_query(reserved_times, True)
+        hours = get_reserved_hours_as_query(reserved_times)
     return hours
 
 
@@ -314,26 +308,37 @@ def change_status_as_selection(call, session, bot):
     try:
         db_id, str_time = int(call.data.split("_")[2]), call.data.split("_")[3]
         reserve = session.query(Reservations).filter_by(id=db_id).first()
+        s_time, e_time = reserve.start_time, reserve.end_time
         now = dt.now()
         dt_time = dt.strptime(f"{reserve.date} {str_time}", "%Y-%m-%d %H:%M")
         db_status = reserve.status
-        if db_status == CONFIRMED and str_time == reserve.start_time:
+        if db_status == CONFIRMED and str_time == s_time:
             reserve.start_time, reserve.end_time = None, None
             reserve.status = None
             session.commit()
-        elif db_status == CONFIRMED and get_end_time(str_time) == reserve.end_time:
-            reserve.end_time = get_end_time(reserve.start_time)
+        elif db_status == CONFIRMED and get_end_time(str_time) == e_time:
+            reserve.end_time = get_end_time(s_time)
             reserve.status = FIRST
             session.commit()
-        elif db_status == CONFIRMED and get_end_time(reserve.start_time) == reserve.end_time and dt_time > now:
-            if dt_time > dt.strptime(f"{reserve.date} {reserve.start_time}", "%Y-%m-%d %H:%M"):
+        elif db_status == CONFIRMED and get_end_time(s_time) == e_time and dt_time > now:
+            s_in_min = int(s_time.split(":")[0]) * 60 + int(s_time.split(":")[1])
+            e_in_min = int(e_time.split(":")[0]) * 60 + int(e_time.split(":")[1])
+            s_dt = dt.strptime(f"{reserve.date} {s_time}", "%Y-%m-%d %H:%M")
+            chat_id = str(call.message.chat.id)
+            user = session.query(Users).filter_by(chat_id=chat_id).first()
+            is_admin = True if user.username in admins else False
+            ok_duration = calc_duration(s_in_min, e_in_min)
+            if dt_time > s_dt and (ok_duration or is_admin):
                 reserve.end_time = get_end_time(str_time)
                 reserve.status = SECOND
-            else:
-                reserve.start_time, reserve.end_time = str_time, get_end_time(str_time)
+                session.commit()
+            elif dt_time < s_dt:
+                reserve.s_time, reserve.end_time = str_time, get_end_time(str_time)
                 reserve.status = FIRST
-            session.commit()
-        elif db_status == CONFIRMED and get_end_time(reserve.start_time) == reserve.end_time:
+                session.commit()
+            else:
+                bot.answer_callback_query(call.id, "The duration must be less than 4 hours ⛔️", show_alert=True)
+        elif db_status == CONFIRMED and get_end_time(s_time) == e_time:
             bot.answer_callback_query(call.id, "Only future times can be reserved ⛔️", show_alert=True)
         elif db_status == FIRST:
             process_start_hour_in_edit(call, session, [reserve, bot])
@@ -352,29 +357,33 @@ def change_status_as_selection(call, session, bot):
 def process_start_hour_in_edit(call, session, reserve_bot):
     try:
         reserve, bot = reserve_bot
-        e_time = call.data.split("_")[3]
-        e_hour, e_min = int(e_time.split(":")[0]), int(e_time.split(":")[1])
-        s_time = reserve.start_time
-        s_hour, s_min = int(s_time.split(":")[0]), int(s_time.split(":")[1])
-        reserved_times = [(s_time, e_time)]
-        hours = get_reserved_hours_as_query(reserved_times, True)
-        reserved_hours = get_reserved_hours_in_edit(call, session)
+        hours, reserved_hours = get_start_in_edit_data_one(call, session, reserve)
         for hour in hours:
             if hour in reserved_hours:
                 bot.answer_callback_query(call.id, "Reserved times can't be selected ⛔️", show_alert=True)
                 break
         else:
-            if (60 * s_hour) + s_min < (60 * e_hour) + e_min:
-                if e_min == 45:
-                    reserve.end_time = f"{str(e_hour + 1).zfill(2)}:00"
-                else:
-                    reserve.end_time = f"{str(e_hour).zfill(2)}:{str(e_min + 15).zfill(2)}"
+            s_in_min, e_in_min, e_min, e_hour, ok_duration, is_admin = get_second_data_in_start(
+                [call.data.split("_")[3], call], session, reserve)
+            if s_in_min < e_in_min and (ok_duration or is_admin):
+                set_end_time_in_process_start(e_min, e_hour, reserve)
                 reserve.status = SECOND
                 session.commit()
+            elif s_in_min < e_in_min:
+                bot.answer_callback_query(call.id, "The duration must be less than 4 hours ⛔️", show_alert=True)
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in process_start_hour_in_edit: {e}")
     except Exception as e:
         add_log(f"Exception in process_start_hour_in_edit: {e}")
+
+
+def get_start_in_edit_data_one(call, session, reserve):
+    e_time = call.data.split("_")[3]
+    s_time = reserve.start_time
+    reserved_times = [(s_time, e_time)]
+    hours = get_reserved_hours_as_query(reserved_times)
+    reserved_hours = get_reserved_hours_in_edit(call, session)
+    return hours, reserved_hours
 
 
 def process_remove_time_in_edit(call, session, bot):
@@ -384,6 +393,7 @@ def process_remove_time_in_edit(call, session, bot):
         reserve = session.query(Reservations).filter_by(id=db_id).first()
         room_name = get_room_name(reserve.room_id, session)
         weekday = dt.strptime(reserve.date, "%Y-%m-%d").strftime("%A")
+        txt = None
         if selected_time == reserve.start_time:
             reserve.start_time, reserve.end_time = None, None
             reserve.status = None

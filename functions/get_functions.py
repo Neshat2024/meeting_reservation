@@ -1,6 +1,8 @@
+import os
 import random
 from datetime import datetime as dt, timedelta
 
+from dotenv import load_dotenv
 from sqlalchemy.exc import SQLAlchemyError
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as btn
 
@@ -9,6 +11,9 @@ from models.rooms import Rooms
 from models.users import Users
 from services.config import DAYS_FOR_HEADERS, CONFIRMED, FIRST, SECOND
 from services.log import add_log
+
+load_dotenv()
+admins = os.getenv("ADMINS").split("-")
 
 
 def create_date_buttons():
@@ -59,8 +64,13 @@ def add_free_buttons(row, markup):
 
 def get_room_name(room_id, session):
     try:
-        room = session.query(Rooms).filter_by(id=room_id).first()
-        return room.name
+        try:
+            room_id = int(room_id)
+            room = session.query(Rooms).filter_by(id=room_id).first()
+            if room:
+                return room.name
+        except ValueError:
+            return room_id
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in get_room_name: {e}")
     except Exception as e:
@@ -91,15 +101,15 @@ def get_room_date_as_call(call):
     try:
         call_list = call.data.split("_")
         if len(call_list) > 3:
-            room, date = int(call_list[3]), call_list[2]
+            room, date = call_list[3], call_list[2]
         else:
-            room, date = int(call_list[1]), call_list[2]
+            room, date = call_list[1], call_list[2]
         return room, date
     except Exception as e:
         add_log(f"Exception in get_room_date_as_call: {e}")
 
 
-def get_reserved_hours_as_query(reserved_times, from_db=None):
+def get_reserved_hours_as_query(reserved_times):
     reserved_hours = []
     for s_e in reserved_times:
         start, end = s_e[0], s_e[1]
@@ -110,7 +120,7 @@ def get_reserved_hours_as_query(reserved_times, from_db=None):
         for h in range(s_hour, e_hour + 1):
             for m in range(0, 60 + 1, 15):
                 time_min = (60 * h) + m
-                condition = get_condition([s_time_min, time_min, e_time_min], from_db)
+                condition = get_condition([s_time_min, time_min, e_time_min])
                 if condition:
                     h_m = f"{str(h).zfill(2)}:{str(m).zfill(2)}"
                     str_hour = h_m if m != 60 else f"{str(h + 1).zfill(2)}:00"
@@ -120,7 +130,7 @@ def get_reserved_hours_as_query(reserved_times, from_db=None):
     return reserved_hours
 
 
-def get_condition(s_t_e, from_db):
+def get_condition(s_t_e):
     s_time_min, time_min, e_time_min = s_t_e
     return s_time_min <= time_min < e_time_min
 
@@ -190,7 +200,7 @@ def get_hours_as_db_status(date_in_db):
         hours = [date_in_db.start_time]
     else:
         reserved_times = [(date_in_db.start_time, date_in_db.end_time)]
-        hours = get_reserved_hours_as_query(reserved_times, True)
+        hours = get_reserved_hours_as_query(reserved_times)
     return hours
 
 
@@ -250,7 +260,7 @@ def get_data_in_process_button(call, session):
     try:
         chat_id = str(call.message.chat.id)
         call_list = call.data.split("_")
-        date, room, s_time = call_list[2], int(call_list[3]), call_list[4]
+        date, room, s_time = call_list[2], call_list[3], call_list[4]
         e_time = get_end_time(s_time)
         user_id = session.query(Users).filter_by(chat_id=chat_id).first().id
         return room, user_id, date, s_time, e_time
@@ -298,3 +308,37 @@ def generate_random_hex_color():
     hex_color = "#{:02x}{:02x}{:02x}".format(red, green, blue)
 
     return hex_color
+
+
+def set_end_time_in_process_start(e_min, e_hour, reserve):
+    if e_min == 45:
+        reserve.end_time = f"{str(e_hour + 1).zfill(2)}:00"
+    else:
+        reserve.end_time = f"{str(e_hour).zfill(2)}:{str(e_min + 15).zfill(2)}"
+
+
+def calc_duration(s_in_min, e_in_min):
+    if e_in_min - s_in_min < 240:
+        return True
+    else:
+        return False
+
+
+def get_second_data_in_start(e_time_call, session, reserve):
+    e_time, call = e_time_call
+    e_hour, e_min = int(e_time.split(":")[0]), int(e_time.split(":")[1])
+    s_time = reserve.start_time
+    s_hour, s_min = int(s_time.split(":")[0]), int(s_time.split(":")[1])
+    chat_id = str(call.message.chat.id)
+    user = session.query(Users).filter_by(chat_id=chat_id).first()
+    is_admin = True if user.username in admins else False
+    s_in_min, e_in_min = (60 * s_hour) + s_min, (60 * e_hour) + e_min
+    ok_duration = calc_duration(s_in_min, e_in_min)
+    return s_in_min, e_in_min, e_min, e_hour, ok_duration, is_admin
+
+
+def future_date(reserve):
+    end_time = f"{reserve.date} {reserve.end_time}"
+    reserve_date = dt.strptime(end_time, "%Y-%m-%d %H:%M")
+    current_date = dt.now()
+    return reserve_date > current_date
