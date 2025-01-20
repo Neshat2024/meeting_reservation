@@ -7,7 +7,7 @@ from models.reserve_bot import Base
 class Reservations(Base):
     __tablename__ = "reservations"
     id = Column(Integer, primary_key=True, index=True)
-    room_id = Column(Integer)
+    room_id = Column(String)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     date = Column(String)
     start_time = Column(String)
