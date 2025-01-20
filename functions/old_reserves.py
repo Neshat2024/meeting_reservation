@@ -333,7 +333,7 @@ def change_status_as_selection(call, session, bot):
                 reserve.status = SECOND
                 session.commit()
             elif dt_time < s_dt:
-                reserve.s_time, reserve.end_time = str_time, get_end_time(str_time)
+                reserve.start_time, reserve.end_time = str_time, get_end_time(str_time)
                 reserve.status = FIRST
                 session.commit()
             else:
