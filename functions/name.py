@@ -2,6 +2,7 @@ import re
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from functions.run_command import run_user_command
 from models.users import Users
 from services.config import get_user, send_cancel_message
 from services.log import add_log
@@ -28,7 +29,7 @@ def check_name(message, session, bot):
             if not name_exists:
                 add_name_in_db(message, session)
                 bot.send_message(chat_id, "Your name submitted successfully 👍🏻")
-                # return run_user_command(message, session, bot)
+                return run_user_command(message, session, bot)
             else:
                 bot.send_message(chat_id, "This name has already been used. Please choose a different one ⛔️")
                 return process_name(message, session, bot)
