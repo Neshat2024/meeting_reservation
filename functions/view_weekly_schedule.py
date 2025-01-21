@@ -20,6 +20,9 @@ from models.reservations import Reservations
 from models.rooms import Rooms
 from services.config import CONFIRMED, day_in_persian, change_command_to_none
 from services.log import add_log
+import pytz
+
+tehran_tz = pytz.timezone("Asia/Tehran")
 
 
 def process_view_schedule(call_message, session, bot):
@@ -62,7 +65,7 @@ def process_view_today_schedule(call, session, bot):
 
 def create_image_for_today(session, room):
     try:
-        today = dt.now()
+        today = dt.now(tehran_tz)
         today = dt(year=today.year, month=today.month, day=today.day)
         tomorrow = today + timedelta(days=1)
         schedule, employees = get_schedule_employees(session, room, [today, tomorrow])
@@ -198,7 +201,7 @@ def create_image(session, room):
 
 
 def main_data_in_create_image():
-    today = dt.now()
+    today = dt.now(tehran_tz)
     today = dt(year=today.year, month=today.month, day=today.day)
     next_week = today + timedelta(days=7)
     next_week = dt(year=next_week.year, month=next_week.month, day=next_week.day, hour=23)
@@ -221,7 +224,7 @@ def get_day_positions_and_labels(today):
 
 def get_schedule_employees(session, room, today_next_week):
     try:
-        today, next_week = today_next_week
+        today, end_date = today_next_week
         employees, schedule = {}, {}
         reserves = session.query(Reservations).filter_by(status=CONFIRMED).all()
         for reserve in reserves:
@@ -231,7 +234,7 @@ def get_schedule_employees(session, room, today_next_week):
                 if name not in employees:
                     employees[name] = color
                 date_obj = dt.strptime(f"{date} {start}", "%Y-%m-%d %H:%M")
-                if today <= date_obj <= next_week:
+                if today <= date_obj <= end_date:
                     persian_day = day_in_persian[weekday]
                     if name not in schedule:
                         schedule[name] = [(persian_day, start, end, date)]

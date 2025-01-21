@@ -1,5 +1,6 @@
 from datetime import datetime as dt, timedelta
 
+import pytz
 from sqlalchemy.exc import SQLAlchemyError
 from telebot.apihelper import ApiTelegramException
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as btn
@@ -12,6 +13,8 @@ from models.rooms import Rooms
 from models.users import Users
 from services.config import change_command_to_none, CONFIRMED, BACK_USER, FIRST, SECOND
 from services.log import add_log
+
+tehran_tz = pytz.timezone("Asia/Tehran")
 
 
 def process_user_reservations(call, session, bot):
@@ -309,7 +312,7 @@ def change_status_as_selection(call, session, bot):
         db_id, str_time = int(call.data.split("_")[2]), call.data.split("_")[3]
         reserve = session.query(Reservations).filter_by(id=db_id).first()
         s_time, e_time = reserve.start_time, reserve.end_time
-        now = dt.now()
+        now = dt.now(tehran_tz)
         dt_time = dt.strptime(f"{reserve.date} {str_time}", "%Y-%m-%d %H:%M")
         db_status = reserve.status
         if db_status == CONFIRMED and str_time == s_time:

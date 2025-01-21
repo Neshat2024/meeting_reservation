@@ -2,6 +2,7 @@ import os
 import random
 from datetime import datetime as dt, timedelta
 
+import pytz
 from dotenv import load_dotenv
 from sqlalchemy.exc import SQLAlchemyError
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as btn
@@ -12,6 +13,7 @@ from models.users import Users
 from services.config import DAYS_FOR_HEADERS, CONFIRMED, FIRST, SECOND
 from services.log import add_log
 
+tehran_tz = pytz.timezone("Asia/Tehran")
 load_dotenv()
 admins = os.getenv("ADMINS").split("-")
 
@@ -24,7 +26,7 @@ def create_date_buttons(first_cb):
 
 def get_start_end_week_date():
     days_of_week = DAYS_FOR_HEADERS
-    start_date = dt.now()
+    start_date = dt.now(tehran_tz)
     end_date = start_date + timedelta(days=7)
     return start_date, end_date, days_of_week
 
@@ -339,5 +341,5 @@ def get_second_data_in_start(e_time_call, session, reserve):
 def future_date(reserve):
     end_time = f"{reserve.date} {reserve.end_time}"
     reserve_date = dt.strptime(end_time, "%Y-%m-%d %H:%M")
-    current_date = dt.now()
+    current_date = dt.now(tehran_tz)
     return reserve_date > current_date
