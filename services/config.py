@@ -1,4 +1,5 @@
 import os
+import re
 
 from dotenv import load_dotenv
 from sqlalchemy.exc import SQLAlchemyError
@@ -18,6 +19,7 @@ FIRST, SECOND, CONFIRMED = "first", "second", "confirmed"
 DAYS_FOR_HEADERS = ["SA", "SU", "MO", "TU", "WE", "TH", "FR"]
 day_in_persian = {"Friday": "جمعه", "Thursday": "پنج‌شنبه", "Wednesday": "چهارشنبه", "Tuesday": "سه‌شنبه",
                   "Monday": "دوشنبه", "Sunday": "یکشنبه", "Saturday": "شنبه"}
+ONE, TWO, THREE = 1, 2, 3
 
 
 def get_user(call_or_message, session):
@@ -37,6 +39,22 @@ def send_cancel_message(message):
         add_log(f"SQLAlchemyError in send_cancel_message: {e}")
     except Exception as e:
         add_log(f"Exception in send_cancel_message: {e}")
+
+
+def check_text_in_name(message):
+    if send_cancel_message(message):
+        return
+    elif contains_only_letters(message.text):
+        return True
+    else:
+        return False
+
+
+def contains_only_letters(text):
+    pattern = r'^[a-zA-Z\u0600-\u06FF\s]+$'
+    if re.match(pattern, text):
+        return True
+    return False
 
 
 def add_user(message, session):
