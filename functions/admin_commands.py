@@ -267,7 +267,7 @@ def process_edit_users_name(call, session, bot):
     txt = "✏️ Please select the user whose name you want to edit:"
     key, buttons = InlineKeyboardMarkup(row_width=2), []
     for user in users:
-        buttons.append(btn(text=user.name, callback_data=f"e_name_{user.id}"))
+        buttons.append(btn(text=f"{user.name}", callback_data=f"e_name_{user.id}"))
         if len(buttons) == 2:
             key.row(*buttons)
             buttons = []
