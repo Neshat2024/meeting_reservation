@@ -87,7 +87,7 @@ def get_schedule_employees(session, room, today_next_week):
         employees, schedule = {}, {}
         reserves = session.query(Reservations).filter_by(status=CONFIRMED).all()
         for reserve in reserves:
-            if reserve.room_id == room.id:
+            if str(reserve.room_id) == str(room.id):
                 name, date, start, end, color = get_data_in_create_image(reserve, session)
                 weekday = dt.strptime(date, "%Y-%m-%d").strftime("%A")
                 if name not in employees:
@@ -114,6 +114,7 @@ def get_display_text(text):
 
 def process_plot_for_employees(schedule_employees, day_positions, ax):
     schedule, employees = schedule_employees
+    print(schedule)
     for employee, blocks in schedule.items():
         for block in blocks:
             day, start, end, date = block
