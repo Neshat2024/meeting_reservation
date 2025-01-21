@@ -8,7 +8,7 @@ from models.reservations import Reservations
 from models.rooms import Rooms
 from models.users import Users
 from services.config import get_user, send_cancel_message, telegram_api_exception, set_command_in_wraps, BACK_ROOM, \
-    change_command_to_none, CONFIRMED
+    change_command_to_none, CONFIRMED, check_text_in_name, ONE, TWO, THREE
 from services.log import add_log
 
 
@@ -254,10 +254,88 @@ def process_view_users(call, session, bot):
             txt += f"*{user.name} 👉🏻 @{user.username}\n"
         else:
             txt += f"{user.name} 👉🏻 @{user.username}\n"
-    key = InlineKeyboardMarkup()
-    key.add(btn(text="⬅️ Back", callback_data="backroom"))
     txt += "\n(* before user's name means that he is admin)"
+    key = InlineKeyboardMarkup()
+    key.add(btn(text="✏️ Edit Name", callback_data="editname"))
+    key.add(btn(text="⬅️ Back", callback_data="backroom"))
     bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
+
+
+def process_edit_users_name(call, session, bot):
+    chat_id, msg_id = call.message.chat.id, call.message.id
+    users = session.query(Users).all()
+    txt = "✏️ Please select the user whose name you want to edit:"
+    key, buttons = InlineKeyboardMarkup(row_width=2), []
+    for user in users:
+        buttons.append(btn(text=user.name, callback_data=f"e_name_{user.id}"))
+        if len(buttons) == 2:
+            key.row(*buttons)
+            buttons = []
+    if buttons:
+        key.row(*buttons)
+    key.add(btn(text="⬅️ Back", callback_data="back-view"))
+    bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
+
+
+def process_edit_specific_name(call, session, bot):
+    db_id = int(call.data.split("_")[2])
+    selected_user = session.query(Users).filter_by(id=db_id).first()
+    chat_id, msg_id = call.message.chat.id, call.message.id
+    txt = f"Enter the New Name for @{selected_user.username}:\n\nIf you want to cancel the operation tap on /cancel"
+    bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt)
+    bot.register_next_step_handler(call.message, change_name, session, [selected_user, bot])
+
+
+def change_name(message, session, user_bot):
+    try:
+        selected_user, bot = user_bot
+        chat_id = message.chat.id
+        text = check_text_in_name(message)
+        if text is None:
+            txt, key = get_text_key_in_change_name(1)
+        elif text:
+            name_exists = session.query(Users).filter_by(name=message.text).first()
+            if not name_exists:
+                add_new_name_in_db(selected_user, message, session)
+                txt, key = get_text_key_in_change_name(2, selected_user)
+            else:
+                txt, key = get_text_key_in_change_name(3, selected_user)
+        else:
+            txt, key = get_text_key_in_change_name(4, selected_user)
+        bot.send_message(chat_id=chat_id, text=txt, reply_markup=key)
+    except SQLAlchemyError as e:
+        add_log(f"SQLAlchemyError in change_name: {e}")
+    except Exception as e:
+        add_log(f"Exception in change_name: {e}")
+
+
+def get_text_key_in_change_name(num, selected_user=None):
+    key = InlineKeyboardMarkup()
+    if num == ONE:
+        txt = "Operation cancelled!"
+        key.add(btn(text="⬅️ Back", callback_data="back-users-view"))
+    elif num == TWO:
+        txt = f"🔄 The name for @{selected_user.username} updated to «{selected_user.name}» successfully 👍🏻"
+        key.add(btn(text="⬅️ Back", callback_data="back-view"))
+    elif num == THREE:
+        txt = "This name has already been used. Please choose a different one ⛔️"
+        key.add(btn(text="🆕 Retry", callback_data=f"e_name_{selected_user.id}"))
+        key.add(btn(text="⬅️ Back", callback_data="back-users-view"))
+    else:
+        txt = "Your name must be a string and should not contain any digits or symbols ⛔️"
+        key.add(btn(text="🆕 Retry", callback_data=f"e_name_{selected_user.id}"))
+        key.add(btn(text="⬅️ Back", callback_data="back-users-view"))
+    return txt, key
+
+
+def add_new_name_in_db(selected_user, message, session):
+    try:
+        selected_user.name = message.text
+        session.commit()
+    except SQLAlchemyError as e:
+        add_log(f"SQLAlchemyError in add_new_name_in_db: {e}")
+    except Exception as e:
+        add_log(f"Exception in add_new_name_in_db: {e}")
 
 
 def process_back_room(message, session, bot):

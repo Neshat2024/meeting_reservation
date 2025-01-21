@@ -3,7 +3,8 @@ from telebot import types
 
 from functions.admin_commands import process_admin_commands, process_add_room, process_update_room, \
     process_update_specific_room, \
-    process_delete_room, process_delete_specific_room, process_back_room, process_view_users
+    process_delete_room, process_delete_specific_room, process_back_room, process_view_users, process_edit_users_name, \
+    process_edit_specific_name
 from services.config import commands
 from services.wraps import set_command, check_name_in_db, check_admin
 
@@ -59,6 +60,30 @@ def register_handle_view_users(session, bot):
         return process_view_users(call, session, bot)
 
 
+def register_handle_edit_users_name(session, bot):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("editname"))
+    def handle_edit_users_name(call):
+        return process_edit_users_name(call, session, bot)
+
+
+def register_handle_edit_specific_name(session, bot):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("e_name_"))
+    def handle_edit_specific_name(call):
+        return process_edit_specific_name(call, session, bot)
+
+
+def register_handle_back_view(session, bot):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("back-view"))
+    def handle_back_view(call):
+        return process_view_users(call, session, bot)
+
+
+def register_handle_back_users_view(session, bot):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("back-users-view"))
+    def handle_back_users_view(call):
+        return process_edit_users_name(call, session, bot)
+
+
 def register_handle_back_room(session, bot):
     @bot.callback_query_handler(func=lambda call: call.data.startswith("backroom"))
     def handle_back_room(call):
@@ -74,4 +99,8 @@ def admin_commands_handler(bot: TeleBot, session):
     register_handle_delete_room(session, bot)
     register_handle_delete_specific_room(session, bot)
     register_handle_view_users(session, bot)
+    register_handle_edit_users_name(session, bot)
+    register_handle_edit_specific_name(session, bot)
+    register_handle_back_view(session, bot)
+    register_handle_back_users_view(session, bot)
     register_handle_back_room(session, bot)
