@@ -16,10 +16,9 @@ load_dotenv()
 admins = os.getenv("ADMINS").split("-")
 
 
-def create_date_buttons():
+def create_date_buttons(first_cb):
     start_date, end_date, days_of_week = get_start_end_week_date()
-    markup = add_row_buttons([start_date, end_date, days_of_week])
-    markup.add(btn(text="⬅️ Back", callback_data="backmain"))
+    markup = add_row_buttons([start_date, end_date, days_of_week], first_cb)
     return markup
 
 
@@ -30,13 +29,13 @@ def get_start_end_week_date():
     return start_date, end_date, days_of_week
 
 
-def add_row_buttons(start_end_days):
-    row, markup = get_date_buttons(start_end_days)
+def add_row_buttons(start_end_days, first_cb):
+    row, markup = get_date_buttons(start_end_days, first_cb)
     markup = add_free_buttons(row, markup)
     return markup
 
 
-def get_date_buttons(start_end_days):
+def get_date_buttons(start_end_days, first_cb):
     start, end, days, row = start_end_days[0], start_end_days[1], start_end_days[2], []
     markup = InlineKeyboardMarkup(row_width=3)
     markup.row(*[btn(text=day, callback_data="NON") for day in days])
@@ -45,7 +44,7 @@ def get_date_buttons(start_end_days):
         row.append(btn(text="__", callback_data="NON"))
     while start <= end:
         date = start.strftime('%Y-%m-%d')
-        k = btn(text=start.day, callback_data=f"room_{date}")
+        k = btn(text=start.day, callback_data=f"{first_cb}_{date}")
         row.append(k)
         start += timedelta(days=1)
         if len(row) == 7:

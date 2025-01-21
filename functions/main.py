@@ -33,7 +33,7 @@ def process_help(message, bot):
         "/start - Start the bot to select from menu\n"
         "/reservation - 🚪 Submit-View-Edit Meeting Reservations\n"
         "/admin_commands - 🔧 Admins can manage Meeting Rooms (view-add-edit)\n"
-        "/view_weekly_schedule - 🗓 View Weekly Schedule for Meeting Rooms\n"
+        "/view_schedule - 🗓 View Schedule for Meeting Rooms (Daily-Custom Day-Weekly)\n"
         "/help - ℹ️ Get help information\n"
     )
     bot.reply_to(message, text)
