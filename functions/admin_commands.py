@@ -267,7 +267,7 @@ def process_edit_users_name(call, session, bot):
     txt = "✏️ Please select the user whose name you want to edit:"
     key, buttons = InlineKeyboardMarkup(row_width=2), []
     for user in users:
-        buttons.append(btn(text=user.name, callback_data=f"e_name_{user.id}"))
+        buttons.append(btn(text=f"@{user.username}", callback_data=f"e_name_{user.id}"))
         if len(buttons) == 2:
             key.row(*buttons)
             buttons = []
@@ -281,7 +281,7 @@ def process_edit_specific_name(call, session, bot):
     db_id = int(call.data.split("_")[2])
     selected_user = session.query(Users).filter_by(id=db_id).first()
     chat_id, msg_id = call.message.chat.id, call.message.id
-    txt = f"Enter the New Name for @{selected_user.username}:\n\nIf you want to cancel the operation tap on /cancel"
+    txt = f"Enter the New Name for @{selected_user.username} (Old Name: {selected_user.name}):\n\nIf you want to cancel the operation tap on /cancel"
     bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt)
     bot.register_next_step_handler(call.message, change_name, session, [selected_user, bot])
 
