@@ -1,10 +1,8 @@
-import re
-
 from sqlalchemy.exc import SQLAlchemyError
 
 from functions.run_command import run_user_command
 from models.users import Users
-from services.config import get_user, send_cancel_message
+from services.config import get_user, check_text_in_name
 from services.log import add_log
 
 
@@ -42,15 +40,6 @@ def check_name(message, session, bot):
         add_log(f"Exception in check_name: {e}")
 
 
-def check_text_in_name(message):
-    if send_cancel_message(message):
-        return
-    elif contains_only_letters(message.text):
-        return True
-    else:
-        return False
-
-
 def add_name_in_db(message, session):
     try:
         user = get_user(message, session)
@@ -60,10 +49,3 @@ def add_name_in_db(message, session):
         add_log(f"SQLAlchemyError in add_name_in_db: {e}")
     except Exception as e:
         add_log(f"Exception in add_name_in_db: {e}")
-
-
-def contains_only_letters(text):
-    pattern = r'^[a-zA-Z\u0600-\u06FF\s]+$'
-    if re.match(pattern, text):
-        return True
-    return False
