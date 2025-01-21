@@ -62,6 +62,6 @@ def runnner(bot):
     add_log(f"Bot Started at {dt.now(tehran_tz).strftime('%Y-%m-%d %H:%M:%S')}")
     print("Bot is polling...")
     threading.Thread(target=run_scheduler, daemon=True).start()
-    schedule.every(24).hours.do(job_func=backup_database, bot=bot)
+    schedule.every(6).hours.do(job_func=backup_database, bot=bot)
     bot.infinity_polling()
     add_log(f"Bot Stopped at {dt.now(tehran_tz).strftime('%Y-%m-%d %H:%M:%S')}")
