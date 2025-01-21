@@ -37,7 +37,8 @@ def process_new_reservation(call, session, bot):
     try:
         chat_id, msg_id = str(call.message.chat.id), call.message.id
         txt = '📅 Choose a Date for Your Meeting (Available up to Next Week)'
-        key = create_date_buttons()
+        key = create_date_buttons('room')
+        key.add(btn(text="⬅️ Back", callback_data="backmain"))
         user = session.query(Users).filter_by(chat_id=chat_id).first()
         if user.command == BACK_DATE:
             change_command_to_none(user, session)
