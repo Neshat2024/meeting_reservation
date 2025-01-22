@@ -39,6 +39,7 @@ def process_help(message, bot):
         "/reservation - 🚪 Submit-View-Edit Meeting Reservations\n"
         "/admin_commands - 🔧 Admins can manage Meeting Rooms (view-add-edit)\n"
         "/view_schedule - 🗓 View Schedule for Meeting Rooms (Daily-Custom Day-Weekly)\n"
+        "/settings - ⚙️ Bot Settings (You can set Language of the bot)"
         "/help - ℹ️ Get help information\n"
     )
     bot.reply_to(message, text)
