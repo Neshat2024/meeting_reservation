@@ -78,7 +78,7 @@ def get_room_name(room_id, session):
         add_log(f"Exception in get_room_name: {e}")
 
 
-def get_txt(h, m):
+def get_txt_in_cb(h, m):
     if m == 45:
         return f"{h}:{m}-{h + 1}"
     elif m == 0:
@@ -164,9 +164,9 @@ def get_hour_buttons(call, session):
                 buttons.append(btn(text="🟨", callback_data=f"who_{date}_{room}_{time}"))
             elif db_status == FIRST or db_status == SECOND:
                 buttons.append(
-                    get_new_buttons([db_status, time, hours, reserved_hours, get_txt(h, m), cb, call.id]))
+                    get_new_buttons([db_status, time, hours, reserved_hours, get_txt_in_cb(h, m), cb, call.id]))
             else:
-                buttons.append(btn(text=get_txt(h, m), callback_data=cb[0]))
+                buttons.append(btn(text=get_txt_in_cb(h, m), callback_data=cb[0]))
             if len(buttons) == 2:
                 markup.row(*buttons)
                 buttons = []
@@ -372,7 +372,7 @@ def get_hour_buttons_in_edit(call, session):
             elif time in hours:
                 buttons.append(btn(text="✅", callback_data=cb[0]))
             else:
-                buttons.append(btn(text=get_txt(h, m), callback_data=cb[0]))
+                buttons.append(btn(text=get_txt_in_cb(h, m), callback_data=cb[0]))
             if len(buttons) == 2:
                 markup.row(*buttons)
                 buttons = []
