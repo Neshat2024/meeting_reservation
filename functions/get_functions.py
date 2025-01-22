@@ -327,10 +327,10 @@ def calc_duration(s_in_min, e_in_min):
 
 def get_second_data_in_start(e_time_call, session, reserve):
     e_time, call = e_time_call
+    chat_id = str(call.message.chat.id)
     e_hour, e_min = int(e_time.split(":")[0]), int(e_time.split(":")[1])
     s_time = reserve.start_time
     s_hour, s_min = int(s_time.split(":")[0]), int(s_time.split(":")[1])
-    chat_id = str(call.message.chat.id)
     user = session.query(Users).filter_by(chat_id=chat_id).first()
     is_admin = True if user.username in admins else False
     s_in_min, e_in_min = (60 * s_hour) + s_min, (60 * e_hour) + e_min
@@ -341,5 +341,132 @@ def get_second_data_in_start(e_time_call, session, reserve):
 def future_date(reserve):
     end_time = f"{reserve.date} {reserve.end_time}"
     reserve_date = dt.strptime(end_time, "%Y-%m-%d %H:%M")
+    reserve_date = tehran_tz.localize(reserve_date)
     current_date = dt.now(tehran_tz)
     return reserve_date > current_date
+
+
+def get_start_in_edit_data_one(call, session, reserve):
+    e_time = call.data.split("_")[3]
+    s_time = reserve.start_time
+    reserved_times = [(s_time, e_time)]
+    hours = get_reserved_hours_as_query(reserved_times)
+    reserved_hours = get_reserved_hours_in_edit(call, session)
+    return hours, reserved_hours
+
+
+def get_hour_buttons_in_edit(call, session):
+    hours, reserved_hours = get_hours_and_reserved_in_edit(call, session)
+    markup, buttons = InlineKeyboardMarkup(row_width=2), []
+    for h in range(8, 21):
+        for m in range(0, 46, 15):
+            time = f"{h:02}:{m:02}"
+            cb = get_callbacks_in_edit(call, time)
+            if time in reserved_hours:
+                date, room = get_date_room_from_db_id(call, session)
+                buttons.append(btn(text="🟨", callback_data=f"who_{date}_{room}_{time}"))
+            elif hours and time == hours[0]:
+                buttons.append(btn(text="▶️", callback_data=cb[1]))
+            elif hours and len(hours) > 1 and time == hours[-1]:
+                buttons.append(btn(text="◀️", callback_data=cb[1]))
+            elif time in hours:
+                buttons.append(btn(text="✅", callback_data=cb[0]))
+            else:
+                buttons.append(btn(text=get_txt(h, m), callback_data=cb[0]))
+            if len(buttons) == 2:
+                markup.row(*buttons)
+                buttons = []
+    if buttons:
+        markup.row(*buttons)
+    return markup
+
+
+def get_hours_and_reserved_in_edit(call, session):
+    try:
+        db_id = call.data.split("_")[2]
+        reserve = session.query(Reservations).filter_by(id=db_id).first()
+        hours = [] if reserve.status is None else get_hours_as_db_status_in_edit(call, session)
+        reserved_hours = get_reserved_hours_in_edit(call, session)
+        return hours, reserved_hours
+    except Exception as e:
+        add_log(f"Exception in get_hours_and_reserved_in_edit: {e}")
+
+
+def get_callbacks_in_edit(call, str_time):
+    db_id = call.data.split("_")[2]
+    select_cb = f"e-t_select_{db_id}_{str_time}"
+    remove_cb = f"e-t_remove_{db_id}_{str_time}"
+    return [select_cb, remove_cb]
+
+
+def get_date_room_from_db_id(call, session):
+    db_id = call.data.split("_")[2]
+    reserve = session.query(Reservations).filter_by(id=db_id).first()
+    return reserve.date, reserve.room_id
+
+
+def get_hours_as_db_status_in_edit(call, session):
+    db_id = call.data.split("_")[2]
+    reserve = session.query(Reservations).filter_by(id=db_id).first()
+    if reserve.status == FIRST:
+        hours = [reserve.start_time]
+    else:
+        reserved_times = [(reserve.start_time, reserve.end_time)]
+        hours = get_reserved_hours_as_query(reserved_times)
+    return hours
+
+
+def get_reserved_hours_in_edit(call, session):
+    db_id = call.data.split("_")[2]
+    reserve = session.query(Reservations).filter_by(id=db_id).first()
+    reserved_rows = session.query(Reservations).filter(
+        (Reservations.id != db_id) &
+        (Reservations.room_id == reserve.room_id) &
+        (Reservations.date == reserve.date) &
+        (Reservations.status == CONFIRMED)
+    ).all()
+    reserved_times = [(row.start_time, row.end_time) for row in reserved_rows]
+    reserved_hours = get_reserved_hours_as_query(reserved_times)
+    return reserved_hours
+
+
+def get_past_reserves(chat_id, session):
+    user = session.query(Users).filter_by(chat_id=chat_id).first()
+    reserves = session.query(Reservations).filter_by(user_id=user.id, status=CONFIRMED).all()
+    past_reserves = [reserve for reserve in reserves if not future_date(reserve)]
+    sorted_reserves = sorted(past_reserves,
+                             key=lambda reserve: dt.strptime(f"{reserve.date} {reserve.start_time}", "%Y-%m-%d %H:%M"))
+    sorted_reserves = list(reversed(sorted_reserves))
+    return sorted_reserves
+
+
+def get_start_end_paginate(page, past_reserves):
+    items_per_page = 8
+    start_idx = page * items_per_page
+    end_idx = start_idx + items_per_page
+    paginated_reserves = past_reserves[start_idx:end_idx]
+    return start_idx, end_idx, paginated_reserves
+
+
+def get_txt_markup_in_past_reservations(past_reserves, txt_2):
+    if len(past_reserves) > 0:
+        txt = "🔍 Your Past Reservations are:\n\n" + txt_2
+    else:
+        txt = "❌ You don't have any Past Reservation."
+    markup = InlineKeyboardMarkup()
+    return txt, markup
+
+
+def get_future_text(call, session):
+    chat_id = str(call.message.chat.id)
+    uid = session.query(Users).filter_by(chat_id=chat_id).first().id
+    confs = session.query(Reservations).filter_by(user_id=uid, status=CONFIRMED).all()
+    future_reserves = [reserve for reserve in confs if future_date(reserve)]
+    sorted_reserves = sorted(future_reserves,
+                             key=lambda reserve: dt.strptime(f"{reserve.date} {reserve.start_time}", "%Y-%m-%d %H:%M"))
+    txt_2 = ""
+    for reserve in sorted_reserves:
+        room_name = get_room_name(reserve.room_id, session)
+        weekday = dt.strptime(reserve.date, "%Y-%m-%d").strftime("%A")
+        txt_2 += f'📅 Date: {reserve.date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {reserve.start_time}\n◀️ To: {reserve.end_time}\n\n'
+    return txt_2

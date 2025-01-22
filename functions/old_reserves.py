@@ -1,4 +1,4 @@
-from datetime import datetime as dt, timedelta
+from datetime import datetime as dt
 
 import pytz
 from sqlalchemy.exc import SQLAlchemyError
@@ -6,8 +6,9 @@ from telebot.apihelper import ApiTelegramException
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as btn
 
 from functions.get_functions import get_room_name, get_start_end_week_date, add_free_buttons, \
-    get_reserved_hours_as_query, get_txt, get_end_time, admins, calc_duration, get_second_data_in_start, \
-    set_end_time_in_process_start, future_date
+    get_end_time, admins, calc_duration, get_second_data_in_start, \
+    set_end_time_in_process_start, future_date, get_start_in_edit_data_one, get_hour_buttons_in_edit, get_date_buttons, \
+    get_past_reserves, get_start_end_paginate, get_txt_markup_in_past_reservations, get_future_text
 from models.reservations import Reservations
 from models.rooms import Rooms
 from models.users import Users
@@ -41,14 +42,7 @@ def process_user_reservations(call, session, bot):
 def process_future_reservations(call, session, bot):
     try:
         chat_id, msg_id = str(call.message.chat.id), call.message.id
-        uid = session.query(Users).filter_by(chat_id=chat_id).first().id
-        confs = session.query(Reservations).filter_by(user_id=uid, status=CONFIRMED).all()
-        future_reserves = [reserve for reserve in confs if future_date(reserve)]
-        txt_2 = ""
-        for reserve in future_reserves:
-            room_name = get_room_name(reserve.room_id, session)
-            weekday = dt.strptime(reserve.date, "%Y-%m-%d").strftime("%A")
-            txt_2 += f'📅 Date: {reserve.date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {reserve.start_time}\n◀️ To: {reserve.end_time}\n\n'
+        txt_2 = get_future_text(call, session)
         markup = InlineKeyboardMarkup()
         if len(txt_2) > 0:
             txt = "🗓 Your Future Reservations are:\n\n" + txt_2
@@ -124,24 +118,6 @@ def add_row_buttons_in_edit(start_end_days, db_id):
     return markup
 
 
-def get_date_buttons(start_end_days, db_id):
-    start, end, days, row = start_end_days[0], start_end_days[1], start_end_days[2], []
-    markup = InlineKeyboardMarkup(row_width=3)
-    markup.row(*[btn(text=day, callback_data="NON") for day in days])
-    start_day_of_week = (start.weekday() + 2) % 7
-    for _ in range(start_day_of_week):
-        row.append(btn(text="__", callback_data="NON"))
-    while start <= end:
-        date = start.strftime('%Y-%m-%d')
-        k = btn(text=start.day, callback_data=f"set_e_{db_id}_{date}")
-        row.append(k)
-        start += timedelta(days=1)
-        if len(row) == 7:
-            markup.row(*row)
-            row = []
-    return row, markup
-
-
 def process_set_edit_date(call, session, bot):
     try:
         date, db_id = call.data.split("_")[3], int(call.data.split("_")[2])
@@ -210,81 +186,6 @@ def create_hour_buttons_in_edit(call, session):
     return markup
 
 
-def get_hour_buttons_in_edit(call, session):
-    hours, reserved_hours = get_hours_and_reserved_in_edit(call, session)
-    markup, buttons = InlineKeyboardMarkup(row_width=2), []
-    for h in range(8, 21):
-        for m in range(0, 46, 15):
-            time = f"{h:02}:{m:02}"
-            cb = get_callbacks_in_edit(call, time)
-            if time in reserved_hours:
-                date, room = get_date_room_from_db_id(call, session)
-                buttons.append(btn(text="🟨", callback_data=f"who_{date}_{room}_{time}"))
-            elif hours and time == hours[0]:
-                buttons.append(btn(text="▶️", callback_data=cb[1]))
-            elif hours and len(hours) > 1 and time == hours[-1]:
-                buttons.append(btn(text="◀️", callback_data=cb[1]))
-            elif time in hours:
-                buttons.append(btn(text="✅", callback_data=cb[0]))
-            else:
-                buttons.append(btn(text=get_txt(h, m), callback_data=cb[0]))
-            if len(buttons) == 2:
-                markup.row(*buttons)
-                buttons = []
-    if buttons:
-        markup.row(*buttons)
-    return markup
-
-
-def get_hours_and_reserved_in_edit(call, session):
-    try:
-        db_id = call.data.split("_")[2]
-        reserve = session.query(Reservations).filter_by(id=db_id).first()
-        hours = [] if reserve.status is None else get_hours_as_db_status_in_edit(call, session)
-        reserved_hours = get_reserved_hours_in_edit(call, session)
-        return hours, reserved_hours
-    except Exception as e:
-        add_log(f"Exception in get_hours_and_reserved_in_edit: {e}")
-
-
-def get_callbacks_in_edit(call, str_time):
-    db_id = call.data.split("_")[2]
-    select_cb = f"e-t_select_{db_id}_{str_time}"
-    remove_cb = f"e-t_remove_{db_id}_{str_time}"
-    return [select_cb, remove_cb]
-
-
-def get_date_room_from_db_id(call, session):
-    db_id = call.data.split("_")[2]
-    reserve = session.query(Reservations).filter_by(id=db_id).first()
-    return reserve.date, reserve.room_id
-
-
-def get_hours_as_db_status_in_edit(call, session):
-    db_id = call.data.split("_")[2]
-    reserve = session.query(Reservations).filter_by(id=db_id).first()
-    if reserve.status == FIRST:
-        hours = [reserve.start_time]
-    else:
-        reserved_times = [(reserve.start_time, reserve.end_time)]
-        hours = get_reserved_hours_as_query(reserved_times)
-    return hours
-
-
-def get_reserved_hours_in_edit(call, session):
-    db_id = call.data.split("_")[2]
-    reserve = session.query(Reservations).filter_by(id=db_id).first()
-    reserved_rows = session.query(Reservations).filter(
-        (Reservations.id != db_id) &
-        (Reservations.room_id == reserve.room_id) &
-        (Reservations.date == reserve.date) &
-        (Reservations.status == CONFIRMED)
-    ).all()
-    reserved_times = [(row.start_time, row.end_time) for row in reserved_rows]
-    reserved_hours = get_reserved_hours_as_query(reserved_times)
-    return reserved_hours
-
-
 def process_add_time_in_edit(call, session, bot):
     chat_id, msg_id = str(call.message.chat.id), call.message.id
     db_id, str_time = int(call.data.split("_")[2]), call.data.split("_")[3]
@@ -313,7 +214,8 @@ def change_status_as_selection(call, session, bot):
         reserve = session.query(Reservations).filter_by(id=db_id).first()
         s_time, e_time = reserve.start_time, reserve.end_time
         now = dt.now(tehran_tz)
-        dt_time = dt.strptime(f"{reserve.date} {str_time}", "%Y-%m-%d %H:%M")
+        dt_time = dt.strptime(f"{reserve.date} {get_end_time(str_time)}", "%Y-%m-%d %H:%M")
+        dt_time = tehran_tz.localize(dt_time)
         db_status = reserve.status
         if db_status == CONFIRMED and str_time == s_time:
             reserve.start_time, reserve.end_time = None, None
@@ -327,6 +229,7 @@ def change_status_as_selection(call, session, bot):
             s_in_min = int(s_time.split(":")[0]) * 60 + int(s_time.split(":")[1])
             e_in_min = int(e_time.split(":")[0]) * 60 + int(e_time.split(":")[1])
             s_dt = dt.strptime(f"{reserve.date} {s_time}", "%Y-%m-%d %H:%M")
+            s_dt = tehran_tz.localize(s_dt)
             chat_id = str(call.message.chat.id)
             user = session.query(Users).filter_by(chat_id=chat_id).first()
             is_admin = True if user.username in admins else False
@@ -378,15 +281,6 @@ def process_start_hour_in_edit(call, session, reserve_bot):
         add_log(f"SQLAlchemyError in process_start_hour_in_edit: {e}")
     except Exception as e:
         add_log(f"Exception in process_start_hour_in_edit: {e}")
-
-
-def get_start_in_edit_data_one(call, session, reserve):
-    e_time = call.data.split("_")[3]
-    s_time = reserve.start_time
-    reserved_times = [(s_time, e_time)]
-    hours = get_reserved_hours_as_query(reserved_times)
-    reserved_hours = get_reserved_hours_in_edit(call, session)
-    return hours, reserved_hours
 
 
 def process_remove_time_in_edit(call, session, bot):
@@ -478,31 +372,23 @@ def process_delete_specific_reservation(call, session, bot):
         add_log(f"Exception in process_delete_specific_reservation: {e}")
 
 
-def process_past_reservations(call, session, bot, page=0):
-    chat_id, msg_id = str(call.message.chat.id), call.message.id
-    user = session.query(Users).filter_by(chat_id=chat_id).first()
-    reserves = session.query(Reservations).filter_by(user_id=user.id, status=CONFIRMED).all()
-    past_reserves = [reserve for reserve in reserves if not future_date(reserve)]
-    items_per_page = 8
-    start_idx = page * items_per_page
-    end_idx = start_idx + items_per_page
-    paginated_reserves = past_reserves[start_idx:end_idx]
-    txt_2 = ""
-    for reserve in paginated_reserves:
-        room_name = get_room_name(reserve.room_id, session)
-        weekday = dt.strptime(reserve.date, "%Y-%m-%d").strftime("%A")
-        txt_2 += f'📅 Date: {reserve.date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {reserve.start_time}\n◀️ To: {reserve.end_time}\n\n'
-    if len(past_reserves) > 0:
-        txt = "🔍 Your Past Reservations are:\n\n" + txt_2
-    else:
-        txt = "❌ You don't have any Past Reservation."
-    markup = InlineKeyboardMarkup()
-    if page > 0:
-        markup.add(btn(text="⬅️ Previous", callback_data=f"past_reservations_{page - 1}"))
-    if end_idx < len(past_reserves):
-        markup.add(btn(text="Next ➡️", callback_data=f"past_reservations_{page + 1}"))
-    markup.add(btn(text="⬅️ Back", callback_data="backuser"))
+def process_past_reservations(call_page, session, bot):
     try:
+        call, page = call_page
+        chat_id, msg_id = str(call.message.chat.id), call.message.id
+        past_reserves = get_past_reserves(chat_id, session)
+        start_idx, end_idx, paginated_reserves = get_start_end_paginate(page, past_reserves)
+        txt_2 = ""
+        for reserve in paginated_reserves:
+            room_name = get_room_name(reserve.room_id, session)
+            weekday = dt.strptime(reserve.date, "%Y-%m-%d").strftime("%A")
+            txt_2 += f'📅 Date: {reserve.date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {reserve.start_time}\n◀️ To: {reserve.end_time}\n\n'
+        txt, markup = get_txt_markup_in_past_reservations(past_reserves, txt_2)
+        if page > 0:
+            markup.add(btn(text="⬅️ Previous", callback_data=f"past_reservations_{page - 1}"))
+        if end_idx < len(past_reserves):
+            markup.add(btn(text="Next ➡️", callback_data=f"past_reservations_{page + 1}"))
+        markup.add(btn(text="⬅️ Back", callback_data="backuser"))
         bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=markup)
     except Exception as e:
         add_log(f"Exception in process_past_reservations: {e}")

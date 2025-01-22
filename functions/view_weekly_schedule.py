@@ -129,6 +129,7 @@ def process_view_custom_schedule(call, session, bot):
 def create_image_for_custom_day(session, room, custom_date):
     try:
         custom_date = dt.strptime(custom_date, "%Y-%m-%d")
+        custom_date = tehran_tz.localize(custom_date)
         next_day = custom_date + timedelta(days=1)
         schedule, employees = get_schedule_employees(session, room, [custom_date, next_day])
         day_positions, y_labels = get_day_positions_and_labels_for_custom_day(custom_date)
@@ -234,6 +235,7 @@ def get_schedule_employees(session, room, today_next_week):
                 if name not in employees:
                     employees[name] = color
                 date_obj = dt.strptime(f"{date} {start}", "%Y-%m-%d %H:%M")
+                date_obj = tehran_tz.localize(date_obj)
                 if today <= date_obj <= end_date:
                     persian_day = day_in_persian[weekday]
                     if name not in schedule:
@@ -262,9 +264,12 @@ def process_plot_for_employees(schedule_employees_day, ax, is_single_day=False):
             y = day_positions[date]  # Use the date as the key to get the correct y-position
             # Convert start and end times to datetime objects
             start_time = dt.strptime(start, "%H:%M")
+            start_time = tehran_tz.localize(start_time)
             end_time = dt.strptime(end, "%H:%M")
+            end_time = tehran_tz.localize(end_time)
             # Calculate the duration in hours
             reference_time = dt.strptime("08:00", "%H:%M")  # Reference time is 8:00 AM
+            reference_time = tehran_tz.localize(reference_time)
             start_hours = (start_time - reference_time).seconds / 3600
             end_hours = (end_time - reference_time).seconds / 3600
             # Calculate the duration

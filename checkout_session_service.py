@@ -1,16 +1,18 @@
 import json
 import os
 import time
+from datetime import datetime as dt
 
 import pytz
 import requests
 from dotenv import load_dotenv
-from datetime import datetime as dt, timedelta
+from sqlalchemy.exc import SQLAlchemyError
 
-from functions.view_weekly_schedule import get_schedule_employees
+from models.reservations import Reservations
 from models.reserve_bot import SessionLocal
 from models.rooms import Rooms
 from models.users import Users
+from services.config import CONFIRMED, CHECKOUT
 from services.log import add_log
 
 session = SessionLocal()
@@ -40,37 +42,34 @@ def send_msg(text, chat_id, keyboard):
         add_log(f"Exception in send_msg: {e}")
 
 
-def get_before_meeting_buttons():
-    keyboard = {
-        "inline_keyboard": [
-            [
-                {"text": "🆗", "callback_data": "ok-before-meeting"},
-                {"text": "❌ Cancel", "callback_data": "cancel"}
-                ########## callback ##########
-            ]
-        ]
-    }
-    return keyboard
-
-
-# Example usage
-# send_msg("Hello, this is a message with inline buttons!", "6950791995")
 def check_session_sending():
+    processed_reservations = set()  # Set to keep track of processed reservations
     while True:
         try:
-            today = dt.now(tehran_tz)
-            today = dt(year=today.year, month=today.month, day=today.day)
-            tomorrow = today + timedelta(days=1)
+            now = dt.now(tehran_tz)
             rooms = session.query(Rooms).all()
+            schedule = {}
             for room in rooms:
-                schedule, employees = get_schedule_employees(session, room, [today, tomorrow])
-            print(schedule)
-            for name, reserve in schedule.items():
+                schedule = get_schedule_in_check_session(room)
+            for name, reserves in schedule.items():
                 user = get_user_by_name(name)
-                str_time = f"{reserve[0][3]} {reserve[0][1]}"
-                dt_reserve = dt.strptime(str_time, "%Y-%m-%d %H:%M")
-                print(user.username, user.chat_id)
-                print(reserve[0][1:])
+                for reserve in reserves:
+                    str_time = f"{reserve[3]} {reserve[1]}"
+                    dt_reserve = dt.strptime(str_time, "%Y-%m-%d %H:%M")
+                    dt_reserve = tehran_tz.localize(dt_reserve)
+                    diff = int((dt_reserve - now).total_seconds() / 60)
+                    reservation_id = f"{name}_{str_time}"
+                    if reservation_id not in processed_reservations:
+                        if diff == 120:
+                            txt = f"⏰ Reminder ⏰\nYou have a reservation for «{reserve[0]}» room in 2 hours.\n\nNeed to cancel the reservation❓\nTap «❌ Cancel»\nOtherwise, your reservation will remain confirmed ☺️"
+                            buttons = get_buttons_in_check_meeting_time(f"cancel_{reserve[-1]}")
+                            send_msg(txt, user.chat_id, buttons)
+                            processed_reservations.add(reservation_id)  # Mark as processed
+                        elif diff == 0:
+                            txt = f"▶️ Your meeting reservation has started.\n\n❕ If your meeting finished sooner than {reserve[2]}, please tap on «⏹️ Checkout» to allow others to reserve the room in the future."
+                            buttons = get_buttons_in_check_meeting_time(f"checkout_{reserve[-1]}", "checkout")
+                            send_msg(txt, user.chat_id, buttons)
+                            processed_reservations.add(reservation_id)  # Mark as processed
             time.sleep(10)
         except json.JSONDecodeError:
             time.sleep(1)
@@ -79,8 +78,57 @@ def check_session_sending():
             time.sleep(1)
 
 
+def get_schedule_in_check_session(room):
+    try:
+        now, schedule = dt.now(tehran_tz), {}
+        str_date = f"{now.year}-{str(now.month).zfill(2)}-{str(now.day).zfill(2)}"
+        end_time = tehran_tz.localize(dt(year=now.year, month=now.month, day=now.day, hour=21, minute=1))
+        reserves = session.query(Reservations).filter_by(status=CONFIRMED, date=str_date).all()
+        for reserve in reserves:
+            if str(reserve.room_id) == str(room.id):
+                name, date, start, end, color = get_data_in_check_session(reserve)
+                date_obj = dt.strptime(f"{date} {start}", "%Y-%m-%d %H:%M")
+                date_obj = tehran_tz.localize(date_obj)
+                if now <= date_obj <= end_time:
+                    if name not in schedule:
+                        schedule[name] = [[room.name, start, end, date, reserve.id]]
+                    else:
+                        schedule[name].append([room.name, start, end, date, reserve.id])
+        return schedule
+    except SQLAlchemyError as e:
+        add_log(f"SQLAlchemyError in get_schedule_in_check_session: {e}")
+    except Exception as e:
+        add_log(f"Exception in get_schedule_in_check_session: {e}")
+
+
 def get_user_by_name(name):
     return session.query(Users).filter_by(name=name).first()
+
+
+def get_data_in_check_session(reserve):
+    user = session.query(Users).filter_by(id=reserve.user_id).first()
+    return user.name, reserve.date, reserve.start_time, reserve.end_time, user.color
+
+
+def get_buttons_in_check_meeting_time(cb, mode=None):
+    if mode == CHECKOUT:
+        keyboard = {
+            "inline_keyboard": [
+                [
+                    {"text": "⏹️ Checkout", "callback_data": f"{cb}"}
+                ]
+            ]
+        }
+    else:
+        keyboard = {
+            "inline_keyboard": [
+                [
+                    {"text": "🆗", "callback_data": f"ok-before-meeting_{cb.split('_')[1]}"},
+                    {"text": "❌ Cancel", "callback_data": f"{cb}"}
+                ]
+            ]
+        }
+    return keyboard
 
 
 check_session_sending()

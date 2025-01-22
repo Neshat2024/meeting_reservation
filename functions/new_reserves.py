@@ -204,6 +204,7 @@ def process_end_hour(call, session, reserve_bot):
         room, user_id, date, selected_time, e_time = get_data_in_process_button(call, session)
         now_time = dt.now(tehran_tz)
         dt_time = dt.strptime(f"{date} {get_end_time(selected_time)}", "%Y-%m-%d %H:%M")
+        dt_time = tehran_tz.localize(dt_time)
         if dt_time > now_time:
             session.delete(reserve)
             add_new_date_to_db(call, session, bot)
@@ -220,6 +221,7 @@ def add_new_date_to_db(call, session, bot):
         room, user_id, date, selected_time, e_time = get_data_in_process_button(call, session)
         now_time = dt.now(tehran_tz)
         dt_time = dt.strptime(f"{date} {get_end_time(selected_time)}", "%Y-%m-%d %H:%M")
+        dt_time = tehran_tz.localize(dt_time)
         if dt_time > now_time:
             new_date = Reservations(room_id=room, user_id=user_id, date=date, start_time=selected_time, end_time=e_time,
                                     status=FIRST)

@@ -20,7 +20,7 @@ DAYS_FOR_HEADERS = ["SA", "SU", "MO", "TU", "WE", "TH", "FR"]
 day_in_persian = {"Friday": "جمعه", "Thursday": "پنج‌شنبه", "Wednesday": "چهارشنبه", "Tuesday": "سه‌شنبه",
                   "Monday": "دوشنبه", "Sunday": "یکشنبه", "Saturday": "شنبه"}
 ONE, TWO, THREE = 1, 2, 3
-
+CHECKOUT = "checkout"
 
 def get_user(call_or_message, session):
     if isinstance(call_or_message, types.Message):
