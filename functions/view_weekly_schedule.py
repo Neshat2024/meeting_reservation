@@ -2,7 +2,6 @@ import os
 from datetime import datetime as dt, timedelta
 
 import arabic_reshaper
-import jdatetime
 import matplotlib
 import matplotlib.patches as mpatches
 from bidi.algorithm import get_display
@@ -18,7 +17,7 @@ import matplotlib.pyplot as plt
 from functions.get_functions import get_data_in_create_image, create_date_buttons
 from models.reservations import Reservations
 from models.rooms import Rooms
-from services.config import CONFIRMED, day_in_persian, change_command_to_none
+from services.config import CONFIRMED, day_in_persian, change_command_to_none, gregorian_to_jalali
 from services.log import add_log
 import pytz
 
@@ -317,10 +316,3 @@ def get_x_ticks_and_x_labels():
             if x_labels[-1] == '21:00':
                 break
     return x_ticks, x_labels
-
-
-def gregorian_to_jalali(date_str):
-    gregorian_date = dt.strptime(date_str, '%Y-%m-%d')
-    jalali_date = jdatetime.date.fromgregorian(date=gregorian_date)
-    jalali_date_str = jalali_date.strftime('%Y/%m/%d')
-    return jalali_date_str
