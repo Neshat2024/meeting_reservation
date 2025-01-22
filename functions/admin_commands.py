@@ -51,8 +51,7 @@ def process_add_room(call_message, session, bot):
         message = call_message.message
         chat_id = str(call_message.message.chat.id)
         msg_id = call_message.message.id
-        key = InlineKeyboardMarkup()
-        bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
+        bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt)
     bot.register_next_step_handler(message, check_room, session, bot)
 
 
