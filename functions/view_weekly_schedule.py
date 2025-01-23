@@ -68,7 +68,6 @@ def create_image_for_today(session, room):
         today = dt(year=today.year, month=today.month, day=today.day)
         today = tehran_tz.localize(today)
         tomorrow = today + timedelta(days=1)
-        # tomorrow = tehran_tz.localize(tomorrow)
         schedule, employees = get_schedule_employees(session, room, [today, tomorrow])
         day_positions, y_labels = get_day_positions_and_labels_for_today(today)
         fig, ax = plt.subplots(figsize=(18, 4))
