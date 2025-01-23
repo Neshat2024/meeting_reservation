@@ -66,7 +66,9 @@ def create_image_for_today(session, room):
     try:
         today = dt.now(tehran_tz)
         today = dt(year=today.year, month=today.month, day=today.day)
+        today = tehran_tz.localize(today)
         tomorrow = today + timedelta(days=1)
+        # tomorrow = tehran_tz.localize(tomorrow)
         schedule, employees = get_schedule_employees(session, room, [today, tomorrow])
         day_positions, y_labels = get_day_positions_and_labels_for_today(today)
         fig, ax = plt.subplots(figsize=(18, 4))
@@ -120,9 +122,9 @@ def process_view_custom_schedule(call, session, bot):
                     )
                 os.remove(image_path)
     except SQLAlchemyError as e:
-        add_log(f"SQLAlchemyError in process_view_custom_day_schedule: {e}")
+        add_log(f"SQLAlchemyError in process_view_custom_schedule: {e}")
     except Exception as e:
-        add_log(f"Exception in process_view_custom_day_schedule: {e}")
+        add_log(f"Exception in process_view_custom_schedule: {e}")
 
 
 def create_image_for_custom_day(session, room, custom_date):
@@ -203,8 +205,10 @@ def create_image(session, room):
 def main_data_in_create_image():
     today = dt.now(tehran_tz)
     today = dt(year=today.year, month=today.month, day=today.day)
+    today = tehran_tz.localize(today)
     next_week = today + timedelta(days=7)
     next_week = dt(year=next_week.year, month=next_week.month, day=next_week.day, hour=23)
+    next_week = tehran_tz.localize(next_week)
     return today, next_week
 
 

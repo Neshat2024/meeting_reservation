@@ -10,7 +10,8 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as btn
 from models.reservations import Reservations
 from models.rooms import Rooms
 from models.users import Users
-from services.config import DAYS_FOR_HEADERS, CONFIRMED, FIRST, SECOND
+from services.config import DAYS_FOR_HEADERS, CONFIRMED, FIRST, SECOND, gregorian_to_jalali, day_in_persian
+from services.language import get_text, BotText, change_num_as_lang
 from services.log import add_log
 
 tehran_tz = pytz.timezone("Asia/Tehran")
@@ -78,13 +79,18 @@ def get_room_name(room_id, session):
         add_log(f"Exception in get_room_name: {e}")
 
 
-def get_txt_in_cb(h, m):
+def get_txt_in_cb(h_m, call, session):
+    chat_id = str(call.message.chat.id)
+    user = session.query(Users).filter_by(chat_id=chat_id).first()
+    h, m = h_m
     if m == 45:
-        return f"{h}:{m}-{h + 1}"
+        txt = f"{h}:{m}-{h + 1}"
     elif m == 0:
-        return f"{h}-{h}:{m + 15}"
+        txt = f"{h}-{h}:{m + 15}"
     else:
-        return f"{h}:{m}-{h}:{m + 15}"
+        txt = f"{h}:{m}-{h}:{m + 15}"
+    txt = change_num_as_lang(txt, user.language)
+    return txt
 
 
 def get_reserved_hours(call, session):
@@ -164,9 +170,9 @@ def get_hour_buttons(call, session):
                 buttons.append(btn(text="🟨", callback_data=f"who_{date}_{room}_{time}"))
             elif db_status == FIRST or db_status == SECOND:
                 buttons.append(
-                    get_new_buttons([db_status, time, hours, reserved_hours, get_txt_in_cb(h, m), cb, call.id]))
+                    get_new_buttons([db_status, time, hours, reserved_hours, get_txt_in_cb([h, m], call, session), cb, call.id]))
             else:
-                buttons.append(btn(text=get_txt_in_cb(h, m), callback_data=cb[0]))
+                buttons.append(btn(text=get_txt_in_cb([h, m], call, session), callback_data=cb[0]))
             if len(buttons) == 2:
                 markup.row(*buttons)
                 buttons = []
@@ -372,7 +378,7 @@ def get_hour_buttons_in_edit(call, session):
             elif time in hours:
                 buttons.append(btn(text="✅", callback_data=cb[0]))
             else:
-                buttons.append(btn(text=get_txt_in_cb(h, m), callback_data=cb[0]))
+                buttons.append(btn(text=get_txt_in_cb([h, m], call, session), callback_data=cb[0]))
             if len(buttons) == 2:
                 markup.row(*buttons)
                 buttons = []
@@ -448,19 +454,19 @@ def get_start_end_paginate(page, past_reserves):
     return start_idx, end_idx, paginated_reserves
 
 
-def get_txt_markup_in_past_reservations(past_reserves, txt_2):
+def get_txt_markup_in_past_reservations(past_reserves, txt_2, user):
     if len(past_reserves) > 0:
-        txt = "🔍 Your Past Reservations are:\n\n" + txt_2
+        txt = get_text(BotText.PAST_RESERVATIONS_HEADER, user.language) + txt_2
     else:
-        txt = "❌ You don't have any Past Reservation."
+        txt = get_text(BotText.NO_PAST_RESERVATIONS_TEXT, user.language)
     markup = InlineKeyboardMarkup()
     return txt, markup
 
 
 def get_future_text(call, session):
     chat_id = str(call.message.chat.id)
-    uid = session.query(Users).filter_by(chat_id=chat_id).first().id
-    confs = session.query(Reservations).filter_by(user_id=uid, status=CONFIRMED).all()
+    user = session.query(Users).filter_by(chat_id=chat_id).first()
+    confs = session.query(Reservations).filter_by(user_id=user.id, status=CONFIRMED).all()
     future_reserves = [reserve for reserve in confs if future_date(reserve)]
     sorted_reserves = sorted(future_reserves,
                              key=lambda reserve: dt.strptime(f"{reserve.date} {reserve.start_time}", "%Y-%m-%d %H:%M"))
@@ -468,5 +474,10 @@ def get_future_text(call, session):
     for reserve in sorted_reserves:
         room_name = get_room_name(reserve.room_id, session)
         weekday = dt.strptime(reserve.date, "%Y-%m-%d").strftime("%A")
-        txt_2 += f'📅 Date: {reserve.date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {reserve.start_time}\n◀️ To: {reserve.end_time}\n\n'
+        date = reserve.date if user.language == "en" else gregorian_to_jalali(reserve.date)
+        weekday = weekday if user.language == "en" else day_in_persian[weekday]
+        txt_2 += get_text(BotText.ADD_TIME_SECOND_STATUS, user.language).format(
+            date=date, weekday=weekday, room_name=room_name, start_time=reserve.start_time,
+            end_time=reserve.end_time
+        ) + "\n\n"
     return txt_2

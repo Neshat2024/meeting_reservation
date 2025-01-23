@@ -14,7 +14,7 @@ from models.rooms import Rooms
 from models.users import Users
 from services.config import BACK_DATE, change_command_to_none, CONFIRMED, FIRST, SECOND, BACK_MAIN, gregorian_to_jalali, \
     day_in_persian
-from services.language import BotText, get_text, convert_to_persian_numerals
+from services.language import BotText, get_text, change_num_as_lang
 from services.log import add_log
 
 tehran_tz = pytz.timezone("Asia/Tehran")
@@ -77,7 +77,7 @@ def process_select_room(call, session, bot):
         date = date if user.language == "en" else gregorian_to_jalali(date)
         weekday = weekday if user.language == "en" else day_in_persian[weekday]
         txt = get_text(BotText.ROOM_SELECTION_TEXT, user.language).format(date=date, weekday=weekday)
-        txt = convert_to_persian_numerals(txt)
+        txt = change_num_as_lang(txt, user.language)
         markup = add_room_buttons(call, session)
         bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=markup)
     except Exception as e:
@@ -121,7 +121,7 @@ def process_hour_selection(call, session, bot):
         weekday = weekday if user.language == "en" else day_in_persian[weekday]
         txt = get_text(BotText.HOUR_SELECTION_TEXT, user.language).format(date=date, weekday=weekday,
                                                                           room_name=room_name)
-        txt = convert_to_persian_numerals(txt)
+        txt = change_num_as_lang(txt, user.language)
         key = create_hour_buttons(call, session)
         bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
     except Exception as e:
@@ -158,15 +158,15 @@ def create_hour_buttons(call, session):
 
 
 def process_add_time(call, session, bot):
+    chat_id, msg_id = str(call.message.chat.id), call.message.id
+    user = session.query(Users).filter_by(chat_id=chat_id).first()
     try:
-        chat_id, msg_id = str(call.message.chat.id), call.message.id
         call_list = call.data.split("_")
         date, room, str_time = call_list[2], int(call_list[3]), call_list[4]
         room_name = get_room_name(room, session)
         weekday = dt.strptime(date, "%Y-%m-%d").strftime("%A")
         process_hour_as_status(call, session, bot)
         date_in_db = get_date_in_db(call, session)
-        user = session.query(Users).filter_by(chat_id=chat_id).first()
         date = date if user.language == "en" else gregorian_to_jalali(date)
         weekday = weekday if user.language == "en" else day_in_persian[weekday]
         if date_in_db and date_in_db.status == FIRST:
@@ -182,7 +182,7 @@ def process_add_time(call, session, bot):
         else:
             txt = get_text(BotText.ADD_TIME_DEFAULT, user.language).format(date=date, weekday=weekday,
                                                                            room_name=room_name)
-        txt = convert_to_persian_numerals(txt)
+        txt = change_num_as_lang(txt, user.language)
         key = create_hour_buttons(call, session)
         bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
     except ApiTelegramException:
@@ -221,7 +221,8 @@ def process_start_hour(call, session, reserve_bot):
                 reserve.status = SECOND
                 session.commit()
             elif s_in_min < e_in_min:
-                bot.answer_callback_query(call.id, convert_to_persian_numerals(get_text(BotText.INVALID_DURATION, user.language)), show_alert=True)
+                bot.answer_callback_query(call.id, change_num_as_lang(get_text(BotText.INVALID_DURATION, user.language),
+                                                                      user.language), show_alert=True)
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in process_start_hour: {e}")
     except Exception as e:
@@ -304,7 +305,7 @@ def process_remove_time(call, session, bot):
             delete_status_select_end(call, session)
             txt = get_text(BotText.HOUR_SELECTION_TEXT, user.language).format(date=date, weekday=weekday,
                                                                               room_name=room_name)
-        txt = convert_to_persian_numerals(txt)
+        txt = change_num_as_lang(txt, user.language)
         key = create_hour_buttons(call, session)
         bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
     except Exception as e:
@@ -327,7 +328,7 @@ def process_confirm_selection(call, session, bot):
                 date=date, weekday=weekday, room_name=room_name, start_time=reserve.start_time,
                 end_time=reserve.end_time
             )
-            txt = convert_to_persian_numerals(txt)
+            txt = change_num_as_lang(txt, user.language)
             bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt)
         else:
             bot.answer_callback_query(call.id, get_text(BotText.INCOMPLETE_HOURS_ALERT, user.language), show_alert=True)

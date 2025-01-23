@@ -6,7 +6,9 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from functions.name import process_name
 from models.reservations import Reservations
+from models.users import Users
 from services.config import add_user
+from services.language import get_text, BotText
 from services.log import add_log
 from services.wraps import get_user_in_wraps
 
@@ -17,7 +19,8 @@ load_dotenv()
 def process_start(message, session, bot):
     try:
         chat_id, uname = str(message.chat.id), message.chat.username
-        bot.send_message(chat_id, "Hello! I can help you to Reserve a Meeting Room 🚪")
+        user = session.query(Users).filter_by(chat_id=chat_id).first()
+        bot.send_message(chat_id, get_text(BotText.START, user.langiage))
         user_exists = get_user_in_wraps(message, session)
         if not user_exists:
             user_exists = add_user(message, session)
@@ -32,16 +35,10 @@ def process_start(message, session, bot):
         add_log(f"Exception in process_start: {e}")
 
 
-def process_help(message, bot):
-    text = (
-        "🚪 Meeting Reservation Bot 🚪\n\nAvailable Commands:\n"
-        "/start - Start the bot to select from menu\n"
-        "/reservation - 🚪 Submit-View-Edit Meeting Reservations\n"
-        "/admin_commands - 🔧 Admins can manage Meeting Rooms (view-add-edit)\n"
-        "/view_schedule - 🗓 View Schedule for Meeting Rooms (Daily-Custom Day-Weekly)\n"
-        "/settings - ⚙️ Bot Settings (You can set Language of the bot)"
-        "/help - ℹ️ Get help information\n"
-    )
+def process_help(message, session, bot):
+    chat_id = str(message.chat.id)
+    user = session.query(Users).filter_by(chat_id=chat_id).first()
+    text = get_text(BotText.HELP, user.langiage)
     bot.reply_to(message, text)
 
 

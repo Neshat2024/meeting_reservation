@@ -71,6 +71,7 @@ def check_session_sending():
                             send_msg(txt, user.chat_id, buttons)
                             processed_reservations.add(reservation_id)  # Mark as processed
             time.sleep(10)
+            session.close()
         except json.JSONDecodeError:
             time.sleep(1)
         except Exception as e:
