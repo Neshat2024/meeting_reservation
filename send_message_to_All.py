@@ -2,6 +2,7 @@ import os
 
 import requests
 from dotenv import load_dotenv
+from requests import RequestException
 
 from models.reserve_bot import SessionLocal
 from models.users import Users
@@ -14,16 +15,9 @@ load_dotenv()
 def send_msg(text, chat_id):
     try:
         token = os.getenv("TOKEN_RESERVE")
-        url = f"https://api.telegram.org/bot{token}/sendMessage"
-        # Prepare the payload
-        payload = {
-            "chat_id": chat_id,
-            "text": text
-        }
-        # Send the request
-        response = requests.post(url, data=payload)
-        response.raise_for_status()  # Raise an exception for HTTP errors
-    except requests.RequestException as e:
+        url_req = f"https://api.telegram.org/bot{token}/sendMessage?chat_id={chat_id}&text={text}"
+        requests.get(url_req)
+    except RequestException as e:
         add_log(f"RequestException in send_msg: {e}")
     except Exception as e:
         add_log(f"Exception in send_msg: {e}")
