@@ -281,7 +281,6 @@ def send_delete_message_to_reserved_users(room, session, bot):
 
 def process_view_users(call, session, bot):
     msg_id = str(call.message.id)
-    chat_id = str(call.message.chat.id)
     user = get_user(call, session)
     chat_id = user.chat_id
     txt = get_text(BotText.VIEW_USERS_ONE, user.language)
