@@ -2,33 +2,178 @@ import os
 from datetime import datetime as dt, timedelta
 
 import arabic_reshaper
-import jdatetime
 import matplotlib
 import matplotlib.patches as mpatches
 from bidi.algorithm import get_display
 from matplotlib.font_manager import FontProperties
 from sqlalchemy.exc import SQLAlchemyError
+from telebot import types
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as btn
+
+from services.language import get_text, BotText, change_num_as_lang
 
 matplotlib.use('Agg')  # Set the backend to 'Agg' (non-interactive)
 import matplotlib.pyplot as plt
-from functions.get_functions import get_data_in_create_image
+from functions.get_functions import get_data_in_create_image, create_date_buttons
 from models.reservations import Reservations
 from models.rooms import Rooms
-from services.config import CONFIRMED, day_in_persian
+from services.config import CONFIRMED, day_in_persian, change_command_to_none, gregorian_to_jalali, get_user
 from services.log import add_log
+import pytz
+
+tehran_tz = pytz.timezone("Asia/Tehran")
 
 
-def process_view_weekly_schedule(message, session, bot):
+def process_view_schedule(call_message, session, bot):
+    user = get_user(call_message, session)
+    txt = get_text(BotText.SCHEDULE_SELECTION, user.language)
+    key = InlineKeyboardMarkup()
+    key.add(btn(text=get_text(BotText.TODAY_BUTTON, user.language), callback_data="today-view"))
+    key.add(btn(text=get_text(BotText.CUSTOM_SCHEDULE_BUTTON, user.language), callback_data="select-date"))
+    key.add(btn(text=get_text(BotText.WEEKLY_BUTTON, user.language), callback_data="weekly-view"))
+    if isinstance(call_message, types.Message):
+        bot.send_message(int(user.chat_id), txt, reply_markup=key)
+    elif isinstance(call_message, types.CallbackQuery):
+        msg_id = call_message.message.id
+        bot.edit_message_text(chat_id=int(user.chat_id), message_id=msg_id, text=txt, reply_markup=key)
+    change_command_to_none(user, session)
+
+
+def process_view_today_schedule(call, session, bot):
     try:
+        user = get_user(call, session)
         rooms = session.query(Rooms).all()
+        bot.delete_message(call.message.chat.id, call.message.id)
+        for room in rooms:
+            image_path = create_image_for_today(session, room)
+            if image_path is not None:
+                with open(image_path, 'rb') as photo:
+                    bot.send_photo(
+                        chat_id=call.message.chat.id,
+                        photo=photo,
+                        caption=get_text(BotText.TODAY_SCHEDULE, user.language).format(room_name=room.name)
+                    )
+                os.remove(image_path)
+    except SQLAlchemyError as e:
+        add_log(f"SQLAlchemyError in process_view_today_schedule: {e}")
+    except Exception as e:
+        add_log(f"Exception in process_view_today_schedule: {e}")
+
+
+def create_image_for_today(session, room):
+    try:
+        today = dt.now(tehran_tz)
+        today = dt(year=today.year, month=today.month, day=today.day)
+        today = tehran_tz.localize(today)
+        tomorrow = today + timedelta(days=1)
+        schedule, employees = get_schedule_employees(session, room, [today, tomorrow])
+        day_positions, y_labels = get_day_positions_and_labels_for_today(today)
+        fig, ax = plt.subplots(figsize=(18, 4))
+        process_plot_for_employees([schedule, employees, day_positions], ax, True)
+        process_ax(ax, room, employees, y_labels)
+        plt.tight_layout()
+        plt.savefig('today_schedule_timeline_fa.png', dpi=300, bbox_inches='tight')
+        plt.close()
+        return "today_schedule_timeline_fa.png"
+    except SQLAlchemyError as e:
+        add_log(f"SQLAlchemyError in create_image_for_today: {e}")
+    except Exception as e:
+        add_log(f"Exception in create_image_for_today: {e}")
+
+
+def get_day_positions_and_labels_for_today(today):
+    dates = [today]
+    day_positions = {}
+    y_labels = []
+    for i, date in enumerate(dates):
+        weekday = date.strftime("%A")
+        persian_day = day_in_persian[weekday]
+        formatted_date = date.strftime("%Y-%m-%d")
+        day_positions[formatted_date] = i
+        y_labels.append(f"{get_display_text(persian_day)} {gregorian_to_jalali(formatted_date)}")
+    return day_positions, y_labels
+
+
+def process_select_date_custom_schedule(call, session, bot):
+    msg_id = call.message.id
+    user = get_user(call, session)
+    txt = get_text(BotText.CUSTOM_DATE_TEXT, user.language)
+    key = create_date_buttons('cu-view', user)
+    key.add(btn(text=get_text(BotText.BACK_BUTTON, user.language), callback_data="backtoview"))
+    bot.edit_message_text(chat_id=int(user.chat_id), message_id=msg_id, text=txt, reply_markup=key)
+
+
+def process_view_custom_schedule(call, session, bot):
+    try:
+        user = get_user(call, session)
+        custom_date = call.data.split("_")[1]
+        bot.delete_message(call.message.chat.id, call.message.id)
+        rooms = session.query(Rooms).all()
+        for room in rooms:
+            image_path = create_image_for_custom_day(session, room, custom_date)
+            if image_path is not None:
+                with open(image_path, 'rb') as photo:
+                    date = custom_date if user.language == "en" else gregorian_to_jalali(custom_date)
+                    bot.send_photo(
+                        chat_id=call.message.chat.id,
+                        photo=photo,
+                        caption=change_num_as_lang(
+                            get_text(BotText.CUSTOM_SCHEDULE, user.language).format(custom_date=date,
+                                                                                    room_name=room.name), user.language)
+                    )
+                os.remove(image_path)
+    except SQLAlchemyError as e:
+        add_log(f"SQLAlchemyError in process_view_custom_schedule: {e}")
+    except Exception as e:
+        add_log(f"Exception in process_view_custom_schedule: {e}")
+
+
+def create_image_for_custom_day(session, room, custom_date):
+    try:
+        custom_date = dt.strptime(custom_date, "%Y-%m-%d")
+        custom_date = tehran_tz.localize(custom_date)
+        next_day = custom_date + timedelta(days=1)
+        schedule, employees = get_schedule_employees(session, room, [custom_date, next_day])
+        day_positions, y_labels = get_day_positions_and_labels_for_custom_day(custom_date)
+        fig, ax = plt.subplots(figsize=(18, 4))
+        process_plot_for_employees([schedule, employees, day_positions], ax, True)
+        process_ax(ax, room, employees, y_labels)
+        plt.tight_layout()
+        plt.savefig('custom_day_schedule_timeline_fa.png', dpi=300, bbox_inches='tight')
+        plt.close()
+        return "custom_day_schedule_timeline_fa.png"
+    except SQLAlchemyError as e:
+        add_log(f"SQLAlchemyError in create_image_for_custom_day: {e}")
+    except Exception as e:
+        add_log(f"Exception in create_image_for_custom_day: {e}")
+
+
+def get_day_positions_and_labels_for_custom_day(custom_date):
+    dates = [custom_date]
+    day_positions = {}
+    y_labels = []
+    for i, date in enumerate(dates):
+        weekday = date.strftime("%A")
+        persian_day = day_in_persian[weekday]
+        formatted_date = date.strftime("%Y-%m-%d")
+        day_positions[formatted_date] = i
+        y_labels.append(f"{get_display_text(persian_day)} {gregorian_to_jalali(formatted_date)}")
+    return day_positions, y_labels
+
+
+def process_view_weekly_schedule(call, session, bot):
+    try:
+        user = get_user(call, session)
+        rooms = session.query(Rooms).all()
+        bot.delete_message(call.message.chat.id, call.message.id)
         for room in rooms:
             image_path = create_image(session, room)
             if image_path is not None:
                 with open(image_path, 'rb') as photo:
                     bot.send_photo(
-                        chat_id=message.chat.id,
+                        chat_id=call.message.chat.id,
                         photo=photo,
-                        caption=f"📊 Chart {room.name}"  # Caption for the photo
+                        caption=get_text(BotText.WEEKLY_SCHEDULE, user.language).format(room_name=room.name)
                     )
                 os.remove(image_path)
     except SQLAlchemyError as e:
@@ -45,7 +190,7 @@ def create_image(session, room):
         day_positions, y_labels = get_day_positions_and_labels(today)
         # ایجاد شکل و محور با اندازه بزرگ‌تر
         fig, ax = plt.subplots(figsize=(18, 10))  # Increase the figure size (width, height)
-        process_plot_for_employees([schedule, employees], day_positions, ax)
+        process_plot_for_employees([schedule, employees, day_positions], ax)
         process_ax(ax, room, employees, y_labels)
         # بهبود چیدمان نمودار
         plt.tight_layout()
@@ -60,10 +205,12 @@ def create_image(session, room):
 
 
 def main_data_in_create_image():
-    today = dt.now()
+    today = dt.now(tehran_tz)
     today = dt(year=today.year, month=today.month, day=today.day)
+    today = tehran_tz.localize(today)
     next_week = today + timedelta(days=7)
     next_week = dt(year=next_week.year, month=next_week.month, day=next_week.day, hour=23)
+    next_week = tehran_tz.localize(next_week)
     return today, next_week
 
 
@@ -83,7 +230,7 @@ def get_day_positions_and_labels(today):
 
 def get_schedule_employees(session, room, today_next_week):
     try:
-        today, next_week = today_next_week
+        today, end_date = today_next_week
         employees, schedule = {}, {}
         reserves = session.query(Reservations).filter_by(status=CONFIRMED).all()
         for reserve in reserves:
@@ -93,7 +240,8 @@ def get_schedule_employees(session, room, today_next_week):
                 if name not in employees:
                     employees[name] = color
                 date_obj = dt.strptime(f"{date} {start}", "%Y-%m-%d %H:%M")
-                if today <= date_obj <= next_week:
+                date_obj = tehran_tz.localize(date_obj)
+                if today <= date_obj <= end_date:
                     persian_day = day_in_persian[weekday]
                     if name not in schedule:
                         schedule[name] = [(persian_day, start, end, date)]
@@ -112,24 +260,27 @@ def get_display_text(text):
     return bidi_text
 
 
-def process_plot_for_employees(schedule_employees, day_positions, ax):
-    schedule, employees = schedule_employees
-    print(schedule)
+def process_plot_for_employees(schedule_employees_day, ax, is_single_day=False):
+    schedule, employees, day_positions = schedule_employees_day
+    bar_height = 0.4 if is_single_day else 0.8  # Reduce height for single-day schedules
     for employee, blocks in schedule.items():
         for block in blocks:
             day, start, end, date = block
             y = day_positions[date]  # Use the date as the key to get the correct y-position
             # Convert start and end times to datetime objects
             start_time = dt.strptime(start, "%H:%M")
+            start_time = tehran_tz.localize(start_time)
             end_time = dt.strptime(end, "%H:%M")
+            end_time = tehran_tz.localize(end_time)
             # Calculate the duration in hours
             reference_time = dt.strptime("08:00", "%H:%M")  # Reference time is 8:00 AM
+            reference_time = tehran_tz.localize(reference_time)
             start_hours = (start_time - reference_time).seconds / 3600
             end_hours = (end_time - reference_time).seconds / 3600
             # Calculate the duration
             duration = end_hours - start_hours
-            # Plot the bar
-            ax.broken_barh([(start_hours, duration)], (y - 0.4, 0.8), facecolors=employees[employee])
+            # Plot the bar with adjusted height
+            ax.broken_barh([(start_hours, duration)], (y - bar_height / 2, bar_height), facecolors=employees[employee])
 
 
 def process_ax(ax, room, employees, y_labels):
@@ -164,15 +315,10 @@ def process_ax(ax, room, employees, y_labels):
 def get_x_ticks_and_x_labels():
     x_ticks = []
     x_labels = []
-    for hour in range(8, 21):  # From 8 AM to 9 PM
+    for hour in range(8, 22):  # From 8 AM to 9 PM
         for minute in [0, 15, 30, 45]:  # Every 15 minutes
             x_ticks.append((hour - 8) + (minute / 60))  # Convert to hours since 8 AM
             x_labels.append(f"{hour}:{minute:02d}")  # Format as "HH:MM"
+            if x_labels[-1] == '21:00':
+                break
     return x_ticks, x_labels
-
-
-def gregorian_to_jalali(date_str):
-    gregorian_date = dt.strptime(date_str, '%Y-%m-%d')
-    jalali_date = jdatetime.date.fromgregorian(date=gregorian_date)
-    jalali_date_str = jalali_date.strftime('%Y/%m/%d')
-    return jalali_date_str

@@ -181,7 +181,7 @@ def register_handle_past_reservations(session, bot):
     @bot.callback_query_handler(func=lambda call: call.data.startswith("past_reservations_"))
     def handle_past_reservations(call):
         page = int(call.data.split("_")[-1])
-        return process_past_reservations(call, session, bot, page)
+        return process_past_reservations([call, page], session, bot)
 
 
 def register_handle_back_user(session, bot):
