@@ -2,6 +2,7 @@ import os
 import random
 from datetime import datetime as dt, timedelta
 
+import jdatetime
 import pytz
 from dotenv import load_dotenv
 from sqlalchemy.exc import SQLAlchemyError
@@ -10,8 +11,9 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as btn
 from models.reservations import Reservations
 from models.rooms import Rooms
 from models.users import Users
-from services.config import DAYS_FOR_HEADERS, CONFIRMED, FIRST, SECOND, gregorian_to_jalali, day_in_persian
-from services.language import get_text, BotText, change_num_as_lang
+from services.config import DAYS_FOR_HEADERS, CONFIRMED, FIRST, SECOND, gregorian_to_jalali, day_in_persian, FARSI, \
+    DAYS_FOR_HEADERS_FA, get_user
+from services.language import get_text, BotText, change_num_as_lang, convert_to_persian_numerals
 from services.log import add_log
 
 tehran_tz = pytz.timezone("Asia/Tehran")
@@ -19,23 +21,49 @@ load_dotenv()
 admins = os.getenv("ADMINS").split("-")
 
 
-def create_date_buttons(first_cb):
-    start_date, end_date, days_of_week = get_start_end_week_date()
-    markup = add_row_buttons([start_date, end_date, days_of_week], first_cb)
+def create_date_buttons(first_cb, user):
+    start_date, end_date, days_of_week = get_start_end_week_date(user)
+    markup = add_row_buttons([start_date, end_date, days_of_week], first_cb, user)
     return markup
 
 
-def get_start_end_week_date():
-    days_of_week = DAYS_FOR_HEADERS
+def get_start_end_week_date(user):
+    if user.language == FARSI:
+        days_of_week = DAYS_FOR_HEADERS_FA
+    else:
+        days_of_week = DAYS_FOR_HEADERS
     start_date = dt.now(tehran_tz)
     end_date = start_date + timedelta(days=7)
     return start_date, end_date, days_of_week
 
 
-def add_row_buttons(start_end_days, first_cb):
-    row, markup = get_date_buttons(start_end_days, first_cb)
-    markup = add_free_buttons(row, markup)
+def add_row_buttons(start_end_days, first_cb, user):
+    if user.language == FARSI:
+        row, markup = get_date_buttons_in_persian(start_end_days, first_cb)
+    else:
+        row, markup = get_date_buttons(start_end_days, first_cb)
+    markup = add_free_buttons(row, markup, user)
     return markup
+
+
+def get_date_buttons_in_persian(start_end_days, first_cb):
+    start, end, days, row = start_end_days[0], start_end_days[1], start_end_days[2], []
+    markup = InlineKeyboardMarkup(row_width=7)
+    markup.row(*[btn(text=day, callback_data="NON") for day in reversed(days)])
+    start_day_of_week = (start.weekday() + 2) % 7
+    for _ in range(start_day_of_week):
+        row.append(btn(text="__", callback_data="NON"))
+    while start <= end:
+        jalali_date = jdatetime.date.fromgregorian(date=start)
+        jalali_day = jalali_date.day
+        date = start.strftime('%Y-%m-%d')
+        k = btn(text=convert_to_persian_numerals(str(jalali_day)), callback_data=f"{first_cb}_{date}")
+        row.append(k)
+        start += timedelta(days=1)
+        if len(row) == 7:
+            markup.row(*reversed(row))
+            row = []
+    return row, markup
 
 
 def get_date_buttons(start_end_days, first_cb):
@@ -56,8 +84,12 @@ def get_date_buttons(start_end_days, first_cb):
     return row, markup
 
 
-def add_free_buttons(row, markup):
-    if row:
+def add_free_buttons(row, markup, user):
+    if row and user.language == FARSI:
+        while len(row) < 7:
+            row.append(btn(text="__", callback_data="NON"))
+        markup.row(*reversed(row))
+    elif row:
         while len(row) < 7:
             row.append(btn(text="__", callback_data="NON"))
         markup.row(*row)
@@ -80,8 +112,7 @@ def get_room_name(room_id, session):
 
 
 def get_txt_in_cb(h_m, call, session):
-    chat_id = str(call.message.chat.id)
-    user = session.query(Users).filter_by(chat_id=chat_id).first()
+    user = get_user(call, session)
     h, m = h_m
     if m == 45:
         txt = f"{h}:{m}-{h + 1}"
@@ -170,7 +201,8 @@ def get_hour_buttons(call, session):
                 buttons.append(btn(text="🟨", callback_data=f"who_{date}_{room}_{time}"))
             elif db_status == FIRST or db_status == SECOND:
                 buttons.append(
-                    get_new_buttons([db_status, time, hours, reserved_hours, get_txt_in_cb([h, m], call, session), cb, call.id]))
+                    get_new_buttons(
+                        [db_status, time, hours, reserved_hours, get_txt_in_cb([h, m], call, session), cb, call.id]))
             else:
                 buttons.append(btn(text=get_txt_in_cb([h, m], call, session), callback_data=cb[0]))
             if len(buttons) == 2:
@@ -289,8 +321,7 @@ def get_end_time(s_time):
 def get_reservation_in_confirm(call, session):
     try:
         room, date = get_room_date_as_call(call)
-        chat_id = str(call.message.chat.id)
-        user = session.query(Users).filter_by(chat_id=chat_id).first()
+        user = get_user(call, session)
         return session.query(Reservations).filter(
             (Reservations.room_id == room) &
             (Reservations.user_id == user.id) &
@@ -333,11 +364,10 @@ def calc_duration(s_in_min, e_in_min):
 
 def get_second_data_in_start(e_time_call, session, reserve):
     e_time, call = e_time_call
-    chat_id = str(call.message.chat.id)
     e_hour, e_min = int(e_time.split(":")[0]), int(e_time.split(":")[1])
     s_time = reserve.start_time
     s_hour, s_min = int(s_time.split(":")[0]), int(s_time.split(":")[1])
-    user = session.query(Users).filter_by(chat_id=chat_id).first()
+    user = get_user(call, session)
     is_admin = True if user.username in admins else False
     s_in_min, e_in_min = (60 * s_hour) + s_min, (60 * e_hour) + e_min
     ok_duration = calc_duration(s_in_min, e_in_min)
@@ -437,7 +467,7 @@ def get_reserved_hours_in_edit(call, session):
 
 
 def get_past_reserves(chat_id, session):
-    user = session.query(Users).filter_by(chat_id=chat_id).first()
+    user = session.query(Users).filter_by(chat_id=str(chat_id)).first()
     reserves = session.query(Reservations).filter_by(user_id=user.id, status=CONFIRMED).all()
     past_reserves = [reserve for reserve in reserves if not future_date(reserve)]
     sorted_reserves = sorted(past_reserves,
@@ -464,8 +494,7 @@ def get_txt_markup_in_past_reservations(past_reserves, txt_2, user):
 
 
 def get_future_text(call, session):
-    chat_id = str(call.message.chat.id)
-    user = session.query(Users).filter_by(chat_id=chat_id).first()
+    user = get_user(call, session)
     confs = session.query(Reservations).filter_by(user_id=user.id, status=CONFIRMED).all()
     future_reserves = [reserve for reserve in confs if future_date(reserve)]
     sorted_reserves = sorted(future_reserves,

@@ -56,14 +56,13 @@ def check_admin(session, bot):
     def decorator(handler):
         def wrapper(message):
             try:
-                chat_id = str(message.chat.id)
-                user = session.query(Users).filter_by(chat_id=chat_id).first()
+                user = get_user(message, session)
                 if user.role == "admin":
                     return handler(message)
                 text = "You are not admin, and you can't access this command ⛔️"
                 user.command = None
                 session.commit()
-                bot.send_message(chat_id, text)
+                bot.send_message(int(user.chat_id), text)
             except SQLAlchemyError as e:
                 add_log(f"SQLAlchemyError in check_admin: {e}")
             except Exception as e:
@@ -78,8 +77,7 @@ def check_color(session):
     def decorator(handler):
         def wrapper(message):
             try:
-                chat_id = str(message.chat.id)
-                user = session.query(Users).filter_by(chat_id=chat_id).first()
+                user = get_user(message, session)
                 if user.color:
                     return handler(message)
                 else:

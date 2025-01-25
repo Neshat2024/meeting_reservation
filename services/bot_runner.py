@@ -37,6 +37,7 @@ def backup_database(bot):
     bot_username = bot.get_me().username
     backup_file = os.path.join(backup_dir, f"{bot_username}_{timestamp}.sql")
     command = backup_command(backup_file)
+    flag = False
     try:
         subprocess.run(command, check=True)
         txt = f"Backup created at: {backup_file}"
@@ -44,7 +45,6 @@ def backup_database(bot):
         flag = True
     except subprocess.CalledProcessError as e:
         add_log(f"Error during backup: {e}")
-        flag = False
     finally:
         if "PGPASSWORD" in os.environ:
             del os.environ["PGPASSWORD"]
