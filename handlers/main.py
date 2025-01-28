@@ -19,10 +19,10 @@ def register_start_command(session, bot):
         return process_start(message, session, bot)
 
 
-def register_help_command(bot):
+def register_help_command(session, bot):
     @bot.message_handler(commands=["help"])
     def help_command(message):
-        return process_help(message, bot)
+        return process_help(message, session, bot)
 
 
 def register_handle_ok_reservation(session, bot):
@@ -46,7 +46,7 @@ def register_handle_checkout_reservation(session, bot):
 def start_help_handler(bot: TeleBot, session):
     add_main_commands_report()
     register_start_command(session, bot)
-    register_help_command(bot)
+    register_help_command(session, bot)
     register_handle_ok_reservation(session, bot)
     register_handle_cancel_reservation(session, bot)
     register_handle_checkout_reservation(session, bot)

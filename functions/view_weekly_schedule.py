@@ -2,7 +2,6 @@ import os
 from datetime import datetime as dt, timedelta
 
 import arabic_reshaper
-import jdatetime
 import matplotlib
 import matplotlib.patches as mpatches
 from bidi.algorithm import get_display
@@ -11,14 +10,14 @@ from sqlalchemy.exc import SQLAlchemyError
 from telebot import types
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as btn
 
-from models.users import Users
+from services.language import get_text, BotText, change_num_as_lang
 
 matplotlib.use('Agg')  # Set the backend to 'Agg' (non-interactive)
 import matplotlib.pyplot as plt
 from functions.get_functions import get_data_in_create_image, create_date_buttons
 from models.reservations import Reservations
 from models.rooms import Rooms
-from services.config import CONFIRMED, day_in_persian, change_command_to_none
+from services.config import CONFIRMED, day_in_persian, change_command_to_none, gregorian_to_jalali, get_user
 from services.log import add_log
 import pytz
 
@@ -26,25 +25,23 @@ tehran_tz = pytz.timezone("Asia/Tehran")
 
 
 def process_view_schedule(call_message, session, bot):
-    txt = "🗓 Choose Your Schedule:"
+    user = get_user(call_message, session)
+    txt = get_text(BotText.SCHEDULE_SELECTION, user.language)
     key = InlineKeyboardMarkup()
-    key.add(btn(text="📅 Today", callback_data="today-view"))
-    key.add(btn(text="📆 Custom Day", callback_data="select-date"))
-    key.add(btn(text="🗓 Weekly", callback_data="weekly-view"))
+    key.add(btn(text=get_text(BotText.TODAY_BUTTON, user.language), callback_data="today-view"))
+    key.add(btn(text=get_text(BotText.CUSTOM_SCHEDULE_BUTTON, user.language), callback_data="select-date"))
+    key.add(btn(text=get_text(BotText.WEEKLY_BUTTON, user.language), callback_data="weekly-view"))
     if isinstance(call_message, types.Message):
-        message = call_message
-        chat_id = str(message.chat.id)
-        bot.send_message(chat_id, txt, reply_markup=key)
+        bot.send_message(int(user.chat_id), txt, reply_markup=key)
     elif isinstance(call_message, types.CallbackQuery):
-        chat_id = str(call_message.message.chat.id)
         msg_id = call_message.message.id
-        bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
-    user = session.query(Users).filter_by(chat_id=chat_id).first()
+        bot.edit_message_text(chat_id=int(user.chat_id), message_id=msg_id, text=txt, reply_markup=key)
     change_command_to_none(user, session)
 
 
 def process_view_today_schedule(call, session, bot):
     try:
+        user = get_user(call, session)
         rooms = session.query(Rooms).all()
         bot.delete_message(call.message.chat.id, call.message.id)
         for room in rooms:
@@ -54,7 +51,7 @@ def process_view_today_schedule(call, session, bot):
                     bot.send_photo(
                         chat_id=call.message.chat.id,
                         photo=photo,
-                        caption=f"📊 Today's Schedule for {room.name}"  # Caption for the photo
+                        caption=get_text(BotText.TODAY_SCHEDULE, user.language).format(room_name=room.name)
                     )
                 os.remove(image_path)
     except SQLAlchemyError as e:
@@ -67,6 +64,7 @@ def create_image_for_today(session, room):
     try:
         today = dt.now(tehran_tz)
         today = dt(year=today.year, month=today.month, day=today.day)
+        today = tehran_tz.localize(today)
         tomorrow = today + timedelta(days=1)
         schedule, employees = get_schedule_employees(session, room, [today, tomorrow])
         day_positions, y_labels = get_day_positions_and_labels_for_today(today)
@@ -97,16 +95,17 @@ def get_day_positions_and_labels_for_today(today):
 
 
 def process_select_date_custom_schedule(call, session, bot):
-    chat_id = call.message.chat.id
     msg_id = call.message.id
-    txt = '📅 Choose a Date for View Meetings (Available up to Next Week):'
-    key = create_date_buttons('cu-view')
-    key.add(btn(text="⬅️ Back", callback_data="backtoview"))
-    bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key)
+    user = get_user(call, session)
+    txt = get_text(BotText.CUSTOM_DATE_TEXT, user.language)
+    key = create_date_buttons('cu-view', user)
+    key.add(btn(text=get_text(BotText.BACK_BUTTON, user.language), callback_data="backtoview"))
+    bot.edit_message_text(chat_id=int(user.chat_id), message_id=msg_id, text=txt, reply_markup=key)
 
 
 def process_view_custom_schedule(call, session, bot):
     try:
+        user = get_user(call, session)
         custom_date = call.data.split("_")[1]
         bot.delete_message(call.message.chat.id, call.message.id)
         rooms = session.query(Rooms).all()
@@ -114,16 +113,19 @@ def process_view_custom_schedule(call, session, bot):
             image_path = create_image_for_custom_day(session, room, custom_date)
             if image_path is not None:
                 with open(image_path, 'rb') as photo:
+                    date = custom_date if user.language == "en" else gregorian_to_jalali(custom_date)
                     bot.send_photo(
                         chat_id=call.message.chat.id,
                         photo=photo,
-                        caption=f"📊 Schedule for {custom_date} in {room.name}"  # Caption for the photo
+                        caption=change_num_as_lang(
+                            get_text(BotText.CUSTOM_SCHEDULE, user.language).format(custom_date=date,
+                                                                                    room_name=room.name), user.language)
                     )
                 os.remove(image_path)
     except SQLAlchemyError as e:
-        add_log(f"SQLAlchemyError in process_view_custom_day_schedule: {e}")
+        add_log(f"SQLAlchemyError in process_view_custom_schedule: {e}")
     except Exception as e:
-        add_log(f"Exception in process_view_custom_day_schedule: {e}")
+        add_log(f"Exception in process_view_custom_schedule: {e}")
 
 
 def create_image_for_custom_day(session, room, custom_date):
@@ -161,6 +163,7 @@ def get_day_positions_and_labels_for_custom_day(custom_date):
 
 def process_view_weekly_schedule(call, session, bot):
     try:
+        user = get_user(call, session)
         rooms = session.query(Rooms).all()
         bot.delete_message(call.message.chat.id, call.message.id)
         for room in rooms:
@@ -170,7 +173,7 @@ def process_view_weekly_schedule(call, session, bot):
                     bot.send_photo(
                         chat_id=call.message.chat.id,
                         photo=photo,
-                        caption=f"📊 Chart {room.name}"  # Caption for the photo
+                        caption=get_text(BotText.WEEKLY_SCHEDULE, user.language).format(room_name=room.name)
                     )
                 os.remove(image_path)
     except SQLAlchemyError as e:
@@ -204,8 +207,10 @@ def create_image(session, room):
 def main_data_in_create_image():
     today = dt.now(tehran_tz)
     today = dt(year=today.year, month=today.month, day=today.day)
+    today = tehran_tz.localize(today)
     next_week = today + timedelta(days=7)
     next_week = dt(year=next_week.year, month=next_week.month, day=next_week.day, hour=23)
+    next_week = tehran_tz.localize(next_week)
     return today, next_week
 
 
@@ -317,10 +322,3 @@ def get_x_ticks_and_x_labels():
             if x_labels[-1] == '21:00':
                 break
     return x_ticks, x_labels
-
-
-def gregorian_to_jalali(date_str):
-    gregorian_date = dt.strptime(date_str, '%Y-%m-%d')
-    jalali_date = jdatetime.date.fromgregorian(date=gregorian_date)
-    jalali_date_str = jalali_date.strftime('%Y/%m/%d')
-    return jalali_date_str

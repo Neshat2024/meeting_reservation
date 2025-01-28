@@ -1,6 +1,8 @@
 import os
 import re
+from datetime import datetime as dt
 
+import jdatetime
 from dotenv import load_dotenv
 from sqlalchemy.exc import SQLAlchemyError
 from telebot import types
@@ -17,10 +19,12 @@ BACK_DATE, BACK_MAIN, BACK_USER = "backdate", "backmain", "backuser"
 BACK_ROOM = "backroom"
 FIRST, SECOND, CONFIRMED = "first", "second", "confirmed"
 DAYS_FOR_HEADERS = ["SA", "SU", "MO", "TU", "WE", "TH", "FR"]
+DAYS_FOR_HEADERS_FA = ["ش", "۱ش", "۲ش", "۳ش", "۴ش", "۵ش", "ج"]
 day_in_persian = {"Friday": "جمعه", "Thursday": "پنج‌شنبه", "Wednesday": "چهارشنبه", "Tuesday": "سه‌شنبه",
                   "Monday": "دوشنبه", "Sunday": "یکشنبه", "Saturday": "شنبه"}
 ONE, TWO, THREE = 1, 2, 3
 CHECKOUT = "checkout"
+FARSI, ENGLISH = "fa", "en"
 
 def get_user(call_or_message, session):
     if isinstance(call_or_message, types.Message):
@@ -99,3 +103,10 @@ def change_command_to_none(user, session):
         add_log(f"SQLAlchemyError in change_command_to_none: {e}")
     except Exception as e:
         add_log(f"Exception in change_command_to_none: {e}")
+
+
+def gregorian_to_jalali(date_str):
+    gregorian_date = dt.strptime(date_str, '%Y-%m-%d')
+    jalali_date = jdatetime.date.fromgregorian(date=gregorian_date)
+    jalali_date_str = jalali_date.strftime('%Y/%m/%d')
+    return jalali_date_str
