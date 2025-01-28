@@ -8,7 +8,7 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as btn
 from functions.get_functions import get_room_name, get_room_date_as_call, create_date_buttons, get_date_in_db, \
     get_data_in_process_button, get_reservation_in_confirm, get_hour_buttons, get_date_query_in_add_time, \
     get_reserved_hours, get_reserved_hours_as_query, get_end_time, set_end_time_in_process_start, \
-    get_second_data_in_start
+    get_second_data_in_start, get_date_obj
 from models.reservations import Reservations
 from models.rooms import Rooms
 from models.users import Users
@@ -265,7 +265,7 @@ def add_new_date_to_db(call, session, bot):
 def get_start_hour_data_one(call, session, reserve):
     e_time = call.data.split("_")[4]
     s_time = reserve.start_time
-    reserved_times = [(s_time, e_time)]
+    reserved_times = [(s_time, e_time, reserve.date)]
     hours = get_reserved_hours_as_query(reserved_times)
     reserved_hours = get_reserved_hours(call, session)
     return hours, reserved_hours

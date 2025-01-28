@@ -128,7 +128,7 @@ def get_reserved_hours(call, session):
     try:
         room, date = get_room_date_as_call(call)
         reserved_rows = session.query(Reservations).filter_by(room_id=room, date=date, status=CONFIRMED).all()
-        reserved_times = [(row.start_time, row.end_time) for row in reserved_rows]
+        reserved_times = [(row.start_time, row.end_time, row.date) for row in reserved_rows]
         reserved_hours = get_reserved_hours_as_query(reserved_times)
         return reserved_hours
     except Exception as e:
@@ -149,8 +149,10 @@ def get_room_date_as_call(call):
 
 def get_reserved_hours_as_query(reserved_times):
     reserved_hours = []
+    now = dt.now(tehran_tz)
     for s_e in reserved_times:
         start, end = s_e[0], s_e[1]
+        end_time = get_date_obj(s_e[2], end)
         s_hour, s_min = int(start.split(":")[0]), int(start.split(":")[1])
         e_hour, e_min = int(end.split(":")[0]), int(end.split(":")[1])
         s_time_min = (60 * s_hour) + s_min
@@ -159,7 +161,7 @@ def get_reserved_hours_as_query(reserved_times):
             for m in range(0, 60 + 1, 15):
                 time_min = (60 * h) + m
                 condition = get_condition([s_time_min, time_min, e_time_min])
-                if condition:
+                if condition and now < end_time:
                     h_m = f"{str(h).zfill(2)}:{str(m).zfill(2)}"
                     str_hour = h_m if m != 60 else f"{str(h + 1).zfill(2)}:00"
                     reserved_hours.append(str_hour)
@@ -238,7 +240,7 @@ def get_hours_as_db_status(date_in_db):
     if date_in_db.status == FIRST:
         hours = [date_in_db.start_time]
     else:
-        reserved_times = [(date_in_db.start_time, date_in_db.end_time)]
+        reserved_times = [(date_in_db.start_time, date_in_db.end_time, date_in_db.date)]
         hours = get_reserved_hours_as_query(reserved_times)
     return hours
 
@@ -385,7 +387,7 @@ def future_date(reserve):
 def get_start_in_edit_data_one(call, session, reserve):
     e_time = call.data.split("_")[3]
     s_time = reserve.start_time
-    reserved_times = [(s_time, e_time)]
+    reserved_times = [(s_time, e_time, reserve.date)]
     hours = get_reserved_hours_as_query(reserved_times)
     reserved_hours = get_reserved_hours_in_edit(call, session)
     return hours, reserved_hours
@@ -447,7 +449,7 @@ def get_hours_as_db_status_in_edit(call, session):
     if reserve.status == FIRST:
         hours = [reserve.start_time]
     else:
-        reserved_times = [(reserve.start_time, reserve.end_time)]
+        reserved_times = [(reserve.start_time, reserve.end_time, reserve.date)]
         hours = get_reserved_hours_as_query(reserved_times)
     return hours
 
@@ -461,7 +463,7 @@ def get_reserved_hours_in_edit(call, session):
         (Reservations.date == reserve.date) &
         (Reservations.status == CONFIRMED)
     ).all()
-    reserved_times = [(row.start_time, row.end_time) for row in reserved_rows]
+    reserved_times = [(row.start_time, row.end_time, row.date) for row in reserved_rows]
     reserved_hours = get_reserved_hours_as_query(reserved_times)
     return reserved_hours
 
@@ -510,3 +512,11 @@ def get_future_text(call, session):
             end_time=reserve.end_time
         ) + "\n\n"
     return txt_2
+
+
+def get_date_obj(date, time_str):
+    the_time = dt.strptime(time_str, "%H:%M")
+    the_time += timedelta(minutes=1)
+    the_time = the_time.strftime("%H:%M")
+    dt_time = dt.strptime(f"{date} {the_time}", "%Y-%m-%d %H:%M")
+    return tehran_tz.localize(dt_time)

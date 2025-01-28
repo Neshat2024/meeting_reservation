@@ -8,6 +8,7 @@ import requests
 from dotenv import load_dotenv
 from sqlalchemy.exc import SQLAlchemyError
 
+from functions.get_functions import get_date_obj
 from models.reservations import Reservations
 from models.reserve_bot import SessionLocal
 from models.rooms import Rooms
@@ -63,7 +64,7 @@ def check_session_sending():
                             buttons = get_buttons_in_check_meeting_time(user, f"cancel_{reserve[-1]}")
                             send_msg(txt, int(user.chat_id), buttons)
                             processed_reservations.add(reservation_id)
-                        elif diff == 0:
+                        elif diff == 0 or diff < 0:
                             txt = get_text(BotText.CHECKOUT_MESSAGE, user.language).format(reserve=reserve[2])
                             buttons = get_buttons_in_check_meeting_time(user, f"checkout_{reserve[-1]}", "checkout")
                             send_msg(txt, int(user.chat_id), buttons)
@@ -81,17 +82,14 @@ def get_schedule_in_check_session(room, schedule):
     try:
         now= dt.now(tehran_tz)
         str_date = f"{now.year}-{str(now.month).zfill(2)}-{str(now.day).zfill(2)}"
-        end_time = tehran_tz.localize(dt(year=now.year, month=now.month, day=now.day, hour=21, minute=1))
+        end_day = tehran_tz.localize(dt(year=now.year, month=now.month, day=now.day, hour=23, minute=1))
         reserves = session.query(Reservations).filter_by(status=CONFIRMED, date=str_date).all()
         for reserve in reserves:
             if str(reserve.room_id) == str(room.id):
                 name, date, start, end, color = get_data_in_check_session(reserve)
-                start_time = dt.strptime(start, "%H:%M")
-                start_time += timedelta(minutes=1)
-                start = start_time.strftime("%H:%M")
-                date_obj = dt.strptime(f"{date} {start}", "%Y-%m-%d %H:%M")
-                date_obj = tehran_tz.localize(date_obj)
-                if now <= date_obj <= end_time:
+                start_time = get_date_obj(date, start)
+                end_time = get_date_obj(date, end)
+                if now <= start_time <= end_day or start_time <= now <= end_time:
                     if name not in schedule:
                         schedule[name] = [[room.name, start, end, date, reserve.id]]
                     else:
