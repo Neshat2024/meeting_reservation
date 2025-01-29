@@ -57,7 +57,7 @@ def check_session_sending():
                     dt_reserve = dt.strptime(str_time, "%Y-%m-%d %H:%M")
                     dt_reserve = tehran_tz.localize(dt_reserve)
                     diff = int((dt_reserve - now).total_seconds() / 60)
-                    reservation_id = f"{name}_{str_time}"
+                    reservation_id = f"{name}_{str_time}_{reserve[-1]}"
                     if reservation_id not in processed_reservations:
                         if diff == 120:
                             txt = get_text(BotText.REMINDER_MESSAGE, user.language).format(reserve=reserve[0])
