@@ -265,7 +265,7 @@ def add_new_date_to_db(call, session, bot):
 def get_start_hour_data_one(call, session, reserve):
     e_time = call.data.split("_")[4]
     s_time = reserve.start_time
-    reserved_times = [(s_time, e_time)]
+    reserved_times = [(s_time, e_time, reserve.date)]
     hours = get_reserved_hours_as_query(reserved_times)
     reserved_hours = get_reserved_hours(call, session)
     return hours, reserved_hours
