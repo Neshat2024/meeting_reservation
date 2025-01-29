@@ -514,9 +514,10 @@ def get_future_text(call, session):
     return txt_2
 
 
-def get_date_obj(date, time_str):
-    the_time = dt.strptime(time_str, "%H:%M")
-    the_time += timedelta(minutes=1)
-    the_time = the_time.strftime("%H:%M")
-    dt_time = dt.strptime(f"{date} {the_time}", "%Y-%m-%d %H:%M")
+def get_date_obj(date, time_str, add_a_minute=False):
+    if add_a_minute:
+        the_time = dt.strptime(time_str, "%H:%M")
+        the_time += timedelta(minutes=1)
+        time_str = the_time.strftime("%H:%M")
+    dt_time = dt.strptime(f"{date} {time_str}", "%Y-%m-%d %H:%M")
     return tehran_tz.localize(dt_time)

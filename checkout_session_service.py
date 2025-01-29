@@ -82,18 +82,19 @@ def get_schedule_in_check_session(room, schedule):
     try:
         now= dt.now(tehran_tz)
         str_date = f"{now.year}-{str(now.month).zfill(2)}-{str(now.day).zfill(2)}"
-        end_day = tehran_tz.localize(dt(year=now.year, month=now.month, day=now.day, hour=23, minute=1))
+        end_day = tehran_tz.localize(dt(year=now.year, month=now.month, day=now.day, hour=21, minute=1))
         reserves = session.query(Reservations).filter_by(status=CONFIRMED, date=str_date).all()
         for reserve in reserves:
             if str(reserve.room_id) == str(room.id):
                 name, date, start, end, color = get_data_in_check_session(reserve)
-                start_time = get_date_obj(date, start)
-                end_time = get_date_obj(date, end)
+                start_time = get_date_obj(date, start, True)
+                end_time = get_date_obj(date, end, True)
                 if now <= start_time <= end_day or start_time <= now <= end_time:
+                    start_str = start_time.strftime("%H:%M")
                     if name not in schedule:
-                        schedule[name] = [[room.name, start, end, date, reserve.id]]
+                        schedule[name] = [[room.name, start_str, end, date, reserve.id]]
                     else:
-                        schedule[name].append([room.name, start, end, date, reserve.id])
+                        schedule[name].append([room.name, start_str, end, date, reserve.id])
         return schedule
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in get_schedule_in_check_session: {e}")
