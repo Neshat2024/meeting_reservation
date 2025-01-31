@@ -15,7 +15,6 @@ def add_settings_command():
 def register_settings_command(session, bot):
     @bot.message_handler(commands=["settings"])
     @set_command("settings", session)
-    @check_name_in_db(session, bot)
     def settings_command(message):
         return process_settings(message, session, bot)
 
