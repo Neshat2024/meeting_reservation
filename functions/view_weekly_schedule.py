@@ -44,16 +44,20 @@ def process_view_today_schedule(call, session, bot):
         user = get_user(call, session)
         rooms = session.query(Rooms).all()
         bot.delete_message(call.message.chat.id, call.message.id)
+        chat_id = call.message.chat.id
         for room in rooms:
             image_path = create_image_for_today(session, room)
             if image_path is not None:
                 with open(image_path, 'rb') as photo:
                     bot.send_photo(
-                        chat_id=call.message.chat.id,
+                        chat_id=chat_id,
                         photo=photo,
                         caption=get_text(BotText.TODAY_SCHEDULE, user.language).format(room_name=room.name)
                     )
                 os.remove(image_path)
+            else:
+                txt = get_text(BotText.EMPTY_DAY_SCHEDULE, user.language).format(room_name=room.name)
+                bot.send_message(chat_id, txt)
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in process_view_today_schedule: {e}")
     except Exception as e:
@@ -67,14 +71,19 @@ def create_image_for_today(session, room):
         today = tehran_tz.localize(today)
         tomorrow = today + timedelta(days=1)
         schedule, employees = get_schedule_employees(session, room, [today, tomorrow])
-        day_positions, y_labels = get_day_positions_and_labels_for_today(today)
-        fig, ax = plt.subplots(figsize=(18, 4))
-        process_plot_for_employees([schedule, employees, day_positions], ax, True)
-        process_ax(ax, room, employees, y_labels)
-        plt.tight_layout()
-        plt.savefig('today_schedule_timeline_fa.png', dpi=300, bbox_inches='tight')
-        plt.close()
-        return "today_schedule_timeline_fa.png"
+        # employees = {name: color}
+        # schedule = {name: [(persian_weekday, start_time, end_time, date)]}
+        if schedule:
+            day_positions, y_labels = get_day_positions_and_labels_for_today(today)
+            fig, ax = plt.subplots(figsize=(18, 4))
+            process_plot_for_employees([schedule, employees, day_positions], ax, True)
+            process_ax(ax, room, employees, y_labels)
+            plt.tight_layout()
+            plt.savefig('today_schedule_timeline_fa.png', dpi=300, bbox_inches='tight')
+            plt.close()
+            return "today_schedule_timeline_fa.png"
+        else:
+            return
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in create_image_for_today: {e}")
     except Exception as e:
@@ -83,8 +92,7 @@ def create_image_for_today(session, room):
 
 def get_day_positions_and_labels_for_today(today):
     dates = [today]
-    day_positions = {}
-    y_labels = []
+    day_positions, y_labels = {}, []
     for i, date in enumerate(dates):
         weekday = date.strftime("%A")
         persian_day = day_in_persian[weekday]
@@ -109,19 +117,23 @@ def process_view_custom_schedule(call, session, bot):
         custom_date = call.data.split("_")[1]
         bot.delete_message(call.message.chat.id, call.message.id)
         rooms = session.query(Rooms).all()
+        chat_id = call.message.chat.id
         for room in rooms:
             image_path = create_image_for_custom_day(session, room, custom_date)
             if image_path is not None:
                 with open(image_path, 'rb') as photo:
                     date = custom_date if user.language == "en" else gregorian_to_jalali(custom_date)
                     bot.send_photo(
-                        chat_id=call.message.chat.id,
+                        chat_id=chat_id,
                         photo=photo,
                         caption=change_num_as_lang(
                             get_text(BotText.CUSTOM_SCHEDULE, user.language).format(custom_date=date,
                                                                                     room_name=room.name), user.language)
                     )
                 os.remove(image_path)
+            else:
+                txt = get_text(BotText.EMPTY_DAY_SCHEDULE, user.language).format(room_name=room.name)
+                bot.send_message(chat_id, txt)
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in process_view_custom_schedule: {e}")
     except Exception as e:
@@ -134,14 +146,18 @@ def create_image_for_custom_day(session, room, custom_date):
         custom_date = tehran_tz.localize(custom_date)
         next_day = custom_date + timedelta(days=1)
         schedule, employees = get_schedule_employees(session, room, [custom_date, next_day])
-        day_positions, y_labels = get_day_positions_and_labels_for_custom_day(custom_date)
-        fig, ax = plt.subplots(figsize=(18, 4))
-        process_plot_for_employees([schedule, employees, day_positions], ax, True)
-        process_ax(ax, room, employees, y_labels)
-        plt.tight_layout()
-        plt.savefig('custom_day_schedule_timeline_fa.png', dpi=300, bbox_inches='tight')
-        plt.close()
-        return "custom_day_schedule_timeline_fa.png"
+        # employees = {name: color}
+        # schedule = {name: [(persian_weekday, start_time, end_time, date)]}
+        if schedule:
+            day_positions, y_labels = get_day_positions_and_labels_for_custom_day(custom_date)
+            fig, ax = plt.subplots(figsize=(18, 4))
+            process_plot_for_employees([schedule, employees, day_positions], ax, True)
+            process_ax(ax, room, employees, y_labels)
+            plt.tight_layout()
+            plt.savefig('custom_day_schedule_timeline_fa.png', dpi=300, bbox_inches='tight')
+            plt.close()
+            return "custom_day_schedule_timeline_fa.png"
+        return
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in create_image_for_custom_day: {e}")
     except Exception as e:
@@ -166,16 +182,20 @@ def process_view_weekly_schedule(call, session, bot):
         user = get_user(call, session)
         rooms = session.query(Rooms).all()
         bot.delete_message(call.message.chat.id, call.message.id)
+        chat_id = call.message.chat.id
         for room in rooms:
             image_path = create_image(session, room)
             if image_path is not None:
                 with open(image_path, 'rb') as photo:
                     bot.send_photo(
-                        chat_id=call.message.chat.id,
+                        chat_id=chat_id,
                         photo=photo,
                         caption=get_text(BotText.WEEKLY_SCHEDULE, user.language).format(room_name=room.name)
                     )
                 os.remove(image_path)
+            else:
+                txt = get_text(BotText.EMPTY_WEEKLY_SCHEDULE, user.language).format(room_name=room.name)
+                bot.send_message(chat_id, txt)
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in process_view_weekly_schedule: {e}")
     except Exception as e:
@@ -186,18 +206,22 @@ def create_image(session, room):
     try:
         today, next_week = main_data_in_create_image()
         schedule, employees = get_schedule_employees(session, room, [today, next_week])
-        # تخصیص هر روز به یک موقعیت در محور y
-        day_positions, y_labels = get_day_positions_and_labels(today)
-        # ایجاد شکل و محور با اندازه بزرگ‌تر
-        fig, ax = plt.subplots(figsize=(18, 10))  # Increase the figure size (width, height)
-        process_plot_for_employees([schedule, employees, day_positions], ax)
-        process_ax(ax, room, employees, y_labels)
-        # بهبود چیدمان نمودار
-        plt.tight_layout()
-        # ذخیره نمودار به صورت تصویر
-        plt.savefig('weekly_schedule_timeline_fa.png', dpi=300, bbox_inches='tight')
-        plt.close()
-        return "weekly_schedule_timeline_fa.png"
+        # employees = {name: color}
+        # schedule = {name: [(persian_weekday, start_time, end_time, date)]}
+        if schedule:
+            # تخصیص هر روز به یک موقعیت در محور y
+            day_positions, y_labels = get_day_positions_and_labels(today)
+            # ایجاد شکل و محور با اندازه بزرگ‌تر
+            fig, ax = plt.subplots(figsize=(18, 10))  # Increase the figure size (width, height)
+            process_plot_for_employees([schedule, employees, day_positions], ax)
+            process_ax(ax, room, employees, y_labels)
+            # بهبود چیدمان نمودار
+            plt.tight_layout()
+            # ذخیره نمودار به صورت تصویر
+            plt.savefig('weekly_schedule_timeline_fa.png', dpi=300, bbox_inches='tight')
+            plt.close()
+            return "weekly_schedule_timeline_fa.png"
+        return
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in create_image: {e}")
     except Exception as e:
@@ -231,17 +255,17 @@ def get_day_positions_and_labels(today):
 def get_schedule_employees(session, room, today_next_week):
     try:
         today, end_date = today_next_week
-        employees, schedule = {}, {}
+        schedule, employees = {}, {}
         reserves = session.query(Reservations).filter_by(status=CONFIRMED).all()
         for reserve in reserves:
             if str(reserve.room_id) == str(room.id):
                 name, date, start, end, color = get_data_in_create_image(reserve, session)
                 weekday = dt.strptime(date, "%Y-%m-%d").strftime("%A")
-                if name not in employees:
-                    employees[name] = color
                 date_obj = dt.strptime(f"{date} {start}", "%Y-%m-%d %H:%M")
                 date_obj = tehran_tz.localize(date_obj)
                 if today <= date_obj <= end_date:
+                    if name not in employees:
+                        employees[name] = color
                     persian_day = day_in_persian[weekday]
                     if name not in schedule:
                         schedule[name] = [(persian_day, start, end, date)]
@@ -262,6 +286,8 @@ def get_display_text(text):
 
 def process_plot_for_employees(schedule_employees_day, ax, is_single_day=False):
     schedule, employees, day_positions = schedule_employees_day
+    # employees = {name: color}
+    # schedule = {name: [(persian_weekday, start_time, end_time, date)]}
     bar_height = 0.4 if is_single_day else 0.8  # Reduce height for single-day schedules
     for employee, blocks in schedule.items():
         for block in blocks:

@@ -58,7 +58,7 @@ def run_scheduler():
         time.sleep(1)
 
 
-def runnner(bot):
+def runner(bot):
     add_log(f"Bot Started at {dt.now(tehran_tz).strftime('%Y-%m-%d %H:%M:%S')}")
     print("Bot is polling...")
     threading.Thread(target=run_scheduler, daemon=True).start()

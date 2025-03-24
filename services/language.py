@@ -304,9 +304,17 @@ class BotText(Enum):
         "en": "📊 Schedule for {custom_date} in {room_name}",
         "fa": "📊 جدول {custom_date} روز برای {room_name}"
     }
+    EMPTY_DAY_SCHEDULE = {
+        "en": "No reservations for {room_name} 🕳",
+        "fa": "هیچ رزروی برای «{room_name}» ثبت نشده است 🕳"
+    }
     WEEKLY_SCHEDULE = {
         "en": "📊 Weekly schedule for {room_name}",
         "fa": "📊 جدول هفتگی برای {room_name}"
+    }
+    EMPTY_WEEKLY_SCHEDULE = {
+        "en": "No weekly reservations for {room_name} 🕳",
+        "fa": "هیچ رزروی در این هفته برای «{room_name}» ثبت نشده است 🕳"
     }
     CUSTOM_DATE_TEXT = {
         "en": "📅 Choose a Date for View Meetings (Available up to Next Week):",
