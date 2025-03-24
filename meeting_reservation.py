@@ -1,5 +1,6 @@
 import os
 
+import telebot
 from dotenv import load_dotenv
 from telebot import TeleBot
 
@@ -10,7 +11,7 @@ from handlers.set_color import set_color_for_all_users
 from handlers.settings import settings_command_handler
 from handlers.view_weekly_schedule import view_weekly_schedule_command_handler
 from models.reserve_bot import init_db, SessionLocal
-from services.bot_runner import runnner
+from services.bot_runner import runner
 from services.config import commands
 
 load_dotenv()
@@ -33,4 +34,4 @@ start_help_handler(bot, session)
 bot.set_my_commands(commands)
 
 # Run Bot
-runnner(bot)
+runner(bot)
