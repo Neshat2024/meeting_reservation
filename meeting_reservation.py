@@ -1,10 +1,10 @@
 import os
 
-import telebot
 from dotenv import load_dotenv
 from telebot import TeleBot
 
 from handlers.admin_commands import admin_commands_handler
+from handlers.continuous_reservation import continuous_reservation_command_handler
 from handlers.main import start_help_handler
 from handlers.reservation import reservation_command_handler
 from handlers.set_color import set_color_for_all_users
@@ -25,6 +25,7 @@ init_db(bot)
 # Register handlers
 set_color_for_all_users(session)
 reservation_command_handler(bot, session)
+continuous_reservation_command_handler(bot, session)
 admin_commands_handler(bot, session)
 view_weekly_schedule_command_handler(bot, session)
 settings_command_handler(bot, session)

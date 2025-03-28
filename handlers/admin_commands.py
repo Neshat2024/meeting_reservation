@@ -1,17 +1,27 @@
 from telebot import TeleBot
 from telebot import types
 
-from functions.admin_commands import process_admin_commands, process_add_room, process_update_room, \
-    process_update_specific_room, \
-    process_delete_room, process_delete_specific_room, process_back_room, process_view_users, process_edit_users_name, \
-    process_edit_specific_name
+from functions.admin_commands import (
+    process_admin_commands,
+    process_add_room,
+    process_update_room,
+    process_update_specific_room,
+    process_delete_room,
+    process_delete_specific_room,
+    process_back_room,
+    process_view_users,
+    process_edit_users_name,
+    process_edit_specific_name,
+)
 from services.config import commands
 from services.wraps import set_command, check_name_in_db, check_admin
 
 
 def add_admin_commands():
     commands.append(
-        types.BotCommand(command="/admin_commands", description="🔧 Admins can manage Meeting Rooms")
+        types.BotCommand(
+            command="/admin_commands", description="🔧 Admins can manage Meeting Rooms"
+        )
     )
 
 
@@ -79,7 +89,9 @@ def register_handle_back_view(session, bot):
 
 
 def register_handle_back_users_view(session, bot):
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("back-users-view"))
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("back-users-view")
+    )
     def handle_back_users_view(call):
         return process_edit_users_name(call, session, bot)
 

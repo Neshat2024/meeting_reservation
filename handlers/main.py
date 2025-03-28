@@ -1,15 +1,18 @@
 from telebot import TeleBot, types
 
-from functions.main import process_start, process_help, process_checkout_reservation, process_cancel_reservation, \
-    process_ok_reservation
+from functions.main import (
+    process_start,
+    process_help,
+    process_checkout_reservation,
+    process_cancel_reservation,
+    process_ok_reservation,
+)
 from services.config import commands
 
 
 def add_main_commands_report():
     commands.extend(
-        [
-            types.BotCommand(command="/help", description="ℹ️ Help information")
-        ]
+        [types.BotCommand(command="/help", description="ℹ️ Help information")]
     )
 
 
@@ -26,7 +29,9 @@ def register_help_command(session, bot):
 
 
 def register_handle_ok_reservation(session, bot):
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("ok-before-meeting"))
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("ok-before-meeting")
+    )
     def handle_ok_reservation(call):
         return process_ok_reservation(call, session, bot)
 

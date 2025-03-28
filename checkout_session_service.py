@@ -30,7 +30,7 @@ def send_msg(text, chat_id, keyboard):
         payload = {
             "chat_id": chat_id,
             "text": text,
-            "reply_markup": json.dumps(keyboard)
+            "reply_markup": json.dumps(keyboard),
         }
         # Send the request
         response = requests.post(url, data=payload)
@@ -60,13 +60,21 @@ def check_session_sending():
                     reservation_id = f"{name}_{str_time}_{reserve[-1]}"
                     if reservation_id not in processed_reservations:
                         if diff == 120:
-                            txt = get_text(BotText.REMINDER_MESSAGE, user.language).format(reserve=reserve[0])
-                            buttons = get_buttons_in_check_meeting_time(user, f"cancel_{reserve[-1]}")
+                            txt = get_text(
+                                BotText.REMINDER_MESSAGE, user.language
+                            ).format(reserve=reserve[0])
+                            buttons = get_buttons_in_check_meeting_time(
+                                user, f"cancel_{reserve[-1]}"
+                            )
                             send_msg(txt, int(user.chat_id), buttons)
                             processed_reservations.add(reservation_id)
                         elif diff == 0 or diff < 0:
-                            txt = get_text(BotText.CHECKOUT_MESSAGE, user.language).format(reserve=reserve[2])
-                            buttons = get_buttons_in_check_meeting_time(user, f"checkout_{reserve[-1]}", "checkout")
+                            txt = get_text(
+                                BotText.CHECKOUT_MESSAGE, user.language
+                            ).format(reserve=reserve[2])
+                            buttons = get_buttons_in_check_meeting_time(
+                                user, f"checkout_{reserve[-1]}", "checkout"
+                            )
                             send_msg(txt, int(user.chat_id), buttons)
                             processed_reservations.add(reservation_id)
             time.sleep(10)
@@ -80,10 +88,14 @@ def check_session_sending():
 
 def get_schedule_in_check_session(room, schedule):
     try:
-        now= dt.now(tehran_tz)
+        now = dt.now(tehran_tz)
         str_date = f"{now.year}-{str(now.month).zfill(2)}-{str(now.day).zfill(2)}"
-        end_day = tehran_tz.localize(dt(year=now.year, month=now.month, day=now.day, hour=21, minute=1))
-        reserves = session.query(Reservations).filter_by(status=CONFIRMED, date=str_date).all()
+        end_day = tehran_tz.localize(
+            dt(year=now.year, month=now.month, day=now.day, hour=21, minute=1)
+        )
+        reserves = (
+            session.query(Reservations).filter_by(status=CONFIRMED, date=str_date).all()
+        )
         for reserve in reserves:
             if str(reserve.room_id) == str(room.id):
                 name, date, start, end, color = get_data_in_check_session(reserve)
@@ -94,7 +106,9 @@ def get_schedule_in_check_session(room, schedule):
                     if name not in schedule:
                         schedule[name] = [[room.name, start_str, end, date, reserve.id]]
                     else:
-                        schedule[name].append([room.name, start_str, end, date, reserve.id])
+                        schedule[name].append(
+                            [room.name, start_str, end, date, reserve.id]
+                        )
         return schedule
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in get_schedule_in_check_session: {e}")
@@ -116,7 +130,10 @@ def get_buttons_in_check_meeting_time(user, cb, mode=None):
         keyboard = {
             "inline_keyboard": [
                 [
-                    {"text": get_text(BotText.CHECKOUT_BUTTON, user.language), "callback_data": f"{cb}"}
+                    {
+                        "text": get_text(BotText.CHECKOUT_BUTTON, user.language),
+                        "callback_data": f"{cb}",
+                    }
                 ]
             ]
         }
@@ -124,9 +141,14 @@ def get_buttons_in_check_meeting_time(user, cb, mode=None):
         keyboard = {
             "inline_keyboard": [
                 [
-                    {"text": get_text(BotText.OK_REMINDER_BUTTON, user.language),
-                     "callback_data": f"ok-before-meeting_{cb.split('_')[1]}"},
-                    {"text": get_text(BotText.CANCEL_REMINDER_BUTTON, user.language), "callback_data": f"{cb}"}
+                    {
+                        "text": get_text(BotText.OK_REMINDER_BUTTON, user.language),
+                        "callback_data": f"ok-before-meeting_{cb.split('_')[1]}",
+                    },
+                    {
+                        "text": get_text(BotText.CANCEL_REMINDER_BUTTON, user.language),
+                        "callback_data": f"{cb}",
+                    },
                 ]
             ]
         }

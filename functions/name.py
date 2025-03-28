@@ -21,20 +21,31 @@ def check_name(message, session, bot):
         user = get_user(message, session)
         text = check_text_in_name(message)
         if text is None:
-            bot.send_message(int(user.chat_id), get_text(BotText.OPERATION_CANCELED, user.language))
+            bot.send_message(
+                int(user.chat_id), get_text(BotText.OPERATION_CANCELED, user.language)
+            )
             return
         elif text:
             name_exists = session.query(Users).filter_by(name=message.text).first()
             if not name_exists:
                 add_name_in_db(message, session)
-                bot.send_message(int(user.chat_id),
-                                 get_text(BotText.NAME_SUBMITTED, user.language).format(name=message.text))
+                bot.send_message(
+                    int(user.chat_id),
+                    get_text(BotText.NAME_SUBMITTED, user.language).format(
+                        name=message.text
+                    ),
+                )
                 return run_user_command(message, session, bot)
             else:
-                bot.send_message(int(user.chat_id), get_text(BotText.INVALID_NAME_TAKEN, user.language))
+                bot.send_message(
+                    int(user.chat_id),
+                    get_text(BotText.INVALID_NAME_TAKEN, user.language),
+                )
                 return process_name(message, session, bot)
         else:
-            bot.send_message(int(user.chat_id), get_text(BotText.INVALID_NAME, user.language))
+            bot.send_message(
+                int(user.chat_id), get_text(BotText.INVALID_NAME, user.language)
+            )
             return process_name(message, session, bot)
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in check_name: {e}")
