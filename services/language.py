@@ -159,6 +159,14 @@ class BotText(Enum):
         "en": "{last_data}\n❓ Room:",
         "fa": "{last_data}\n❓ اتاق:",
     }
+    CHOOSE_CHARGE_TEXT = {
+        "en": "{last_data}\n🚪 Room: {room}\n🔋 Charge: {charge}\n❗️ Every continuous reservation:\n- less than 1 hour takes 1 charge.\n- less than 2 hours takes 2 charges.\n- less than 3 hours takes 3 charges.\n- less than 4 hours takes 4 charges.\n❓ Weeks:\n- 4 weeks ➡️ 1 month\n- 8 weeks ➡️ 2 months\n- 12 weeks ➡️ 3 months\n- 17 weeks ➡️ 4 months\n- 21 weeks ➡️ 5 months\n- 25 weeks ➡️ 6 months",
+        "fa": "{last_data}\n🚪 اتاق: {room}\n🔋 شارژ: {charge}\n❗️ برای هر رزرو مداوم:\n- کمتر از 1 ساعت 1 شارژ نیاز است.\n- کمتر از 2 ساعت 2 شارژ نیاز است.\n- کمتر از 3 ساعت 3 شارژ نیاز است.\n- کمتر از 4 ساعت 4 شارژ نیاز است.\n❓ هفته‌ها:\n- 4 هفته ⬅️ 1 ماه\n- 8 هفته ⬅️ 2 ماه\n- 12 هفته ⬅️ 3 ماه\n- 17 هفته ⬅️ 4 ماه\n- 21 هفته ⬅️ 5 ماه\n- 25 هفته ⬅️ 6 ماه",
+    }
+    INVALID_CHARGE_TEXT = {
+        "en": "",
+        "fa": ""
+    }
     ROOMS = {"en": "🚪 Rooms:\n", "fa": "🚪 اتاق ها:\n"}
     ADD_ROOM_BUTTON = {"en": "➕ Add Room", "fa": "➕ اتاق جدید"}
     EDIT_ROOM_ADMIN = {"en": "✏️ Edit Rooms", "fa": "✏️ ویرایش اتاق ها"}

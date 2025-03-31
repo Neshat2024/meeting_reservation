@@ -219,7 +219,7 @@ def process_show_rooms(call, session, bot):
     key = InlineKeyboardMarkup()
     rooms = session.query(Rooms).all()
     for room in rooms:
-        key.add(Btn(text=f"{room.name}", callback_data=f"cr_room_{room.id}"))
+        key.add(Btn(text=f"{room.name}", callback_data=f"cr_room_{room.name}"))
     back_txt = get_text(BotText.BACK_BUTTON, user.language)
     key.add(Btn(text=back_txt, callback_data="cr_back_hours"))
     bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
@@ -237,3 +237,87 @@ def process_cr_back_hours(call, session, bot):
     key = get_cr_hour_buttons(call, session, [start, end])
     key = add_confirm_back(key, user, ["cr_confirm_hour", "cr_back_weekday"])
     bot.edit_message_text(chat_id=ch_id, message_id=msg, text=t, reply_markup=key)
+
+
+def process_room_selection(call, session, bot):
+    ch_id, msg = call.message.chat.id, call.message.id
+    user = get_user(call, session)
+    txt = call.message.text.split("\n")
+    last_data = "\n".join(txt[:3])
+    t = get_text(BotText.CHOOSE_CHARGE_TEXT, user.language).format(
+        last_data=last_data, room=call.data.split("_")[2], charge=user.charge
+    )
+    t = change_num_as_lang(t, user.language)
+    key = get_weeks_buttons(user, t)
+    key = add_confirm_back(key, user, ["cr_confirm_weeks", "cr_back_rooms"])
+    bot.edit_message_text(chat_id=ch_id, message_id=msg, text=t, reply_markup=key)
+
+
+def get_weeks_buttons(user, txt):
+    txt = change_num_as_lang(txt, "en")
+    txt = txt.split("\n")
+    week = txt[10].split(":")[1].strip()
+    markup, buttons = InlineKeyboardMarkup(row_width=5), []
+    for i in range(1, 26):
+        if week and str(i) == week:
+            t = f" {change_num_as_lang(str(i), user.language)} ✅"
+            buttons.append(Btn(text=f"{t}", callback_data=f"cr_week_remove_{i}"))
+        else:
+            t = f"  {change_num_as_lang(str(i), user.language)}  "
+            buttons.append(Btn(text=f"{t}", callback_data=f"cr_week_select_{i}"))
+        if len(buttons) == 5:
+            markup.row(*reversed(buttons) if user.language == FARSI else buttons)
+            buttons = []
+    if buttons:
+        markup.row(*reversed(buttons) if user.language == FARSI else buttons)
+    return markup
+
+
+def process_cr_week_selection(call, session, bot):
+    ch_id, msg = call.message.chat.id, call.message.id
+    status, week = call.data.split("_")[2:]
+    txt = call.message.text.split("\n")
+    user = get_user(call, session)
+    if status == "select":
+        if user.language == "en":
+            txt[10] = f"❓ Weeks: {week}"
+        else:
+            txt[10] = f"❓ هفته‌ها: {change_num_as_lang(week, user.language)}"
+    else:
+        if user.language == "en":
+            txt[10] = "❓ Weeks:"
+        else:
+            txt[10] = "❓ هفته‌ها:"
+    t = "\n".join(txt)
+    key = get_weeks_buttons(user, t)
+    key = add_confirm_back(key, user, ["cr_confirm_weeks", "cr_back_rooms"])
+    bot.edit_message_text(chat_id=ch_id, message_id=msg, text=t, reply_markup=key)
+
+
+def process_confirm_cr_week(call, session, bot):
+    txt = change_num_as_lang(call.message.text, "en").split("\n")
+    start = txt[1].split(": ")[1]
+    end = txt[2].split(": ")[1]
+    user = get_user(call, session)
+    user_has_charge = check_user_charge(time_difference(start, end), user)
+    if not user_has_charge:
+        t = get_text(BotText.INVALID_TIME_ALERT, user.language)
+        bot.answer_callback_query(call.id, t, show_alert=True)
+    # if user.charge !=
+
+
+def check_user_charge(diff, user):
+    if user.charge == 0:
+        return False
+    elif diff <= 60 and user.charge >= 1:
+        return True
+    elif 60 < diff <= 120 and user.charge >= 2:
+        return True
+    elif 120 < diff <= 180 and user.charge >= 3:
+        return True
+    elif 180 < diff <= 240 and user.charge >= 4:
+        return True
+    elif user.charge >= 4:
+        return True
+    else:
+        return False

@@ -6,6 +6,9 @@ from functions.continuous_reservation import (
     process_cr_hour_selection,
     process_confirm_cr_hour,
     process_cr_back_hours,
+    process_room_selection,
+    process_show_rooms,
+    process_cr_week_selection, process_confirm_cr_week,
 )
 from services.config import commands
 from services.wraps import set_command, check_name_in_db
@@ -62,6 +65,32 @@ def register_handle_cr_back_hours(session, bot):
         return process_cr_back_hours(call, session, bot)
 
 
+def register_handle_room_selection(session, bot):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("cr_room_"))
+    def handle_room_selection(call):
+        return process_room_selection(call, session, bot)
+
+
+def register_handle_cr_back_rooms(session, bot):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("cr_back_rooms"))
+    def handle_cr_back_rooms(call):
+        return process_show_rooms(call, session, bot)
+
+
+def register_handle_cr_week_selection(session, bot):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("cr_week_"))
+    def handle_cr_week_selection(call):
+        return process_cr_week_selection(call, session, bot)
+
+
+def register_handle_confirm_cr_week(session, bot):
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("cr_confirm_weeks")
+    )
+    def handle_confirm_cr_week(call):
+        return process_confirm_cr_week(call, session, bot)
+
+
 def continuous_reservation_command_handler(bot, session):
     add_continuous_reservation_command()
     register_continuous_reservation_command(session, bot)
@@ -70,3 +99,7 @@ def continuous_reservation_command_handler(bot, session):
     register_handle_cr_hour_selection(session, bot)
     register_handle_confirm_cr_hour(session, bot)
     register_handle_cr_back_hours(session, bot)
+    register_handle_room_selection(session, bot)
+    register_handle_cr_back_rooms(session, bot)
+    register_handle_cr_week_selection(session, bot)
+    register_handle_confirm_cr_week(session, bot)

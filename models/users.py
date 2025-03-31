@@ -15,6 +15,7 @@ class Users(Base):
     name = Column(String, unique=True)
     role = Column(String)
     command = Column(String)
+    charge = Column(Integer, default=0)
     reservation = relationship(Reservations, backref="main_user")
     room = relationship(Rooms, backref="admin")
     color = Column(String)
