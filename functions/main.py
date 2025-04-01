@@ -6,7 +6,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from functions.name import process_name
 from models.reservations import Reservations
-from services.config import add_user, get_user, ENGLISH
+from services.config import add_user, get_user, ENGLISH, FARSI
 from services.language import get_text, BotText, change_num_as_lang
 from services.log import add_log
 from services.wraps import get_user_in_wraps
@@ -22,7 +22,7 @@ def process_start(message, session, bot):
         if user:
             bot.reply_to(message, get_text(BotText.START, user.language))
         else:
-            bot.reply_to(message, get_text(BotText.START, ENGLISH))
+            bot.reply_to(message, get_text(BotText.START, FARSI))
         user_exists = get_user_in_wraps(message, session)
         if not user_exists:
             user_exists = add_user(message, session)

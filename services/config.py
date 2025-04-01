@@ -84,14 +84,15 @@ def add_user(message, session):
         chat_id, uname = str(message.chat.id), message.chat.username
         admins = os.getenv("ADMINS").split("-")
         managers = os.getenv("MANAGERS").split("-")
-        if uname in admins:
-            user = Users(chat_id=chat_id, username=uname, role="admin")
-        elif uname in managers:
+        if uname in managers:
             user = Users(chat_id=chat_id, username=uname, role="manager")
+        elif uname in admins:
+            user = Users(chat_id=chat_id, username=uname, role="admin")
         else:
             user = Users(chat_id=chat_id, username=uname)
         session.add(user)
         session.commit()
+        user = get_user(message, session)
         return user
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in add_user_in_start: {e}")

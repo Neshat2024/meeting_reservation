@@ -19,14 +19,20 @@ from services.log import add_log
 def process_continuous_reservation(call_message, session, bot):
     try:
         user = get_user(call_message, session)
-        t = get_text(BotText.CHOOSE_WEEKDAY_TEXT, user.language)
-        k = get_weekday_buttons(user)
         ch_id = user.chat_id
-        if isinstance(call_message, types.Message):
-            bot.send_message(chat_id=ch_id, text=t, reply_markup=k)
+        if user.charge not in ["", None, 0]:
+            t = get_text(BotText.CHOOSE_WEEKDAY_TEXT, user.language)
+            k = get_weekday_buttons(user)
+            if isinstance(call_message, types.Message):
+                bot.send_message(chat_id=ch_id, text=t, reply_markup=k)
+            else:
+                msg = call_message.message.id
+                bot.edit_message_text(
+                    chat_id=ch_id, message_id=msg, text=t, reply_markup=k
+                )
         else:
-            msg = call_message.message.id
-            bot.edit_message_text(chat_id=ch_id, message_id=msg, text=t, reply_markup=k)
+            t = get_text(BotText.INVALID_CHARGE, user.language)
+            bot.send_message(chat_id=ch_id, text=t)
     except Exception as e:
         add_log(f"Exception in process_continuous_reservation: {e}")
 

@@ -40,37 +40,24 @@ def process_admin_commands(message, session, bot):
 
 def get_text_key_in_admin_commands(user, session):
     key = InlineKeyboardMarkup()
-    key.add(
-        btn(
-            text=get_text(BotText.ADD_ROOM_BUTTON, user.language),
-            callback_data="add_room",
-        )
-    )
+    txt_add_room = get_text(BotText.ADD_ROOM_BUTTON, user.language)
+    key.add(btn(text=txt_add_room, callback_data="add_room"))
     rooms = session.query(Rooms).all()
     if rooms:
         txt = get_text(BotText.ROOMS, user.language)
         for room in rooms:
             txt += f"{room.name}\n"
-        key.add(
-            btn(
-                text=get_text(BotText.EDIT_ROOM_ADMIN, user.language),
-                callback_data="editroom",
-            )
-        )
-        key.add(
-            btn(
-                text=get_text(BotText.DELETE_ROOM_ADMIN, user.language),
-                callback_data="deleteroom",
-            )
-        )
+        txt_edit_room = get_text(BotText.EDIT_ROOM_ADMIN, user.language)
+        key.add(btn(text=txt_edit_room, callback_data="editroom"))
+        txt_delete_room = get_text(BotText.DELETE_ROOM_ADMIN, user.language)
+        key.add(btn(text=txt_delete_room, callback_data="deleteroom"))
     else:
         txt = get_text(BotText.NO_MEETING_ROOMS, user.language)
-    key.add(
-        btn(
-            text=get_text(BotText.VIEW_USERS_BUTTON, user.language),
-            callback_data="view_users",
-        )
-    )
+    txt_view_users = get_text(BotText.VIEW_USERS_BUTTON, user.language)
+    key.add(btn(text=txt_view_users, callback_data="view_users"))
+    if user.role == "manager":
+        txt_charge_user = get_text(BotText.CHARGE_USER, user.language)
+        key.add(btn(text=txt_charge_user, callback_data="charge_user"))
     return txt, key
 
 
@@ -336,28 +323,20 @@ def send_delete_message_to_reserved_users(room, session, bot):
 
 
 def process_view_users(call, session, bot):
-    msg_id = str(call.message.id)
     user = get_user(call, session)
-    chat_id = user.chat_id
+    ch_id, msg = user.chat_id, str(call.message.id)
     txt = get_text(BotText.VIEW_USERS_ONE, user.language)
-    users = session.query(Users).all()
-    for user in users:
-        if user.role:
-            txt += f"*{user.name} 👉🏻 @{user.username}\n"
-        else:
-            txt += f"{user.name} 👉🏻 @{user.username}\n"
+    for u in session.query(Users).all():
+        username = f"@{u.username}" if u.username else str(u.username)
+        prefix = "*" if u.role else ""
+        txt += f"{prefix}{u.name} 👉🏻 {username}\n"
     txt += get_text(BotText.VIEW_USERS_TWO, user.language)
     key = InlineKeyboardMarkup()
-    key.add(
-        btn(text=get_text(BotText.EDIT_NAME, user.language), callback_data="editname")
-    )
-    key.add(
-        btn(text=get_text(BotText.BACK_BUTTON, user.language), callback_data="backroom")
-    )
+    texts = [(BotText.EDIT_NAME, "editname"), (BotText.BACK_BUTTON, "backroom")]
+    for text_key, callback in texts:
+        key.add(btn(text=get_text(text_key, user.language), callback_data=callback))
     try:
-        bot.edit_message_text(
-            chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key
-        )
+        bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
     except ApiTelegramException as e:
         telegram_api_exception("process_view_users", e)
     except Exception as e:
@@ -365,9 +344,8 @@ def process_view_users(call, session, bot):
 
 
 def process_edit_users_name(call, session, bot):
-    msg_id = str(call.message.id)
     user = get_user(call, session)
-    chat_id = user.chat_id
+    ch_id, msg_id = user.chat_id, str(call.message.id)
     txt = get_text(BotText.EDIT_USERS_NAME, user.language)
     key, buttons = InlineKeyboardMarkup(row_width=2), []
     users = session.query(Users).all()
@@ -383,9 +361,7 @@ def process_edit_users_name(call, session, bot):
             text=get_text(BotText.BACK_BUTTON, user.language), callback_data="back-view"
         )
     )
-    bot.edit_message_text(
-        chat_id=chat_id, message_id=msg_id, text=txt, reply_markup=key
-    )
+    bot.edit_message_text(chat_id=ch_id, message_id=msg_id, text=txt, reply_markup=key)
 
 
 def process_edit_specific_name(call, session, bot):
@@ -504,3 +480,34 @@ def process_back_room(message, session, bot):
         add_log(f"SQLAlchemyError in process_back_room: {e}")
     except Exception as e:
         add_log(f"Exception in process_back_room: {e}")
+
+
+def process_charge_user(call, session, bot):
+    user = get_user(call, session)
+    ch_id, msg_id = user.chat_id, str(call.message.id)
+    txt = get_text(BotText.SELECTION_CHARGE_USER, user.language)
+    key, buttons = InlineKeyboardMarkup(row_width=2), []
+    users = session.query(Users).all()
+    for u in users:
+        if u.username:
+            buttons.append(btn(text=f"@{u.username}", callback_data=f"ch-name_{u.id}"))
+        else:
+            buttons.append(btn(text=f"@name={u.name}", callback_data=f"ch-name_{u.id}"))
+        if len(buttons) == 2:
+            key.row(*buttons)
+            buttons = []
+    if buttons:
+        key.row(*buttons)
+    bot.edit_message_text(chat_id=ch_id, message_id=msg_id, text=txt, reply_markup=key)
+
+
+def process_get_charge_for_user(call, session, bot):
+    user = get_user(call, session)
+    db_id = call.data.split("_")[1]
+    s_user = session.query(Users).filter_by(id=db_id).first()
+    if s_user.username not in ["", None, 0]:
+        uname = s_user.username
+        t = get_text(BotText.GET_CHARGE_USERNAME, user.language).format(username=uname)
+    else:
+        name = s_user.name
+        t = get_text(BotText.GET_CHARGE_NAME, user.language).format(username=name)

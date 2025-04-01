@@ -8,7 +8,8 @@ from functions.continuous_reservation import (
     process_cr_back_hours,
     process_room_selection,
     process_show_rooms,
-    process_cr_week_selection, process_confirm_cr_week,
+    process_cr_week_selection,
+    process_confirm_cr_week,
 )
 from services.config import commands
 from services.wraps import set_command, check_name_in_db
