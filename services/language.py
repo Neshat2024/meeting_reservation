@@ -136,40 +136,40 @@ class BotText(Enum):
         "fa": "نام شما باید یک متن باشد و نباید شامل عدد یا علامت های خاص باشد ⛔️",
     }
     INVALID_CHARGE = {
-        "en": "To reserve a continuous reservation, you need to charge your account.\n💰 Please contact the admin to charge your account.",
-        "fa": "برای رزرو دوره ای، لازم است اکانت خود را شارژ کنید.\n💰 لطفاً برای شارژ اکانت به ادمین پیام دهید.",
+        "en": "To reserve a continuous reservation, you need to charge your account.\n💰 Please contact the admin to charge your account.\n\n❗️ Every continuous reservation:\n- less than 1 hour takes 1 charge.\n- less than 2 hours takes 2 charges.\n- less than 3 hours takes 3 charges.\n- less than 4 hours takes 4 charges.",
+        "fa": "برای رزرو دوره ای، لازم است اکانت خود را شارژ کنید.\n💰 لطفاً برای شارژ اکانت به ادمین پیام دهید.\n\n❗️ برای هر رزرو مداوم:\n- کمتر از 1 ساعت 1 شارژ نیاز است.\n- کمتر از 2 ساعت 2 شارژ نیاز است.\n- کمتر از 3 ساعت 3 شارژ نیاز است.\n- کمتر از 4 ساعت 4 شارژ نیاز است.",
     }
     INSUFFICIENT_CHARGE = {
-        "en": "Your account charge is insufficient ⛔️\nPlease contact the admin to charge your account 💰",
-        "fa": "شارژ حساب شما ناکافی است ⛔️\💰 لطفاً برای شارژ اکانت به ادمین پیام دهید."
+        "en": "Insufficient charge ⛔️\nThis reservation requires {charge} charges.\nPlease contact the admin to charge your account 💰",
+        "fa": "شارژ حساب شما ناکافی است ⛔️\nاین رزرو به {charge} شارژ نیاز دارد.\nلطفاً برای شارژ اکانت به ادمین پیام دهید 💰"
     }
     CHOOSE_WEEKDAY_TEXT = {
         "en": "📅 Choose a Weekday for Your Continuous Meeting:",
         "fa": "📅 روز جلسه دوره ای خود را انتخاب کنید:",
     }
     CHOOSE_HOURS_TEXT = {
-        "en": "📅 Weekday: {weekday}\n❓ From:",
-        "fa": "📅 روز هفته: {weekday}\n❓ از:",
+        "en": "📅 Weekday: {weekday}\n🔋 Charge: {charge}\n❓ From:",
+        "fa": "📅 روز هفته: {weekday}\n🔋 شارژ: {charge}\n❓ از:",
     }
     START_HOURS_TEXT = {
-        "en": "{weekday}\n❓ From:",
-        "fa": "{weekday}\n❓ از:",
+        "en": "{weekday}\n🔋 Charge: {charge}\n❓ From:",
+        "fa": "{weekday}\n🔋 شارژ: {charge}\n❓ از:",
     }
     FIRST_HOURS_TEXT = {
-        "en": "{weekday}\n▶️ From: {start}\n◀️ To: {end}\n(You can change the end time)",
-        "fa": "{weekday}\n▶️ از: {start}\n◀️ تا: {end}\n(می توانید زمان پایان را تغییر دهید)",
+        "en": "{weekday}\n🔋 Charge: {charge}\n▶️ From: {start}\n◀️ To: {end}\n(You can change the end time)",
+        "fa": "{weekday}\n🔋 شارژ: {charge}\n▶️ از: {start}\n◀️ تا: {end}\n(می توانید زمان پایان را تغییر دهید)",
     }
     SECOND_HOURS_TEXT = {
-        "en": "{weekday}\n▶️ From: {start}\n◀️ To: {end}",
-        "fa": "{weekday}\n▶️ از: {start}\n◀️ تا: {end}",
+        "en": "{weekday}\n🔋 Charge: {charge}\n▶️ From: {start}\n◀️ To: {end}",
+        "fa": "{weekday}\n🔋 شارژ: {charge}\n▶️ از: {start}\n◀️ تا: {end}",
     }
     CHOOSE_ROOM_TEXT = {
         "en": "{last_data}\n❓ Room:",
         "fa": "{last_data}\n❓ اتاق:",
     }
     CHOOSE_CHARGE_TEXT = {
-        "en": "{last_data}\n🚪 Room: {room}\n🔋 Charge: {charge}\n❗️ Every continuous reservation:\n- less than 1 hour takes 1 charge.\n- less than 2 hours takes 2 charges.\n- less than 3 hours takes 3 charges.\n- less than 4 hours takes 4 charges.\n❓ Weeks:\n- 4 weeks ➡️ 1 month\n- 8 weeks ➡️ 2 months\n- 12 weeks ➡️ 3 months\n- 17 weeks ➡️ 4 months\n- 21 weeks ➡️ 5 months\n- 25 weeks ➡️ 6 months",
-        "fa": "{last_data}\n🚪 اتاق: {room}\n🔋 شارژ: {charge}\n❗️ برای هر رزرو مداوم:\n- کمتر از 1 ساعت 1 شارژ نیاز است.\n- کمتر از 2 ساعت 2 شارژ نیاز است.\n- کمتر از 3 ساعت 3 شارژ نیاز است.\n- کمتر از 4 ساعت 4 شارژ نیاز است.\n❓ هفته‌ها:\n- 4 هفته ⬅️ 1 ماه\n- 8 هفته ⬅️ 2 ماه\n- 12 هفته ⬅️ 3 ماه\n- 17 هفته ⬅️ 4 ماه\n- 21 هفته ⬅️ 5 ماه\n- 25 هفته ⬅️ 6 ماه",
+        "en": "{last_data}\n🚪 Room: {room}\n❓ Weeks:\n- 4 weeks ➡️ 1 month\n- 8 weeks ➡️ 2 months\n- 12 weeks ➡️ 3 months\n- 17 weeks ➡️ 4 months\n- 21 weeks ➡️ 5 months\n- 25 weeks ➡️ 6 months\n💡 Charge Rules:\n<= 1 hour 👉🏻 1 charge\n<= 2 hour 👉🏻 2 charge\n<= 3 hour 👉🏻 3 charge\n<= 4 hour 👉🏻 4 charge",
+        "fa": "{last_data}\n🚪 اتاق: {room}\n❓ هفته‌ها:\n- 4 هفته ⬅️ 1 ماه\n- 8 هفته ⬅️ 2 ماه\n- 12 هفته ⬅️ 3 ماه\n- 17 هفته ⬅️ 4 ماه\n- 21 هفته ⬅️ 5 ماه\n- 25 هفته ⬅️ 6 ماه\n💡 قواعد مصرف شارژ:\n=> 1 ساعت 👈🏻 1 شارژ\n=> 2 ساعت 👈🏻 2 شارژ\n=> 3 ساعت 👈🏻 3 شارژ\n=> 4 ساعت 👈🏻 4 شارژ",
     }
     INVALID_CHARGE_TEXT = {"en": "", "fa": ""}
     ROOMS = {"en": "🚪 Rooms:\n", "fa": "🚪 اتاق ها:\n"}
