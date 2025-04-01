@@ -8,21 +8,21 @@ class BotText(Enum):
     }
     HELP = {
         "en": "🚪 Meeting Reservation Bot 🚪\n\n"
-        "Available Commands:\n"
-        "/start - Start the bot to select from menu\n"
-        "/reservation - 🚪 Submit-View-Edit Meeting Reservations\n"
-        "/admin_commands - 🔧 Admins can manage Meeting Rooms (view-add-edit)\n"
-        "/view_schedule - 🗓 View Schedule for Meeting Rooms (Daily-Custom Day-Weekly)\n"
-        "/settings - ⚙️ Bot Settings (You can set Language of the bot)\n"
-        "/help - ℹ️ Get help information",
+              "Available Commands:\n"
+              "/start - Start the bot to select from menu\n"
+              "/reservation - 🚪 Submit-View-Edit Meeting Reservations\n"
+              "/admin_commands - 🔧 Admins can manage Meeting Rooms (view-add-edit)\n"
+              "/view_schedule - 🗓 View Schedule for Meeting Rooms (Daily-Custom Day-Weekly)\n"
+              "/settings - ⚙️ Bot Settings (You can set Language of the bot)\n"
+              "/help - ℹ️ Get help information",
         "fa": "🚪 بات رزرو اتاق جلسات 🚪\n\n"
-        "دستور های در دسترس:\n"
-        "/start - دستور شروع بات برای دسترسی به منو\n"
-        "/reservation - 🚪 دستور رزرو، ویرایش و حذف رزرو ها\n"
-        "/admin_commands - 🔧 دستور مدیریت اتاق جلسات توسط ادمین ها (مشاهده، ویرایش و حذف)\n"
-        "/view_schedule - 🗓 دستور مشاهده جدول رزرو اتاق ها (روزانه، روز خاص و هفتگی)\n"
-        "/settings - ⚙️ دستور تنظیمات بات (انتخاب زبان بات)\n"
-        "/help - ℹ️ راهنمای دستورات بات",
+              "دستور های در دسترس:\n"
+              "/start - دستور شروع بات برای دسترسی به منو\n"
+              "/reservation - 🚪 دستور رزرو، ویرایش و حذف رزرو ها\n"
+              "/admin_commands - 🔧 دستور مدیریت اتاق جلسات توسط ادمین ها (مشاهده، ویرایش و حذف)\n"
+              "/view_schedule - 🗓 دستور مشاهده جدول رزرو اتاق ها (روزانه، روز خاص و هفتگی)\n"
+              "/settings - ⚙️ دستور تنظیمات بات (انتخاب زبان بات)\n"
+              "/help - ℹ️ راهنمای دستورات بات",
     }
     RESERVATION_TEXT = {
         "en": "Reserve a room anytime with «🚪 New Reservation» or manage reservations via «📝 My Reservations»",
@@ -137,7 +137,11 @@ class BotText(Enum):
     }
     INVALID_CHARGE = {
         "en": "To reserve a continuous reservation, you need to charge your account.\n💰 Please contact the admin to charge your account.",
-        "fa": "برای رزرو دوره ای، لازم است اکانت خود را شارژ کنید.\n💰 لطفاً برای شارژ اکانت به ادمین مراجعه کنید.",
+        "fa": "برای رزرو دوره ای، لازم است اکانت خود را شارژ کنید.\n💰 لطفاً برای شارژ اکانت به ادمین پیام دهید.",
+    }
+    INSUFFICIENT_CHARGE = {
+        "en": "Your account charge is insufficient ⛔️\nPlease contact the admin to charge your account 💰",
+        "fa": "شارژ حساب شما ناکافی است ⛔️\💰 لطفاً برای شارژ اکانت به ادمین پیام دهید."
     }
     CHOOSE_WEEKDAY_TEXT = {
         "en": "📅 Choose a Weekday for Your Continuous Meeting:",
@@ -256,7 +260,7 @@ class BotText(Enum):
         "fa": "این نام قبلاً استفاده شده است. لطفاً نام دیگری انتخاب کنید ⛔️",
     }
     NAME_INVALID_ADMIN = {
-        "en": "Your name must be a string and should not contain any digits or symbols ⛔️",
+        "en": "Your name must be a string and should not contain any digit or symbol ⛔️",
         "fa": "نام شما باید یک متن باشد و نباید شامل عدد یا نمادهای خاص باشد ⛔️",
     }
     RETRY = {"en": "🆕 Retry", "fa": "🆕 تلاش دوباره"}
@@ -265,12 +269,28 @@ class BotText(Enum):
         "fa": "🔋 یوزرنیم تلگرام کاربری که می‌ خواهید حساب او را شارژ کنید، انتخاب کنید:",
     }
     GET_CHARGE_USERNAME = {
-        "en": "Enter the charge quantity for @{username}:\n\nIf you want to cancel the operation tap on /cancel",
-        "fa": "تعداد شارژ را برای @{username} وارد کنید:\n\nاگر می‌ خواهید عملیات را لغو کنید، روی /cancel کلیک کنید.",
+        "en": "Enter the charge quantity for @{username} (current charge 👉🏻 {charge}):\n\nIf you want to cancel the operation tap on /cancel",
+        "fa": "تعداد شارژ را برای @{username} وارد کنید (شارژ فعلی 👈🏻 {charge}):\n\nاگر می‌ خواهید عملیات را لغو کنید، روی /cancel کلیک کنید.",
     }
     GET_CHARGE_NAME = {
-        "en": "Enter the charge quantity for «{name}»:\n\nIf you want to cancel the operation tap on /cancel",
-        "fa": "تعداد شارژ را برای «{name}» وارد کنید:\n\nاگر می‌ خواهید عملیات را لغو کنید، روی /cancel کلیک کنید.",
+        "en": "Enter the charge quantity for «{name}» (current charge 👉🏻 {charge}):\n\nIf you want to cancel the operation tap on /cancel",
+        "fa": "تعداد شارژ را برای «{name}» وارد کنید (شارژ فعلی 👈🏻 {charge}):\n\nاگر می‌ خواهید عملیات را لغو کنید، روی /cancel کلیک کنید.",
+    }
+    USER_CHARGE_MESSAGE = {
+        "en": "🔋 Your account charged 🔋\n♻️ Amount: {charge}\n💰 Current Charge: {new_charge}",
+        "fa": "🔋 حساب شما شارژ شد 🔋\n♻️ مقدار شارژ: {charge}\n💰 شارژ فعلی: {new_charge}",
+    }
+    MANAGER_CHARGE_MESSAGE = {
+        "en": "🔋 User's account charged 🔋\n👤 User: {user}\n♻️ Amount: {charge}\n 💰 Current Charge: {new_charge}",
+        "fa": "🔋 حساب کاربر شارژ شد 🔋\n👤 کاربر: {user}\n♻️ مقدار شارژ: {charge}\n💰 شارژ فعلی: {new_charge}",
+    }
+    MESSAGE_NOT_SENT = {
+        "en": "An error occurred while sending charge message to «{user}»:\n{error}",
+        "fa": "مشکلی در ارسال پیام شارژ به «{user}» پیش آمد:\n{error}"
+    }
+    INVALID_ENTERED_CHARGE = {
+        "en": "The charge must be integer and should not contain any letter or symbol ⛔️",
+        "fa": "مقدار شارژ باید یک عدد باشد و نباید شامل حروف یا نمادهای خاص باشد ⛔️",
     }
     SCHEDULE_SELECTION = {
         "en": "🗓 Choose Your Schedule:",
@@ -387,43 +407,45 @@ class BotText(Enum):
     }
 
 
+persian_numerals = {
+    "0": "۰",
+    "1": "۱",
+    "2": "۲",
+    "3": "۳",
+    "4": "۴",
+    "5": "۵",
+    "6": "۶",
+    "7": "۷",
+    "8": "۸",
+    "9": "۹",
+}
+english_numerals = {
+    "۰": "0",
+    "۱": "1",
+    "۲": "2",
+    "۳": "3",
+    "۴": "4",
+    "۵": "5",
+    "۶": "6",
+    "۷": "7",
+    "۸": "8",
+    "۹": "9",
+}
+
+
 def get_text(text_key, language):
     return text_key.value[language]
 
 
 def convert_to_persian_numerals(text):
-    persian_numerals = {
-        "0": "۰",
-        "1": "۱",
-        "2": "۲",
-        "3": "۳",
-        "4": "۴",
-        "5": "۵",
-        "6": "۶",
-        "7": "۷",
-        "8": "۸",
-        "9": "۹",
-    }
     for eng, per in persian_numerals.items():
         text = text.replace(eng, per)
     return text
 
 
 def convert_to_english_numerals(text):
-    english_numerals = {
-        "۰": "0",
-        "۱": "1",
-        "۲": "2",
-        "۳": "3",
-        "۴": "4",
-        "۵": "5",
-        "۶": "6",
-        "۷": "7",
-        "۸": "8",
-        "۹": "9",
-    }
-    for eng, per in english_numerals.items():
-        text = text.replace(eng, per)
+    for per, eng in english_numerals.items():
+        text = text.replace(per, eng)
     return text
 
 
@@ -432,3 +454,13 @@ def change_num_as_lang(txt, user_language):
         return convert_to_persian_numerals(txt)
     else:
         return convert_to_english_numerals(txt)
+
+
+def change_num_as_lang_and_username(txt, user_language):
+    txt = txt.split("\n")
+    new_txt_list = []
+    for line in txt:
+        if "@" not in line:
+            line = change_num_as_lang(line, user_language)
+        new_txt_list.append(line)
+    return "\n".join(new_txt_list)

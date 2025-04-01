@@ -79,6 +79,24 @@ def contains_only_letters(text):
     return False
 
 
+def check_text_in_charge(message):
+    if send_cancel_message(message):
+        return
+    elif contains_only_numbers(message.text):
+        return True
+    else:
+        return False
+
+
+def contains_only_numbers(text):
+    text = change_num_as_lang(text, "en")
+    try:
+        int(text)
+        return True
+    except ValueError:
+        return False
+
+
 def add_user(message, session):
     try:
         chat_id, uname = str(message.chat.id), message.chat.username

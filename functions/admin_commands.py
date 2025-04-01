@@ -18,9 +18,9 @@ from services.config import (
     check_text_in_name,
     ONE,
     TWO,
-    THREE,
+    THREE, check_text_in_charge,
 )
-from services.language import get_text, BotText
+from services.language import get_text, BotText, change_num_as_lang, change_num_as_lang_and_username
 from services.log import add_log
 
 
@@ -217,15 +217,15 @@ def process_update_room(call, session, bot):
 
 def process_update_specific_room(call, session, bot):
     try:
-        msg_id = str(call.message.id)
         room_id = call.data.split("_")[1]
         user = get_user(call, session)
+        chat_id, msg_id = int(user.chat_id), str(call.message.id)
         room_name = session.query(Rooms).filter_by(id=room_id).first().name
         set_command_in_wraps(user, session, f"edit_room_{room_id}")
         txt = get_text(BotText.UPDATE_ROOM_NAME, user.language).format(
             room_name=room_name
         )
-        bot.edit_message_text(chat_id=int(user.chat_id), message_id=msg_id, text=txt)
+        bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt)
         bot.register_next_step_handler(call.message, check_room, session, bot)
     except ApiTelegramException as e:
         telegram_api_exception("process_update_specific_room", e)
@@ -265,10 +265,10 @@ def process_delete_specific_room(call, session, bot):
             session.commit()
             txt, key = get_text_key_in_admin_commands(user, session)
             txt = (
-                get_text(BotText.ROOM_DELETED, user.language).format(
-                    room_name=room.name
-                )
-                + txt
+                    get_text(BotText.ROOM_DELETED, user.language).format(
+                        room_name=room.name
+                    )
+                    + txt
             )
             bot.edit_message_text(
                 chat_id=int(user.chat_id), message_id=msg_id, text=txt, reply_markup=key
@@ -366,13 +366,13 @@ def process_edit_users_name(call, session, bot):
 
 def process_edit_specific_name(call, session, bot):
     db_id = int(call.data.split("_")[2])
-    msg_id = str(call.message.id)
     selected_user = session.query(Users).filter_by(id=db_id).first()
     user = get_user(call, session)
+    chat_id, msg_id = int(user.chat_id), str(call.message.id)
     txt = get_text(BotText.EDIT_USERS_OLD_NAME, user.language).format(
         username=selected_user.username, name=selected_user.name
     )
-    bot.edit_message_text(chat_id=int(user.chat_id), message_id=msg_id, text=txt)
+    bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt)
     bot.register_next_step_handler(
         call.message, change_name, session, [selected_user, bot]
     )
@@ -402,53 +402,25 @@ def change_name(message, session, user_bot):
 
 
 def get_text_key_in_change_name(user, num, selected_user=None):
+    back_txt = get_text(BotText.BACK_BUTTON, user.language)
+    retry_txt = get_text(BotText.RETRY, user.language)
     key = InlineKeyboardMarkup()
     if num == ONE:
         txt = get_text(BotText.OPERATION_CANCELED, user.language)
-        key.add(
-            btn(
-                text=get_text(BotText.BACK_BUTTON, user.language),
-                callback_data="back-users-view",
-            )
-        )
+        key.add(btn(text=back_txt, callback_data="back-users-view"))
     elif num == TWO:
         txt = get_text(BotText.NAME_UPDATED, user.language).format(
             username=selected_user.username, new_name=selected_user.name
         )
-        key.add(
-            btn(
-                text=get_text(BotText.BACK_BUTTON, user.language),
-                callback_data="back-view",
-            )
-        )
+        key.add(btn(text=back_txt, callback_data="back-view"))
     elif num == THREE:
         txt = get_text(BotText.NAME_TAKEN_ADMIN, user.language)
-        key.add(
-            btn(
-                text=get_text(BotText.RETRY, user.language),
-                callback_data=f"e_name_{selected_user.id}",
-            )
-        )
-        key.add(
-            btn(
-                text=get_text(BotText.BACK_BUTTON, user.language),
-                callback_data="back-users-view",
-            )
-        )
+        key.add(btn(text=retry_txt, callback_data=f"e_name_{selected_user.id}"))
+        key.add(btn(text=back_txt, callback_data="back-users-view"))
     else:
         txt = get_text(BotText.NAME_INVALID_ADMIN, user.language)
-        key.add(
-            btn(
-                text=get_text(BotText.RETRY, user.language),
-                callback_data=f"e_name_{selected_user.id}",
-            )
-        )
-        key.add(
-            btn(
-                text=get_text(BotText.BACK_BUTTON, user.language),
-                callback_data="back-users-view",
-            )
-        )
+        key.add(btn(text=retry_txt, callback_data=f"e_name_{selected_user.id}"))
+        key.add(btn(text=back_txt, callback_data="back-users-view"))
     return txt, key
 
 
@@ -492,7 +464,7 @@ def process_charge_user(call, session, bot):
         if u.username:
             buttons.append(btn(text=f"@{u.username}", callback_data=f"ch-name_{u.id}"))
         else:
-            buttons.append(btn(text=f"@name={u.name}", callback_data=f"ch-name_{u.id}"))
+            buttons.append(btn(text=f"name={u.name}", callback_data=f"ch-name_{u.id}"))
         if len(buttons) == 2:
             key.row(*buttons)
             buttons = []
@@ -503,11 +475,58 @@ def process_charge_user(call, session, bot):
 
 def process_get_charge_for_user(call, session, bot):
     user = get_user(call, session)
+    chat_id, msg_id = int(user.chat_id), str(call.message.id)
     db_id = call.data.split("_")[1]
     s_user = session.query(Users).filter_by(id=db_id).first()
     if s_user.username not in ["", None, 0]:
         uname = s_user.username
-        t = get_text(BotText.GET_CHARGE_USERNAME, user.language).format(username=uname)
+        t = get_text(BotText.GET_CHARGE_USERNAME, user.language).format(username=uname, charge=s_user.charge)
     else:
         name = s_user.name
-        t = get_text(BotText.GET_CHARGE_NAME, user.language).format(username=name)
+        t = get_text(BotText.GET_CHARGE_NAME, user.language).format(username=name, charge=s_user.charge)
+    bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=t)
+    bot.register_next_step_handler(call.message, get_charge, session, [s_user, bot])
+
+
+def get_charge(message, session, user_bot):
+    try:
+        user = get_user(message, session)
+        ch_id = int(user.chat_id)
+        selected_user, bot = user_bot
+        text = check_text_in_charge(message)
+        key = InlineKeyboardMarkup()
+        back_txt = get_text(BotText.BACK_BUTTON, user.language)
+        if text is None:
+            txt = get_text(BotText.OPERATION_CANCELED, user.language)
+            key.add(btn(text=back_txt, callback_data="back-charge-user"))
+            bot.send_message(chat_id=ch_id, text=txt, reply_markup=key)
+        elif text:
+            charge = int(change_num_as_lang(message.text, "en"))
+            new_charge = selected_user.charge + charge
+            selected_user.charge = new_charge
+            session.commit()
+            if selected_user.username not in ["", None, 0]:
+                name = f"@{selected_user.username}"
+            else:
+                name = selected_user.name
+            manager_msg = get_text(BotText.MANAGER_CHARGE_MESSAGE, user.language).format(user=name ,charge=charge, new_charge=new_charge)
+            manager_msg = change_num_as_lang_and_username(manager_msg, user.language)
+            ok_text = get_text(BotText.OK_REMINDER_BUTTON, user.language)
+            key.add(btn(text=ok_text, callback_data="backroom"))
+            bot.send_message(chat_id=ch_id, text=manager_msg, reply_markup=key)
+            user_msg = get_text(BotText.USER_CHARGE_MESSAGE, selected_user.language).format(charge=charge, new_charge=new_charge)
+            user_msg = change_num_as_lang(user_msg, selected_user.language)
+            try:
+                bot.send_message(selected_user.chat_id, user_msg)
+            except Exception as e:
+                txt = get_text(BotText.MESSAGE_NOT_SENT, user.language).format(user=selected_user.name, error=e)
+                bot.send_message(ch_id, txt)
+        else:
+            txt = get_text(BotText.INVALID_ENTERED_CHARGE, user.language)
+            retry_txt = get_text(BotText.RETRY, user.language)
+            key.add(btn(text=retry_txt, callback_data=f"ch-name_{selected_user.id}"))
+            bot.send_message(chat_id=int(user.chat_id), text=txt, reply_markup=key)
+    except SQLAlchemyError as e:
+        add_log(f"SQLAlchemyError in get_charge: {e}")
+    except Exception as e:
+        add_log(f"Exception in get_charge: {e}")

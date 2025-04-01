@@ -43,7 +43,7 @@ def get_weekday_buttons(user):
     for i in range(0, len(WEEKDAYS_LIST), 3):
         buttons = [
             Btn(text=day[text_index], callback_data=f"cr_weekday_{day[1]}")
-            for day in WEEKDAYS_LIST[i : i + 3]
+            for day in WEEKDAYS_LIST[i: i + 3]
         ]
         markup.row(*reversed(buttons) if user.language == FARSI else buttons)
     return markup
@@ -101,8 +101,8 @@ def process_cr_hour_selection(call, session, bot):
     ch_id, msg = call.message.chat.id, call.message.id
     user = get_user(call, session)
     start, end, txt = "", "", ""
-    status = get_status(call)
-    # status: start/clear/error-duration/error-past/second/back-first
+    status = get_status(call, user)
+    # status: start/clear/error-duration/error-past/error-charge/second/back-first
     if status == "error-past":
         t = get_text(BotText.INVALID_TIME_ALERT, user.language)
         bot.answer_callback_query(call.id, t, show_alert=True)
@@ -110,6 +110,10 @@ def process_cr_hour_selection(call, session, bot):
     elif status == "error-duration":
         t0 = get_text(BotText.INVALID_DURATION, user.language)
         t = change_num_as_lang(t0, user.language)
+        bot.answer_callback_query(call.id, t, show_alert=True)
+        return
+    elif status == "error-charge":
+        t = get_text(BotText.INSUFFICIENT_CHARGE, user.language)
         bot.answer_callback_query(call.id, t, show_alert=True)
         return
     elif status == "start":
@@ -130,7 +134,7 @@ def process_cr_hour_selection(call, session, bot):
     bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
 
 
-def get_status(call):
+def get_status(call, user):
     txt = call.message.text.split("\n")
     mode, time = call.data.split("_")[2:]
     # mode: select/remove/first-remove
@@ -147,6 +151,8 @@ def get_status(call):
         return "error-duration"
     elif diff == 15 and mode == "select" and time_difference(time, start_time) > 0:
         return "error-past"
+    elif diff == 15 and mode == "select" and time_difference(start_time, time) > user.charge * 60:
+        return "error-charge"
     elif diff == 15 and mode == "select":
         return "second"
     elif mode == "remove":

@@ -12,7 +12,7 @@ from functions.admin_commands import (
     process_view_users,
     process_edit_users_name,
     process_edit_specific_name,
-    process_charge_user,
+    process_charge_user, process_get_charge_for_user,
 )
 from services.config import commands
 from services.wraps import set_command, check_name_in_db, check_admin
@@ -110,9 +110,15 @@ def register_handle_back_room(session, bot):
 
 
 def register_get_charge_for_user(session, bot):
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("e_name_"))
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("ch-name_"))
     def handle_get_charge_for_user(call):
         return process_get_charge_for_user(call, session, bot)
+
+
+def register_handle_back_charge(session, bot):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("back-charge-user"))
+    def handle_back_charge(call):
+        return process_charge_user(call, session, bot)
 
 
 def admin_commands_handler(bot: TeleBot, session):
@@ -130,3 +136,5 @@ def admin_commands_handler(bot: TeleBot, session):
     register_handle_back_view(session, bot)
     register_handle_back_users_view(session, bot)
     register_handle_back_room(session, bot)
+    register_get_charge_for_user(session, bot)
+    register_handle_back_charge(session, bot)
