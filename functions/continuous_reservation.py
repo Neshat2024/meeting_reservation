@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 
+import pytz
 from telebot import types
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as Btn
 
@@ -10,10 +11,12 @@ from services.config import (
     FARSI,
     WEEKDAYS_LIST,
     day_in_persian,
-    time_difference,
+    time_difference, gregorian_to_jalali, weekday_map,
 )
 from services.language import get_text, BotText, change_num_as_lang
 from services.log import add_log
+
+tehran_tz = pytz.timezone("Asia/Tehran")
 
 
 def process_continuous_reservation(call_message, session, bot):
@@ -310,30 +313,84 @@ def process_cr_week_selection(call, session, bot):
     bot.edit_message_text(chat_id=ch_id, message_id=msg, text=t, reply_markup=key)
 
 
-def process_confirm_cr_week(call, session, bot):
-    txt = change_num_as_lang(call.message.text, "en").split("\n")
-    start = txt[2].split(": ")[1]
-    end = txt[3].split(": ")[1]
+def process_cr_back_weeks(call, session, bot):
+    ch_id, msg = call.message.chat.id, call.message.id
     user = get_user(call, session)
-    user_has_charge = check_user_charge(time_difference(start, end), user)
-    if not user_has_charge:
-        t = get_text(BotText.INVALID_TIME_ALERT, user.language)
+    txt = call.message.text.split("\n")
+    last_data = "\n".join(txt[:5])
+    weeks = txt[5].split(":")[1].strip()
+    t = get_text(BotText.SECOND_CHARGE_TEXT, user.language).format(last_data=last_data, weeks=weeks)
+    t = change_num_as_lang(t, user.language)
+    key = get_weeks_buttons(user, t)
+    key = add_confirm_back(key, user, ["cr_confirm_weeks", "cr_back_rooms"])
+    bot.edit_message_text(chat_id=ch_id, message_id=msg, text=t, reply_markup=key)
+
+
+def process_confirm_cr_week(call, session, bot):
+    ch_id, msg = call.message.chat.id, call.message.id
+    user = get_user(call, session)
+    txt = change_num_as_lang(call.message.text, "en").split("\n")
+    weeks = txt[5].split(":")[1].strip()
+    if not weeks:
+        t = get_text(BotText.INVALID_WEEK_SELECTION, user.language)
         bot.answer_callback_query(call.id, t, show_alert=True)
-    # if user.charge !=
+        return
+    week_as_date = get_week_as_dates(weeks, txt, user)
+    t = "\n".join(call.message.text.split("\n")[:6]) + f"\n{week_as_date}"
+    t = change_num_as_lang(t, user.language)
+    key = get_final_week_buttons(user)
+    bot.edit_message_text(chat_id=ch_id, message_id=msg, text=t, reply_markup=key)
 
 
-def check_user_charge(diff, user):
-    if user.charge == 0:
-        return False
-    elif diff <= 60 and user.charge >= 1:
-        return True
-    elif 60 < diff <= 120 and user.charge >= 2:
-        return True
-    elif 120 < diff <= 180 and user.charge >= 3:
-        return True
-    elif 180 < diff <= 240 and user.charge >= 4:
-        return True
-    elif user.charge >= 4:
-        return True
+def get_week_as_dates(weeks, txt, user):
+    weekday = get_weekday_as_language(user, txt[0].split(": ")[1])
+    target_weekday = weekday_map[weekday]
+    today = datetime.now(tehran_tz).date()
+    current_weekday = today.weekday()
+    days_ahead = (target_weekday - current_weekday) % 7
+    if days_ahead == 0:
+        next_date = today
     else:
-        return False
+        next_date = today + timedelta(days=days_ahead)
+    dates = []
+    for week in range(int(weeks)):
+        date = next_date + timedelta(weeks=week)
+        str_date = date.strftime("%Y-%m-%d")
+        booker = get_booker_as_start_end(txt, date)
+        str_date = str_date if user.language == "en" else gregorian_to_jalali(str_date)
+        dates.append(str_date if not booker else f"🛑 {str_date} ({booker})")
+    return "\n".join(dates)
+
+
+def get_final_week_buttons(user):
+    markup, buttons = InlineKeyboardMarkup(row_width=2), []
+    txt_cb = [
+        (get_text(BotText.EDIT_WEEKS_BUTTON, user.language), "edit-weeks"),
+        (get_text(BotText.CHAT_WITH_BOOKER_BUTTON, user.language), "chat-booker"),
+        (get_text(BotText.RESERVE_POSSIBLES_BUTTON, user.language), "reserve-weeks"),
+        (get_text(BotText.CANCEL_RESERVATION_BUTTON, user.language), "cancel-reserve"),
+    ]
+    for idx, (txt, cb) in enumerate(txt_cb):
+        buttons.append(Btn(text=txt, callback_data=cb))
+        if idx % 2 == 1:
+            markup.row(*reversed(buttons) if user.language == FARSI else buttons)
+            buttons = []
+    back_text = get_text(BotText.BACK_BUTTON, user.language)
+    markup.add(Btn(text=back_text, callback_data="cr_back_weeks"))
+    return markup
+
+
+def get_weekday_as_language(user, weekday):
+    if user.language == "fa":
+        for ewd, pwd in day_in_persian.items():
+            if pwd == weekday:
+                weekday = ewd.lower()
+                break
+    else:
+        weekday = weekday.lower()
+    return weekday
+
+
+def get_booker_as_start_end(txt, date):
+    start, end = txt[2].split(": ")[1], txt[3].split(": ")[1]
+

@@ -127,22 +127,6 @@ class BotText(Enum):
         "en": "Your name submitted successfully 👍🏻\nYour name: {name}",
         "fa": "نام شما با موفقیت ثبت شد 👍🏻\nنام شما: {name}",
     }
-    INVALID_NAME_TAKEN = {
-        "en": "This name has already been used. Please choose a different one ⛔️",
-        "fa": "این نام قبلاً استفاده شده است. لطفاً نام دیگری انتخاب کنید ⛔️",
-    }
-    INVALID_NAME = {
-        "en": "Your name must be a string and should not contain any digits or symbols ⛔️",
-        "fa": "نام شما باید یک متن باشد و نباید شامل عدد یا علامت های خاص باشد ⛔️",
-    }
-    INVALID_CHARGE = {
-        "en": "To reserve a continuous reservation, you need to charge your account.\n💰 Please contact the admin to charge your account.\n\n❗️ Every continuous reservation:\n- less than 1 hour takes 1 charge.\n- less than 2 hours takes 2 charges.\n- less than 3 hours takes 3 charges.\n- less than 4 hours takes 4 charges.",
-        "fa": "برای رزرو دوره ای، لازم است اکانت خود را شارژ کنید.\n💰 لطفاً برای شارژ اکانت به ادمین پیام دهید.\n\n❗️ برای هر رزرو مداوم:\n- کمتر از 1 ساعت 1 شارژ نیاز است.\n- کمتر از 2 ساعت 2 شارژ نیاز است.\n- کمتر از 3 ساعت 3 شارژ نیاز است.\n- کمتر از 4 ساعت 4 شارژ نیاز است.",
-    }
-    INSUFFICIENT_CHARGE = {
-        "en": "Insufficient charge ⛔️\nThis reservation requires {charge} charges.\nPlease contact the admin to charge your account 💰",
-        "fa": "شارژ حساب شما ناکافی است ⛔️\nاین رزرو به {charge} شارژ نیاز دارد.\nلطفاً برای شارژ اکانت به ادمین پیام دهید 💰"
-    }
     CHOOSE_WEEKDAY_TEXT = {
         "en": "📅 Choose a Weekday for Your Continuous Meeting:",
         "fa": "📅 روز جلسه دوره ای خود را انتخاب کنید:",
@@ -169,9 +153,12 @@ class BotText(Enum):
     }
     CHOOSE_CHARGE_TEXT = {
         "en": "{last_data}\n🚪 Room: {room}\n❓ Weeks:\n- 4 weeks ➡️ 1 month\n- 8 weeks ➡️ 2 months\n- 12 weeks ➡️ 3 months\n- 17 weeks ➡️ 4 months\n- 21 weeks ➡️ 5 months\n- 25 weeks ➡️ 6 months\n💡 Charge Rules:\n<= 1 hour 👉🏻 1 charge\n<= 2 hour 👉🏻 2 charge\n<= 3 hour 👉🏻 3 charge\n<= 4 hour 👉🏻 4 charge",
-        "fa": "{last_data}\n🚪 اتاق: {room}\n❓ هفته‌ها:\n- 4 هفته ⬅️ 1 ماه\n- 8 هفته ⬅️ 2 ماه\n- 12 هفته ⬅️ 3 ماه\n- 17 هفته ⬅️ 4 ماه\n- 21 هفته ⬅️ 5 ماه\n- 25 هفته ⬅️ 6 ماه\n💡 قواعد مصرف شارژ:\n=> 1 ساعت 👈🏻 1 شارژ\n=> 2 ساعت 👈🏻 2 شارژ\n=> 3 ساعت 👈🏻 3 شارژ\n=> 4 ساعت 👈🏻 4 شارژ",
+        "fa": "{last_data}\n🚪 اتاق: {room}\n❓ هفته‌ها:\n- 4 هفته ⬅️ 1 ماه\n- 8 هفته ⬅️ 2 ماه\n- 12 هفته ⬅️ 3 ماه\n- 17 هفته ⬅️ 4 ماه\n- 21 هفته ⬅️ 5 ماه\n- 25 هفته ⬅️ 6 ماه\n💡 قواعد مصرف شارژ:\n1 شارژ 👉🏻 1 ساعت =>\n2 شارژ 👉🏻 2 ساعت =>\n3 شارژ 👉🏻 3 ساعت =>\n4 شارژ 👉🏻 4 ساعت =>",
     }
-    INVALID_CHARGE_TEXT = {"en": "", "fa": ""}
+    SECOND_CHARGE_TEXT = {
+        "en": "{last_data}\n❓ Weeks: {weeks}\n- 4 weeks ➡️ 1 month\n- 8 weeks ➡️ 2 months\n- 12 weeks ➡️ 3 months\n- 17 weeks ➡️ 4 months\n- 21 weeks ➡️ 5 months\n- 25 weeks ➡️ 6 months\n💡 Charge Rules:\n<= 1 hour 👉🏻 1 charge\n<= 2 hour 👉🏻 2 charge\n<= 3 hour 👉🏻 3 charge\n<= 4 hour 👉🏻 4 charge",
+        "fa": "{last_data}\n❓ هفته‌ها: {weeks}\n- 4 هفته ⬅️ 1 ماه\n- 8 هفته ⬅️ 2 ماه\n- 12 هفته ⬅️ 3 ماه\n- 17 هفته ⬅️ 4 ماه\n- 21 هفته ⬅️ 5 ماه\n- 25 هفته ⬅️ 6 ماه\n💡 قواعد مصرف شارژ:\n1 شارژ 👉🏻 1 ساعت =>\n2 شارژ 👉🏻 2 ساعت =>\n3 شارژ 👉🏻 3 ساعت =>\n4 شارژ 👉🏻 4 ساعت =>",
+    }
     ROOMS = {"en": "🚪 Rooms:\n", "fa": "🚪 اتاق ها:\n"}
     ADD_ROOM_BUTTON = {"en": "➕ Add Room", "fa": "➕ اتاق جدید"}
     EDIT_ROOM_ADMIN = {"en": "✏️ Edit Rooms", "fa": "✏️ ویرایش اتاق ها"}
@@ -255,14 +242,6 @@ class BotText(Enum):
         "en": "🔄 The name for @{username} updated to «{new_name}» successfully 👍🏻",
         "fa": "🔄 نام @{username} به «{new_name}» با موفقیت بروزرسانی شد 👍🏻",
     }
-    NAME_TAKEN_ADMIN = {
-        "en": "This name has already been used. Please choose a different one ⛔️",
-        "fa": "این نام قبلاً استفاده شده است. لطفاً نام دیگری انتخاب کنید ⛔️",
-    }
-    NAME_INVALID_ADMIN = {
-        "en": "Your name must be a string and should not contain any digit or symbol ⛔️",
-        "fa": "نام شما باید یک متن باشد و نباید شامل عدد یا نمادهای خاص باشد ⛔️",
-    }
     RETRY = {"en": "🆕 Retry", "fa": "🆕 تلاش دوباره"}
     SELECTION_CHARGE_USER = {
         "en": "🔋 Select the TG username whose name you want to charge:",
@@ -288,10 +267,11 @@ class BotText(Enum):
         "en": "An error occurred while sending charge message to «{user}»:\n{error}",
         "fa": "مشکلی در ارسال پیام شارژ به «{user}» پیش آمد:\n{error}"
     }
-    INVALID_ENTERED_CHARGE = {
-        "en": "The charge must be integer and should not contain any letter or symbol ⛔️",
-        "fa": "مقدار شارژ باید یک عدد باشد و نباید شامل حروف یا نمادهای خاص باشد ⛔️",
-    }
+    EDIT_WEEKS_BUTTON = {"en": "✏️ Edit Weeks", "fa": "✏️ ویرایش هفته ها"}
+    CHAT_WITH_BOOKER_BUTTON = {"en": "💬 Chat with Booker", "fa": "💬 صحبت با رزرو کننده"}
+    RESERVE_POSSIBLES_BUTTON = {"en": "🛎 Reserve Possible weeks", "fa": "🛎 رزرو هفته های ممکن"}
+    CANCEL_RESERVATION_BUTTON = {"en": "👎🏻 Cancel", "fa": "👎🏻 لغو عملیات"}
+
     SCHEDULE_SELECTION = {
         "en": "🗓 Choose Your Schedule:",
         "fa": "🗓 قصد مشاهده کدام جدول را دارید؟",
@@ -404,6 +384,38 @@ class BotText(Enum):
     INVALID_CHECKOUT_RESERVATION = {
         "en": "This reservation has finished and you can't checkout it ⛔️",
         "fa": "این رزرو پایان یافته و امکان ثبت پابان جلسه وجود ندارد ⛔️",
+    }
+    INVALID_NAME_TAKEN = {
+        "en": "This name has already been used. Please choose a different one ⛔️",
+        "fa": "این نام قبلاً استفاده شده است. لطفاً نام دیگری انتخاب کنید ⛔️",
+    }
+    INVALID_NAME = {
+        "en": "Your name must be a string and should not contain any digits or symbols ⛔️",
+        "fa": "نام شما باید یک متن باشد و نباید شامل عدد یا علامت های خاص باشد ⛔️",
+    }
+    INVALID_CHARGE = {
+        "en": "To reserve a continuous reservation, you need to charge your account.\n💰 Please contact the admin to charge your account.\n\n❗️ Every continuous reservation:\n- less than 1 hour takes 1 charge.\n- less than 2 hours takes 2 charges.\n- less than 3 hours takes 3 charges.\n- less than 4 hours takes 4 charges.",
+        "fa": "برای رزرو دوره ای، لازم است اکانت خود را شارژ کنید.\n💰 لطفاً برای شارژ اکانت به ادمین پیام دهید.\n\n❗️ برای هر رزرو مداوم:\n- کمتر از 1 ساعت 1 شارژ نیاز است.\n- کمتر از 2 ساعت 2 شارژ نیاز است.\n- کمتر از 3 ساعت 3 شارژ نیاز است.\n- کمتر از 4 ساعت 4 شارژ نیاز است.",
+    }
+    INSUFFICIENT_CHARGE = {
+        "en": "Insufficient charge ⛔️\nThis reservation requires {charge} charges.\nPlease contact the admin to charge your account 💰",
+        "fa": "شارژ حساب شما ناکافی است ⛔️\nاین رزرو به {charge} شارژ نیاز دارد.\nلطفاً برای شارژ اکانت به ادمین پیام دهید 💰"
+    }
+    NAME_TAKEN_ADMIN = {
+        "en": "This name has already been used. Please choose a different one ⛔️",
+        "fa": "این نام قبلاً استفاده شده است. لطفاً نام دیگری انتخاب کنید ⛔️",
+    }
+    NAME_INVALID_ADMIN = {
+        "en": "Your name must be a string and should not contain any digit or symbol ⛔️",
+        "fa": "نام شما باید یک متن باشد و نباید شامل عدد یا نمادهای خاص باشد ⛔️",
+    }
+    INVALID_ENTERED_CHARGE = {
+        "en": "The charge must be integer and should not contain any letter or symbol ⛔️",
+        "fa": "مقدار شارژ باید یک عدد باشد و نباید شامل حروف یا نمادهای خاص باشد ⛔️",
+    }
+    INVALID_WEEK_SELECTION = {
+        "en": "You must select the number of weeks, and it cannot be empty ⛔️",
+        "fa": "شما باید تعداد هفته ‌ها را انتخاب کنید و این بخش نباید خالی باشد ⛔️",
     }
 
 

@@ -39,6 +39,15 @@ WEEKDAYS_LIST = [
     ["پنج‌شنبه", "Thursday"],
     ["جمعه", "Friday"],
 ]
+weekday_map = {
+    'monday': 0,
+    'tuesday': 1,
+    'wednesday': 2,
+    'thursday': 3,
+    'friday': 4,
+    'saturday': 5,
+    'sunday': 6
+}
 ONE, TWO, THREE = 1, 2, 3
 CHECKOUT = "checkout"
 FARSI, ENGLISH = "fa", "en"

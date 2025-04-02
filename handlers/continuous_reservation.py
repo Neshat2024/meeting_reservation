@@ -9,7 +9,7 @@ from functions.continuous_reservation import (
     process_room_selection,
     process_show_rooms,
     process_cr_week_selection,
-    process_confirm_cr_week,
+    process_confirm_cr_week, process_cr_back_weeks,
 )
 from services.config import commands
 from services.wraps import set_command, check_name_in_db
@@ -92,6 +92,12 @@ def register_handle_confirm_cr_week(session, bot):
         return process_confirm_cr_week(call, session, bot)
 
 
+def register_handle_cr_back_weeks(session, bot):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("cr_back_weeks"))
+    def handle_cr_back_weeks(call):
+        return process_cr_back_weeks(call, session, bot)
+
+
 def continuous_reservation_command_handler(bot, session):
     add_continuous_reservation_command()
     register_continuous_reservation_command(session, bot)
@@ -104,3 +110,4 @@ def continuous_reservation_command_handler(bot, session):
     register_handle_cr_back_rooms(session, bot)
     register_handle_cr_week_selection(session, bot)
     register_handle_confirm_cr_week(session, bot)
+    register_handle_cr_back_weeks(session, bot)
