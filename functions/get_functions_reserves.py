@@ -6,7 +6,7 @@ import jdatetime
 import pytz
 from dotenv import load_dotenv
 from sqlalchemy.exc import SQLAlchemyError
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as btn
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as Btn
 
 from models.reservations import Reservations
 from models.rooms import Rooms
@@ -63,15 +63,15 @@ def add_row_buttons(start_end_days, first_cb, user):
 def get_date_buttons_in_persian(start_end_days, first_cb):
     start, end, days, row = start_end_days[0], start_end_days[1], start_end_days[2], []
     markup = InlineKeyboardMarkup(row_width=7)
-    markup.row(*[btn(text=day, callback_data="NON") for day in reversed(days)])
+    markup.row(*[Btn(text=day, callback_data="NON") for day in reversed(days)])
     start_day_of_week = (start.weekday() + 2) % 7
     for _ in range(start_day_of_week):
-        row.append(btn(text="__", callback_data="NON"))
+        row.append(Btn(text="__", callback_data="NON"))
     while start <= end:
         jalali_date = jdatetime.date.fromgregorian(date=start)
         jalali_day = jalali_date.day
         date = start.strftime("%Y-%m-%d")
-        k = btn(
+        k = Btn(
             text=convert_to_persian_numerals(str(jalali_day)),
             callback_data=f"{first_cb}_{date}",
         )
@@ -86,13 +86,13 @@ def get_date_buttons_in_persian(start_end_days, first_cb):
 def get_date_buttons(start_end_days, first_cb):
     start, end, days, row = start_end_days[0], start_end_days[1], start_end_days[2], []
     markup = InlineKeyboardMarkup(row_width=3)
-    markup.row(*[btn(text=day, callback_data="NON") for day in days])
+    markup.row(*[Btn(text=day, callback_data="NON") for day in days])
     start_day_of_week = (start.weekday() + 2) % 7
     for _ in range(start_day_of_week):
-        row.append(btn(text="__", callback_data="NON"))
+        row.append(Btn(text="__", callback_data="NON"))
     while start <= end:
         date = start.strftime("%Y-%m-%d")
-        k = btn(text=start.day, callback_data=f"{first_cb}_{date}")
+        k = Btn(text=start.day, callback_data=f"{first_cb}_{date}")
         row.append(k)
         start += timedelta(days=1)
         if len(row) == 7:
@@ -104,11 +104,11 @@ def get_date_buttons(start_end_days, first_cb):
 def add_free_buttons(row, markup, user):
     if row and user.language == FARSI:
         while len(row) < 7:
-            row.append(btn(text="__", callback_data="NON"))
+            row.append(Btn(text="__", callback_data="NON"))
         markup.row(*reversed(row))
     elif row:
         while len(row) < 7:
-            row.append(btn(text="__", callback_data="NON"))
+            row.append(Btn(text="__", callback_data="NON"))
         markup.row(*row)
     return markup
 
@@ -227,7 +227,7 @@ def get_hour_buttons(call, session):
             time = f"{h:02}:{m:02}"
             cb = get_callbacks(date, room, time)
             if time in reserved_hours:
-                buttons.append(btn(text="🟨", callback_data=f"who_{date}_{room}_{time}"))
+                buttons.append(Btn(text="🟨", callback_data=f"who_{date}_{room}_{time}"))
             elif db_status == FIRST or db_status == SECOND:
                 buttons.append(
                     get_new_buttons(
@@ -244,7 +244,7 @@ def get_hour_buttons(call, session):
                 )
             else:
                 buttons.append(
-                    btn(text=get_txt_in_cb([h, m], call, session), callback_data=cb[0])
+                    Btn(text=get_txt_in_cb([h, m], call, session), callback_data=cb[0])
                 )
             if len(buttons) == 2:
                 markup.row(*buttons)
@@ -309,15 +309,15 @@ def get_new_buttons(data):
     reserved_hours, txt, callback, call_id = data[3], data[4], data[5], data[6]
     select_cb, remove_cb = callback[0], callback[1]
     if db_status == FIRST and str_time in hours:
-        return btn(text="▶️", callback_data=remove_cb)
+        return Btn(text="▶️", callback_data=remove_cb)
     elif db_status == SECOND and str_time == hours[0]:
-        return btn(text="▶️", callback_data=remove_cb)
+        return Btn(text="▶️", callback_data=remove_cb)
     elif db_status == SECOND and str_time == hours[-1]:
-        return btn(text="◀️", callback_data=remove_cb)
+        return Btn(text="◀️", callback_data=remove_cb)
     elif db_status == SECOND and str_time in hours:
-        return btn(text="✅", callback_data=select_cb)
+        return Btn(text="✅", callback_data=select_cb)
     else:
-        return btn(text=txt, callback_data=select_cb)
+        return Btn(text=txt, callback_data=select_cb)
 
 
 def get_callbacks(date, room, str_time):
@@ -449,16 +449,16 @@ def get_hour_buttons_in_edit(call, session):
             cb = get_callbacks_in_edit(call, time)
             if time in reserved_hours:
                 date, room = get_date_room_from_db_id(call, session)
-                buttons.append(btn(text="🟨", callback_data=f"who_{date}_{room}_{time}"))
+                buttons.append(Btn(text="🟨", callback_data=f"who_{date}_{room}_{time}"))
             elif hours and time == hours[0]:
-                buttons.append(btn(text="▶️", callback_data=cb[1]))
+                buttons.append(Btn(text="▶️", callback_data=cb[1]))
             elif hours and len(hours) > 1 and time == hours[-1]:
-                buttons.append(btn(text="◀️", callback_data=cb[1]))
+                buttons.append(Btn(text="◀️", callback_data=cb[1]))
             elif time in hours:
-                buttons.append(btn(text="✅", callback_data=cb[0]))
+                buttons.append(Btn(text="✅", callback_data=cb[0]))
             else:
                 buttons.append(
-                    btn(text=get_txt_in_cb([h, m], call, session), callback_data=cb[0])
+                    Btn(text=get_txt_in_cb([h, m], call, session), callback_data=cb[0])
                 )
             if len(buttons) == 2:
                 markup.row(*buttons)

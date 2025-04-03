@@ -8,21 +8,21 @@ class BotText(Enum):
     }
     HELP = {
         "en": "🚪 Meeting Reservation Bot 🚪\n\n"
-              "Available Commands:\n"
-              "/start - Start the bot to select from menu\n"
-              "/reservation - 🚪 Submit-View-Edit Meeting Reservations\n"
-              "/admin_commands - 🔧 Admins can manage Meeting Rooms (view-add-edit)\n"
-              "/view_schedule - 🗓 View Schedule for Meeting Rooms (Daily-Custom Day-Weekly)\n"
-              "/settings - ⚙️ Bot Settings (You can set Language of the bot)\n"
-              "/help - ℹ️ Get help information",
+        "Available Commands:\n"
+        "/start - Start the bot to select from menu\n"
+        "/reservation - 🚪 Submit-View-Edit Meeting Reservations\n"
+        "/admin_commands - 🔧 Admins can manage Meeting Rooms (view-add-edit)\n"
+        "/view_schedule - 🗓 View Schedule for Meeting Rooms (Daily-Custom Day-Weekly)\n"
+        "/settings - ⚙️ Bot Settings (You can set Language of the bot)\n"
+        "/help - ℹ️ Get help information",
         "fa": "🚪 بات رزرو اتاق جلسات 🚪\n\n"
-              "دستور های در دسترس:\n"
-              "/start - دستور شروع بات برای دسترسی به منو\n"
-              "/reservation - 🚪 دستور رزرو، ویرایش و حذف رزرو ها\n"
-              "/admin_commands - 🔧 دستور مدیریت اتاق جلسات توسط ادمین ها (مشاهده، ویرایش و حذف)\n"
-              "/view_schedule - 🗓 دستور مشاهده جدول رزرو اتاق ها (روزانه، روز خاص و هفتگی)\n"
-              "/settings - ⚙️ دستور تنظیمات بات (انتخاب زبان بات)\n"
-              "/help - ℹ️ راهنمای دستورات بات",
+        "دستور های در دسترس:\n"
+        "/start - دستور شروع بات برای دسترسی به منو\n"
+        "/reservation - 🚪 دستور رزرو، ویرایش و حذف رزرو ها\n"
+        "/admin_commands - 🔧 دستور مدیریت اتاق جلسات توسط ادمین ها (مشاهده، ویرایش و حذف)\n"
+        "/view_schedule - 🗓 دستور مشاهده جدول رزرو اتاق ها (روزانه، روز خاص و هفتگی)\n"
+        "/settings - ⚙️ دستور تنظیمات بات (انتخاب زبان بات)\n"
+        "/help - ℹ️ راهنمای دستورات بات",
     }
     RESERVATION_TEXT = {
         "en": "Reserve a room anytime with «🚪 New Reservation» or manage reservations via «📝 My Reservations»",
@@ -159,6 +159,10 @@ class BotText(Enum):
         "en": "{last_data}\n❓ Weeks: {weeks}\n- 4 weeks ➡️ 1 month\n- 8 weeks ➡️ 2 months\n- 12 weeks ➡️ 3 months\n- 17 weeks ➡️ 4 months\n- 21 weeks ➡️ 5 months\n- 25 weeks ➡️ 6 months\n💡 Charge Rules:\n<= 1 hour 👉🏻 1 charge\n<= 2 hour 👉🏻 2 charge\n<= 3 hour 👉🏻 3 charge\n<= 4 hour 👉🏻 4 charge",
         "fa": "{last_data}\n❓ هفته‌ها: {weeks}\n- 4 هفته ⬅️ 1 ماه\n- 8 هفته ⬅️ 2 ماه\n- 12 هفته ⬅️ 3 ماه\n- 17 هفته ⬅️ 4 ماه\n- 21 هفته ⬅️ 5 ماه\n- 25 هفته ⬅️ 6 ماه\n💡 قواعد مصرف شارژ:\n1 شارژ 👉🏻 1 ساعت =>\n2 شارژ 👉🏻 2 ساعت =>\n3 شارژ 👉🏻 3 ساعت =>\n4 شارژ 👉🏻 4 ساعت =>",
     }
+    WEEKS_TEXT = {
+        "en": "{last_data}\n🗓️ Weeks: {weeks}\n{week_as_date}",
+        "fa": "{last_data}\n🗓️ هفته‌ها: {weeks}\n{week_as_date}",
+    }
     ROOMS = {"en": "🚪 Rooms:\n", "fa": "🚪 اتاق ها:\n"}
     ADD_ROOM_BUTTON = {"en": "➕ Add Room", "fa": "➕ اتاق جدید"}
     EDIT_ROOM_ADMIN = {"en": "✏️ Edit Rooms", "fa": "✏️ ویرایش اتاق ها"}
@@ -265,11 +269,14 @@ class BotText(Enum):
     }
     MESSAGE_NOT_SENT = {
         "en": "An error occurred while sending charge message to «{user}»:\n{error}",
-        "fa": "مشکلی در ارسال پیام شارژ به «{user}» پیش آمد:\n{error}"
+        "fa": "مشکلی در ارسال پیام شارژ به «{user}» پیش آمد:\n{error}",
     }
     EDIT_WEEKS_BUTTON = {"en": "✏️ Edit Weeks", "fa": "✏️ ویرایش هفته ها"}
     CHAT_WITH_BOOKER_BUTTON = {"en": "💬 Chat with Booker", "fa": "💬 صحبت با رزرو کننده"}
-    RESERVE_POSSIBLES_BUTTON = {"en": "🛎 Reserve Possible weeks", "fa": "🛎 رزرو هفته های ممکن"}
+    RESERVE_POSSIBLES_BUTTON = {
+        "en": "🛎 Reserve Possible weeks",
+        "fa": "🛎 رزرو هفته های ممکن",
+    }
     CANCEL_RESERVATION_BUTTON = {"en": "👎🏻 Cancel", "fa": "👎🏻 لغو عملیات"}
 
     SCHEDULE_SELECTION = {
@@ -399,7 +406,7 @@ class BotText(Enum):
     }
     INSUFFICIENT_CHARGE = {
         "en": "Insufficient charge ⛔️\nThis reservation requires {charge} charges.\nPlease contact the admin to charge your account 💰",
-        "fa": "شارژ حساب شما ناکافی است ⛔️\nاین رزرو به {charge} شارژ نیاز دارد.\nلطفاً برای شارژ اکانت به ادمین پیام دهید 💰"
+        "fa": "شارژ حساب شما ناکافی است ⛔️\nاین رزرو به {charge} شارژ نیاز دارد.\nلطفاً برای شارژ اکانت به ادمین پیام دهید 💰",
     }
     NAME_TAKEN_ADMIN = {
         "en": "This name has already been used. Please choose a different one ⛔️",

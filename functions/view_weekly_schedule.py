@@ -14,7 +14,10 @@ from services.language import get_text, BotText, change_num_as_lang
 
 matplotlib.use("Agg")  # Set the backend to 'Agg' (non-interactive)
 import matplotlib.pyplot as plt
-from functions.get_functions import get_data_in_create_image, create_date_buttons
+from functions.get_functions_reserves import (
+    get_data_in_create_image,
+    create_date_buttons,
+)
 from models.reservations import Reservations
 from models.rooms import Rooms
 from services.config import (

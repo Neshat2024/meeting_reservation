@@ -5,7 +5,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from telebot.apihelper import ApiTelegramException
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as btn
 
-from functions.get_functions import (
+from functions.get_functions_reserves import (
     get_room_name,
     get_start_end_week_date,
     add_free_buttons,

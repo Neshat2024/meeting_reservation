@@ -3,7 +3,7 @@ from telebot import types
 from telebot.apihelper import ApiTelegramException
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as btn
 
-from functions.get_functions import future_date
+from functions.get_functions_reserves import future_date
 from models.reservations import Reservations
 from models.rooms import Rooms
 from models.users import Users
@@ -18,9 +18,15 @@ from services.config import (
     check_text_in_name,
     ONE,
     TWO,
-    THREE, check_text_in_charge,
+    THREE,
+    check_text_in_charge,
 )
-from services.language import get_text, BotText, change_num_as_lang, change_num_as_lang_and_username
+from services.language import (
+    get_text,
+    BotText,
+    change_num_as_lang,
+    change_num_as_lang_and_username,
+)
 from services.log import add_log
 
 
@@ -265,10 +271,10 @@ def process_delete_specific_room(call, session, bot):
             session.commit()
             txt, key = get_text_key_in_admin_commands(user, session)
             txt = (
-                    get_text(BotText.ROOM_DELETED, user.language).format(
-                        room_name=room.name
-                    )
-                    + txt
+                get_text(BotText.ROOM_DELETED, user.language).format(
+                    room_name=room.name
+                )
+                + txt
             )
             bot.edit_message_text(
                 chat_id=int(user.chat_id), message_id=msg_id, text=txt, reply_markup=key
@@ -480,10 +486,14 @@ def process_get_charge_for_user(call, session, bot):
     s_user = session.query(Users).filter_by(id=db_id).first()
     if s_user.username not in ["", None, 0]:
         uname = s_user.username
-        t = get_text(BotText.GET_CHARGE_USERNAME, user.language).format(username=uname, charge=s_user.charge)
+        t = get_text(BotText.GET_CHARGE_USERNAME, user.language).format(
+            username=uname, charge=s_user.charge
+        )
     else:
         name = s_user.name
-        t = get_text(BotText.GET_CHARGE_NAME, user.language).format(username=name, charge=s_user.charge)
+        t = get_text(BotText.GET_CHARGE_NAME, user.language).format(
+            username=name, charge=s_user.charge
+        )
     bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=t)
     bot.register_next_step_handler(call.message, get_charge, session, [s_user, bot])
 
@@ -509,17 +519,23 @@ def get_charge(message, session, user_bot):
                 name = f"@{selected_user.username}"
             else:
                 name = selected_user.name
-            manager_msg = get_text(BotText.MANAGER_CHARGE_MESSAGE, user.language).format(user=name ,charge=charge, new_charge=new_charge)
+            manager_msg = get_text(
+                BotText.MANAGER_CHARGE_MESSAGE, user.language
+            ).format(user=name, charge=charge, new_charge=new_charge)
             manager_msg = change_num_as_lang_and_username(manager_msg, user.language)
             ok_text = get_text(BotText.OK_REMINDER_BUTTON, user.language)
             key.add(btn(text=ok_text, callback_data="backroom"))
             bot.send_message(chat_id=ch_id, text=manager_msg, reply_markup=key)
-            user_msg = get_text(BotText.USER_CHARGE_MESSAGE, selected_user.language).format(charge=charge, new_charge=new_charge)
+            user_msg = get_text(
+                BotText.USER_CHARGE_MESSAGE, selected_user.language
+            ).format(charge=charge, new_charge=new_charge)
             user_msg = change_num_as_lang(user_msg, selected_user.language)
             try:
                 bot.send_message(selected_user.chat_id, user_msg)
             except Exception as e:
-                txt = get_text(BotText.MESSAGE_NOT_SENT, user.language).format(user=selected_user.name, error=e)
+                txt = get_text(BotText.MESSAGE_NOT_SENT, user.language).format(
+                    user=selected_user.name, error=e
+                )
                 bot.send_message(ch_id, txt)
         else:
             txt = get_text(BotText.INVALID_ENTERED_CHARGE, user.language)

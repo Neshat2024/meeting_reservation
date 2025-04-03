@@ -8,7 +8,7 @@ import requests
 from dotenv import load_dotenv
 from sqlalchemy.exc import SQLAlchemyError
 
-from functions.get_functions import get_date_obj
+from functions.get_functions_reserves import get_date_obj
 from models.reservations import Reservations
 from models.reserve_bot import SessionLocal
 from models.rooms import Rooms

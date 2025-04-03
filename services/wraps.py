@@ -1,7 +1,7 @@
 from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 
-from functions.get_functions import generate_random_hex_color
+from functions.get_functions_reserves import generate_random_hex_color
 from functions.name import process_name
 from models.users import Users
 from services.config import get_user, add_user, set_command_in_wraps, check_role
