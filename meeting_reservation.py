@@ -32,8 +32,12 @@ view_weekly_schedule_command_handler(bot, session)
 settings_command_handler(bot, session)
 start_help_handler(bot, session)
 
-proxy_url = "socks5h://localhost:2080"
-telebot.apihelper.proxy = {"http": proxy_url, "https": proxy_url}
+PROXY_HOST = os.getenv("PROXY_HOST")
+PROXY_PORT = os.getenv("PROXY_PORT")
+
+if PROXY_HOST and PROXY_PORT:
+    proxy_url = f"socks5h://{PROXY_HOST}:{PROXY_PORT}"
+    telebot.apihelper.proxy = {"http": proxy_url, "https": proxy_url}
 
 # Set Bot Menu Command
 bot.set_my_commands(commands)
