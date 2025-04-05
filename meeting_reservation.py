@@ -1,5 +1,6 @@
 import os
 
+import telebot
 from dotenv import load_dotenv
 from telebot import TeleBot
 
@@ -30,6 +31,9 @@ admin_commands_handler(bot, session)
 view_weekly_schedule_command_handler(bot, session)
 settings_command_handler(bot, session)
 start_help_handler(bot, session)
+
+proxy_url = "socks5h://localhost:2080"
+telebot.apihelper.proxy = {"http": proxy_url, "https": proxy_url}
 
 # Set Bot Menu Command
 bot.set_my_commands(commands)

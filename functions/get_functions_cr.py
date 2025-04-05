@@ -15,6 +15,7 @@ from services.config import (
     weekday_map,
     WEEKDAYS_LIST,
     time_difference,
+    jalali_to_gregorian,
 )
 from services.language import (
     get_text,
@@ -73,29 +74,27 @@ def add_confirm_back(markup, user, callback):
 
 def get_status(call, user):
     txt = call.message.text.split("\n")
-    mode, time = call.data.split("_")[2:]
+    mode, s_time = call.data.split("_")[2:]
     # mode: select/remove/first-remove
     if len(txt) == 3:
         return "start"
-    else:
-        txt = change_num_as_lang(call.message.text, "en").split("\n")
-        start_time = txt[2].split(": ")[1]
-        end_time = txt[3].split(": ")[1]
-        diff = time_difference(start_time, end_time)
-    time_start, time_end = get_time_and_15_min_later(time)
-    start_to_end = time_difference(start_time, time_end)
+    start_time, start_to_end, diff = process_txt_message(call, s_time)
     if mode == "first-remove":
         return "clear"
-    elif time_difference(start_time, time) >= 240:
+    elif time_difference(start_time, s_time) >= 240:
         return "error-duration"
-    elif diff == 15 and mode == "select" and time_difference(time, start_time) > 0:
+    elif diff == 15 and mode == "select" and time_difference(s_time, start_time) > 0:
         return "error-past"
+    elif (
+        diff == 15
+        and mode == "select"
+        and start_to_end > user.charge * 60
+        and start_to_end not in [60, 120, 180, 240]
+    ):
+        charge = (start_to_end // 60) + 1
+        return f"error-charge_{charge}"
     elif diff == 15 and mode == "select" and start_to_end > user.charge * 60:
-        charge = (
-            (start_to_end // 60) + 1
-            if start_to_end not in [120, 180, 240]
-            else start_to_end // 60
-        )
+        charge = start_to_end // 60
         return f"error-charge_{charge}"
     elif diff == 15 and mode == "select":
         return "second"
@@ -103,6 +102,16 @@ def get_status(call, user):
         return "back-first"
     elif mode == "select":
         return "start"
+
+
+def process_txt_message(call, s_time):
+    txt = change_num_as_lang(call.message.text, "en").split("\n")
+    start_time = txt[2].split(": ")[1]
+    end_time = txt[3].split(": ")[1]
+    diff = time_difference(start_time, end_time)
+    _, time_end = get_time_and_15_min_later(s_time)
+    start_to_end = time_difference(start_time, time_end)
+    return start_time, start_to_end, diff
 
 
 def get_time_and_15_min_later(time_str):
@@ -245,3 +254,20 @@ def get_week_date_buttons(week_dates, user):
             key.add(Btn(text=week_date, callback_data=f"cr_ew_remove_{en_date}"))
     key = add_confirm_back(key, user, ["cr_confirm_edit_week", "cr_back_final_week"])
     return key
+
+
+def get_start_end_charge(txt: list) -> (str, str, int):
+    start, end = txt[1].split(": ")[1], txt[2].split(": ")[1]
+    start_to_end = time_difference(start, end)
+    if start_to_end not in [60, 120, 180, 240]:
+        charge = (start_to_end // 60) + 1
+    else:
+        charge = start_to_end // 60
+    return start, end, charge
+
+
+def get_date_as_txt(line):
+    date = line.split("🟢")[1].strip()
+    if "/" in date:
+        return jalali_to_gregorian(date)
+    return date

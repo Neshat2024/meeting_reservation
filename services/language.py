@@ -283,8 +283,8 @@ class BotText(Enum):
         "fa": "❗️ درخواست شما برای رزرو دوره ای کنسل شد.",
     }
     CONFIRMED_COUNTINUOUS_RESERVATION = {
-        "en": "✅ Your request for a continuous reservation has been submitted successfully.\n💰 Billing Charge: {last_charge}\n🔋 Current Charge: {charge}\n\n{last_data}",
-        "fa": "✅ درخواست شما برای رزرو دوره ای با موفقیت ثبت شد.\n💰 مقدار شارژ مصرف شده: {last_charge}\n🔋 شارژ فعلی: {charge}\n\n{last_data}",
+        "en": "✅ Your request for a continuous reservation has been submitted successfully.\n💰 Billing Charge: {billing_charge}\n🔋 Current Charge: {charge}\n\n{last_data}",
+        "fa": "✅ درخواست شما برای رزرو دوره ای با موفقیت ثبت شد.\n💰 مقدار شارژ مصرف شده: {billing_charge}\n🔋 شارژ فعلی: {charge}\n\n{last_data}",
     }
 
     SCHEDULE_SELECTION = {
@@ -431,6 +431,10 @@ class BotText(Enum):
     INVALID_WEEK_SELECTION = {
         "en": "You must select the number of weeks, and it cannot be empty ⛔️",
         "fa": "شما باید تعداد هفته ‌ها را انتخاب کنید و این بخش نباید خالی باشد ⛔️",
+    }
+    INVALID_NONE_WEEKS = {
+        "en": "You must select a time that has not been reserved by someone else 🙂",
+        "fa": "شما باید زمانی را انتخاب کنید که شخص دیگری آن را رزرو نکرده باشد 🙂",
     }
 
 

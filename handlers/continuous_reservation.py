@@ -15,7 +15,9 @@ from functions.continuous_reservation_one import (
 from functions.continuous_reservation_two import (
     process_cr_edit_weeks,
     process_cr_back_final_week,
-    process_cr_edit_week_selection, process_cr_confirm_edited_weeks, process_cr_cancel_reserve,
+    process_cr_edit_week_selection,
+    process_cr_confirm_edited_weeks,
+    process_cr_cancel_reserve,
     process_cr_reserve_weeks,
 )
 from services.config import commands
@@ -105,7 +107,7 @@ def register_handle_cr_back_weeks(session, bot):
         return process_cr_back_weeks(call, session, bot)
 
 
-def part_one(bot, session):
+def part_one_cr(bot, session):
     register_continuous_reservation_command(session, bot)
     register_handle_cr_weekday(session, bot)
     register_handle_cr_back_weekday(session, bot)
@@ -140,13 +142,17 @@ def register_handle_cr_edit_week_selection(session, bot):
 
 
 def register_handle_cr_confirm_edited_weeks(session, bot):
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("cr_confirm_edit_week"))
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("cr_confirm_edit_week")
+    )
     def handle_cr_confirm_edited_weeks(call):
         return process_cr_confirm_edited_weeks(call, session, bot)
 
 
 def register_handle_cr_cancel_reserve(session, bot):
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("cancel-reserve"))
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("cancel-reserve")
+    )
     def handle_cr_cancel_reserve(call):
         return process_cr_cancel_reserve(call, session, bot)
 
@@ -157,7 +163,7 @@ def register_handle_cr_reserve_weeks(session, bot):
         return process_cr_reserve_weeks(call, session, bot)
 
 
-def part_two(bot, session):
+def part_two_cr(bot, session):
     register_handle_cr_edit_weeks(session, bot)
     register_handle_cr_back_final_week(session, bot)
     register_handle_cr_edit_week_selection(session, bot)
@@ -168,5 +174,5 @@ def part_two(bot, session):
 
 def continuous_reservation_command_handler(bot, session):
     add_continuous_reservation_command()
-    part_one(bot, session)
-    part_two(bot, session)
+    part_one_cr(bot, session)
+    part_two_cr(bot, session)

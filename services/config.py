@@ -181,6 +181,13 @@ def gregorian_to_jalali(date_str):
     return jalali_date_str
 
 
+def jalali_to_gregorian(date_str):
+    year, month, day = map(int, date_str.split("/"))
+    jalali_date = jdatetime.date(year, month, day)
+    gregorian_date = jalali_date.togregorian()
+    return gregorian_date.strftime("%Y-%m-%d")
+
+
 def time_difference(time1: str, time2: str) -> int:
     time_format = "%H:%M"
     t1 = dt.strptime(time1, time_format)
