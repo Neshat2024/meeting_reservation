@@ -232,3 +232,16 @@ def time_has_overlap(time1, time2):
 def time_to_minutes(time_str):
     hh, mm = map(int, time_str.split(":"))
     return (hh * 60) + mm
+
+
+def get_week_date_buttons(week_dates, user):
+    key = InlineKeyboardMarkup()
+    for week_date in week_dates:
+        date = week_date.split()[1]
+        en_date = change_num_as_lang(date, "en")
+        if "🔴" not in week_date and "🗑" not in week_date:
+            key.add(Btn(text=week_date, callback_data=f"cr_ew_select_{en_date}"))
+        elif "🔴" not in week_date:
+            key.add(Btn(text=week_date, callback_data=f"cr_ew_remove_{en_date}"))
+    key = add_confirm_back(key, user, ["cr_confirm_edit_week", "cr_back_final_week"])
+    return key

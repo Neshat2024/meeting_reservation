@@ -264,7 +264,7 @@ class BotText(Enum):
         "fa": "🔋 حساب شما شارژ شد 🔋\n♻️ مقدار شارژ: {charge}\n💰 شارژ فعلی: {new_charge}",
     }
     MANAGER_CHARGE_MESSAGE = {
-        "en": "🔋 User's account charged 🔋\n👤 User: {user}\n♻️ Amount: {charge}\n 💰 Current Charge: {new_charge}",
+        "en": "🔋 User's account charged 🔋\n👤 User: {user}\n♻️ Amount: {charge}\n💰 Current Charge: {new_charge}",
         "fa": "🔋 حساب کاربر شارژ شد 🔋\n👤 کاربر: {user}\n♻️ مقدار شارژ: {charge}\n💰 شارژ فعلی: {new_charge}",
     }
     MESSAGE_NOT_SENT = {
@@ -278,6 +278,14 @@ class BotText(Enum):
         "fa": "🛎 رزرو هفته های ممکن",
     }
     CANCEL_RESERVATION_BUTTON = {"en": "👎🏻 Cancel", "fa": "👎🏻 لغو عملیات"}
+    CANCEL_RESERVATION_TEXT = {
+        "en": "❗️ Your request for continuous reservation canceled.",
+        "fa": "❗️ درخواست شما برای رزرو دوره ای کنسل شد.",
+    }
+    CONFIRMED_COUNTINUOUS_RESERVATION = {
+        "en": "✅ Your request for a continuous reservation has been submitted successfully.\n💰 Billing Charge: {last_charge}\n🔋 Current Charge: {charge}\n\n{last_data}",
+        "fa": "✅ درخواست شما برای رزرو دوره ای با موفقیت ثبت شد.\n💰 مقدار شارژ مصرف شده: {last_charge}\n🔋 شارژ فعلی: {charge}\n\n{last_data}",
+    }
 
     SCHEDULE_SELECTION = {
         "en": "🗓 Choose Your Schedule:",
