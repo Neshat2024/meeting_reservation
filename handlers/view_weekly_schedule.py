@@ -1,15 +1,22 @@
 from telebot import TeleBot
 from telebot import types
 
-from functions.view_weekly_schedule import process_view_weekly_schedule, process_view_schedule, \
-    process_view_today_schedule, process_view_custom_schedule, process_select_date_custom_schedule
+from functions.view_weekly_schedule import (
+    process_view_weekly_schedule,
+    process_view_schedule,
+    process_view_today_schedule,
+    process_view_custom_schedule,
+    process_select_date_custom_schedule,
+)
 from services.config import commands
 from services.wraps import set_command, check_name_in_db, check_color
 
 
 def add_view_weekly_schedule_command():
     commands.append(
-        types.BotCommand(command="/view_schedule", description="🗓 View Schedule for Meeting Rooms")
+        types.BotCommand(
+            command="/view_schedule", description="🗓 View Schedule for Meeting Rooms"
+        )
     )
 
 

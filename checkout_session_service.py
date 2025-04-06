@@ -8,7 +8,7 @@ import requests
 from dotenv import load_dotenv
 from sqlalchemy.exc import SQLAlchemyError
 
-from functions.get_functions import get_date_obj
+from functions.get_functions_reserves import get_date_obj
 from models.reservations import Reservations
 from models.reserve_bot import SessionLocal
 from models.rooms import Rooms
@@ -20,6 +20,8 @@ from services.log import add_log
 session = SessionLocal()
 tehran_tz = pytz.timezone("Asia/Tehran")
 load_dotenv()
+PROXY_HOST = os.getenv("PROXY_HOST")
+PROXY_PORT = os.getenv("PROXY_PORT")
 
 
 def send_msg(text, chat_id, keyboard):
@@ -30,10 +32,16 @@ def send_msg(text, chat_id, keyboard):
         payload = {
             "chat_id": chat_id,
             "text": text,
-            "reply_markup": json.dumps(keyboard)
+            "reply_markup": json.dumps(keyboard),
         }
+        proxies = {}
+        if PROXY_HOST and PROXY_PORT:
+            proxies = {
+                "http": f"socks5h://{PROXY_HOST}:{PROXY_PORT}",
+                "https": f"socks5h://{PROXY_HOST}:{PROXY_PORT}",
+            }
         # Send the request
-        response = requests.post(url, data=payload)
+        response = requests.post(url, data=payload, proxies=proxies)
         response.raise_for_status()  # Raise an exception for HTTP errors
     except requests.RequestException as e:
         add_log(f"RequestException in send_msg: {e}")
@@ -42,6 +50,7 @@ def send_msg(text, chat_id, keyboard):
 
 
 def check_session_sending():
+    print("checkout_session_service is running ...")
     processed_reservations = set()  # Set to keep track of processed reservations
     while True:
         try:
@@ -53,22 +62,37 @@ def check_session_sending():
             for name, reserves in schedule.items():
                 user = get_user_by_name(name)
                 for reserve in reserves:
+                    # reserve = [room.name, start_str, end, date, reserve.id]
                     str_time = f"{reserve[3]} {reserve[1]}"
                     dt_reserve = dt.strptime(str_time, "%Y-%m-%d %H:%M")
                     dt_reserve = tehran_tz.localize(dt_reserve)
                     diff = int((dt_reserve - now).total_seconds() / 60)
                     reservation_id = f"{name}_{str_time}_{reserve[-1]}"
-                    if reservation_id not in processed_reservations:
-                        if diff == 120:
-                            txt = get_text(BotText.REMINDER_MESSAGE, user.language).format(reserve=reserve[0])
-                            buttons = get_buttons_in_check_meeting_time(user, f"cancel_{reserve[-1]}")
-                            send_msg(txt, int(user.chat_id), buttons)
-                            processed_reservations.add(reservation_id)
-                        elif diff == 0 or diff < 0:
-                            txt = get_text(BotText.CHECKOUT_MESSAGE, user.language).format(reserve=reserve[2])
-                            buttons = get_buttons_in_check_meeting_time(user, f"checkout_{reserve[-1]}", "checkout")
-                            send_msg(txt, int(user.chat_id), buttons)
-                            processed_reservations.add(reservation_id)
+                    if (
+                        f"{reservation_id}_first" not in processed_reservations
+                        and diff == 120
+                    ):
+                        txt = get_text(BotText.REMINDER_MESSAGE, user.language).format(
+                            reserve=reserve[0]
+                        )
+                        buttons = get_buttons_in_check_meeting_time(
+                            user, f"cancel_{reserve[-1]}"
+                        )
+                        send_msg(txt, int(user.chat_id), buttons)
+                        processed_reservations.add(f"{reservation_id}_first")
+                    elif (
+                        f"{reservation_id}_second" not in processed_reservations
+                        and diff == 0
+                        or diff < 0
+                    ):
+                        txt = get_text(BotText.CHECKOUT_MESSAGE, user.language).format(
+                            reserve=reserve[2]
+                        )
+                        buttons = get_buttons_in_check_meeting_time(
+                            user, f"checkout_{reserve[-1]}", "checkout"
+                        )
+                        send_msg(txt, int(user.chat_id), buttons)
+                        processed_reservations.add(f"{reservation_id}_second")
             time.sleep(10)
             session.close()
         except json.JSONDecodeError:
@@ -80,10 +104,14 @@ def check_session_sending():
 
 def get_schedule_in_check_session(room, schedule):
     try:
-        now= dt.now(tehran_tz)
+        now = dt.now(tehran_tz)
         str_date = f"{now.year}-{str(now.month).zfill(2)}-{str(now.day).zfill(2)}"
-        end_day = tehran_tz.localize(dt(year=now.year, month=now.month, day=now.day, hour=21, minute=1))
-        reserves = session.query(Reservations).filter_by(status=CONFIRMED, date=str_date).all()
+        end_day = tehran_tz.localize(
+            dt(year=now.year, month=now.month, day=now.day, hour=21, minute=1)
+        )
+        reserves = (
+            session.query(Reservations).filter_by(status=CONFIRMED, date=str_date).all()
+        )
         for reserve in reserves:
             if str(reserve.room_id) == str(room.id):
                 name, date, start, end, color = get_data_in_check_session(reserve)
@@ -94,7 +122,9 @@ def get_schedule_in_check_session(room, schedule):
                     if name not in schedule:
                         schedule[name] = [[room.name, start_str, end, date, reserve.id]]
                     else:
-                        schedule[name].append([room.name, start_str, end, date, reserve.id])
+                        schedule[name].append(
+                            [room.name, start_str, end, date, reserve.id]
+                        )
         return schedule
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in get_schedule_in_check_session: {e}")
@@ -107,8 +137,13 @@ def get_user_by_name(name):
 
 
 def get_data_in_check_session(reserve):
-    user = session.query(Users).filter_by(id=reserve.user_id).first()
-    return user.name, reserve.date, reserve.start_time, reserve.end_time, user.color
+    try:
+        user = session.query(Users).filter_by(id=reserve.user_id).first()
+        return user.name, reserve.date, reserve.start_time, reserve.end_time, user.color
+    except SQLAlchemyError as e:
+        add_log(f"SQLAlchemyError in get_data_in_check_session: {e}")
+    except Exception as e:
+        add_log(f"Exception in get_data_in_check_session: {e}")
 
 
 def get_buttons_in_check_meeting_time(user, cb, mode=None):
@@ -116,7 +151,10 @@ def get_buttons_in_check_meeting_time(user, cb, mode=None):
         keyboard = {
             "inline_keyboard": [
                 [
-                    {"text": get_text(BotText.CHECKOUT_BUTTON, user.language), "callback_data": f"{cb}"}
+                    {
+                        "text": get_text(BotText.CHECKOUT_BUTTON, user.language),
+                        "callback_data": cb,
+                    }
                 ]
             ]
         }
@@ -124,9 +162,14 @@ def get_buttons_in_check_meeting_time(user, cb, mode=None):
         keyboard = {
             "inline_keyboard": [
                 [
-                    {"text": get_text(BotText.OK_REMINDER_BUTTON, user.language),
-                     "callback_data": f"ok-before-meeting_{cb.split('_')[1]}"},
-                    {"text": get_text(BotText.CANCEL_REMINDER_BUTTON, user.language), "callback_data": f"{cb}"}
+                    {
+                        "text": get_text(BotText.OK_REMINDER_BUTTON, user.language),
+                        "callback_data": f"ok-before-meeting_{cb.split('_')[1]}",
+                    },
+                    {
+                        "text": get_text(BotText.CANCEL_REMINDER_BUTTON, user.language),
+                        "callback_data": cb,
+                    },
                 ]
             ]
         }

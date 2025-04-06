@@ -1,10 +1,10 @@
 from sqlalchemy import or_
 from sqlalchemy.exc import SQLAlchemyError
 
-from functions.get_functions import generate_random_hex_color
+from functions.get_functions_reserves import generate_random_hex_color
 from functions.name import process_name
 from models.users import Users
-from services.config import get_user, add_user, set_command_in_wraps
+from services.config import get_user, add_user, set_command_in_wraps, check_role
 from services.log import add_log
 
 
@@ -44,6 +44,7 @@ def set_command(command, session):
                 user = add_user(message, session)
                 set_command_in_wraps(user, session, command)
             else:
+                check_role(user, session)
                 set_command_in_wraps(user, session, command)
             return handler(message)
 
@@ -57,7 +58,7 @@ def check_admin(session, bot):
         def wrapper(message):
             try:
                 user = get_user(message, session)
-                if user.role == "admin":
+                if user.role in ["admin", "manager"]:
                     return handler(message)
                 text = "You are not admin, and you can't access this command ⛔️"
                 user.command = None

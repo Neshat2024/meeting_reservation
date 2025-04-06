@@ -24,7 +24,7 @@ def process_set_language_to_persian(call, session, bot):
     try:
         msg_id = call.message.id
         user = get_user(call, session)
-        user.language = 'fa'
+        user.language = "fa"
         session.commit()
         txt = get_text(BotText.PERSIAN_CALLBACK, user.language)
         bot.edit_message_text(chat_id=int(user.chat_id), message_id=msg_id, text=txt)
@@ -38,7 +38,7 @@ def process_set_language_to_english(call, session, bot):
     try:
         msg_id = call.message.id
         user = get_user(call, session)
-        user.language = 'en'
+        user.language = "en"
         session.commit()
         txt = get_text(BotText.PERSIAN_CALLBACK, user.language)
         bot.edit_message_text(chat_id=int(user.chat_id), message_id=msg_id, text=txt)
