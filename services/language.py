@@ -286,7 +286,6 @@ class BotText(Enum):
         "en": "✅ Your request for a continuous reservation has been submitted successfully.\n💰 Billing Charge: {billing_charge}\n🔋 Current Charge: {charge}\n\n{last_data}",
         "fa": "✅ درخواست شما برای رزرو دوره ای با موفقیت ثبت شد.\n💰 مقدار شارژ مصرف شده: {billing_charge}\n🔋 شارژ فعلی: {charge}\n\n{last_data}",
     }
-
     SCHEDULE_SELECTION = {
         "en": "🗓 Choose Your Schedule:",
         "fa": "🗓 قصد مشاهده کدام جدول را دارید؟",

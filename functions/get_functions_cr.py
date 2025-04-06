@@ -1,6 +1,8 @@
+import re
 from datetime import datetime, timedelta
 
 import pytz
+from sqlalchemy.exc import SQLAlchemyError
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as Btn
 
 from functions.get_functions_reserves import get_txt_in_cb
@@ -22,6 +24,7 @@ from services.language import (
     BotText,
     change_num_as_lang,
 )
+from services.log import add_log
 
 tehran_tz = pytz.timezone("Asia/Tehran")
 
@@ -146,8 +149,8 @@ def get_final_week_buttons(user):
     markup, buttons = InlineKeyboardMarkup(row_width=2), []
     txt_cb = [
         (get_text(BotText.EDIT_WEEKS_BUTTON, user.language), "edit-weeks"),
-        (get_text(BotText.CHAT_WITH_BOOKER_BUTTON, user.language), "chat-booker"),
         (get_text(BotText.RESERVE_POSSIBLES_BUTTON, user.language), "reserve-weeks"),
+        (get_text(BotText.BACK_BUTTON, user.language), "cr_back_weeks"),
         (get_text(BotText.CANCEL_RESERVATION_BUTTON, user.language), "cancel-reserve"),
     ]
     for idx, (txt, cb) in enumerate(txt_cb):
@@ -155,8 +158,6 @@ def get_final_week_buttons(user):
         if idx % 2 == 1:
             markup.row(*reversed(buttons) if user.language == FARSI else buttons)
             buttons = []
-    back_text = get_text(BotText.BACK_BUTTON, user.language)
-    markup.add(Btn(text=back_text, callback_data="cr_back_weeks"))
     return markup
 
 
@@ -271,3 +272,35 @@ def get_date_as_txt(line):
     if "/" in date:
         return jalali_to_gregorian(date)
     return date
+
+
+def get_bookers_as_text(call, session):
+    bookers = []
+    txt = call.message.text.split("\n")
+    for line in txt[6:]:
+        if "🔴" in line:
+            booker_name = get_booker_name(line)
+            booker_id = get_booker_id(booker_name, session)
+            booker = [booker_name, booker_id]
+            if booker not in bookers:
+                bookers.append(booker)
+    return bookers
+
+
+def get_booker_name(line):
+    if "رزرو شده توسط" in line:
+        match = re.search(r"رزرو شده توسط\s+([^)]+)", line)
+    else:
+        match = re.search(r"Reserved by\s+([^)]+)", line)
+    if match:
+        return match.group(1).strip()
+
+
+def get_booker_id(booker_name, session):
+    try:
+        booker = session.query(Users).filter_by(name=booker_name).first()
+        return booker.id
+    except SQLAlchemyError as e:
+        add_log(f"SQLAlchemyError in get_booker_id: {e}")
+    except Exception as e:
+        add_log(f"Exception in get_booker_id: {e}")

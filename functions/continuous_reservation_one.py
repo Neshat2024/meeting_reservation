@@ -22,6 +22,7 @@ from services.language import get_text, BotText, change_num_as_lang
 from services.log import add_log
 
 tehran_tz = pytz.timezone("Asia/Tehran")
+user_states = {}
 
 
 def process_continuous_reservation(call_message, session, bot):
@@ -32,7 +33,8 @@ def process_continuous_reservation(call_message, session, bot):
             t = get_text(BotText.CHOOSE_WEEKDAY_TEXT, user.language)
             k = get_weekday_buttons(user)
             if isinstance(call_message, types.Message):
-                bot.send_message(chat_id=ch_id, text=t, reply_markup=k)
+                msg = bot.send_message(chat_id=ch_id, text=t, reply_markup=k)
+                user_states[ch_id] = {"last_msg_id": msg.message_id}
             else:
                 msg = call_message.message.id
                 bot.edit_message_text(
