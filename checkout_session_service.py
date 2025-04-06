@@ -1,7 +1,7 @@
 import json
 import os
 import time
-from datetime import datetime as dt, timedelta
+from datetime import datetime as dt
 
 import pytz
 import requests
@@ -63,15 +63,11 @@ def check_session_sending():
                 user = get_user_by_name(name)
                 for reserve in reserves:
                     # reserve = [room.name, start_str, end, date, reserve.id]
-                    str_time = f"{reserve[3]} {reserve[1]}"
-                    dt_reserve = dt.strptime(str_time, "%Y-%m-%d %H:%M")
-                    dt_reserve = tehran_tz.localize(dt_reserve)
+                    reservation_id, dt_reserve = get_reservation_id(name, reserve)
                     diff = int((dt_reserve - now).total_seconds() / 60)
-                    reservation_id = f"{name}_{str_time}_{reserve[-1]}"
-                    if (
-                        f"{reservation_id}_first" not in processed_reservations
-                        and diff == 120
-                    ):
+                    condition_1 = f"{reservation_id}_first" not in processed_reservations
+                    condition_2 = f"{reservation_id}_second" not in processed_reservations
+                    if condition_1 and diff == 120:
                         txt = get_text(BotText.REMINDER_MESSAGE, user.language).format(
                             reserve=reserve[0]
                         )
@@ -80,11 +76,7 @@ def check_session_sending():
                         )
                         send_msg(txt, int(user.chat_id), buttons)
                         processed_reservations.add(f"{reservation_id}_first")
-                    elif (
-                        f"{reservation_id}_second" not in processed_reservations
-                        and diff == 0
-                        or diff < 0
-                    ):
+                    elif condition_2 and diff <= 0:
                         txt = get_text(BotText.CHECKOUT_MESSAGE, user.language).format(
                             reserve=reserve[2]
                         )
@@ -107,7 +99,7 @@ def get_schedule_in_check_session(room, schedule):
         now = dt.now(tehran_tz)
         str_date = f"{now.year}-{str(now.month).zfill(2)}-{str(now.day).zfill(2)}"
         end_day = tehran_tz.localize(
-            dt(year=now.year, month=now.month, day=now.day, hour=21, minute=1)
+            dt(year=now.year, month=now.month, day=now.day, hour=23, minute=1)
         )
         reserves = (
             session.query(Reservations).filter_by(status=CONFIRMED, date=str_date).all()
@@ -134,6 +126,14 @@ def get_schedule_in_check_session(room, schedule):
 
 def get_user_by_name(name):
     return session.query(Users).filter_by(name=name).first()
+
+
+def get_reservation_id(name, reserve):
+    str_time = f"{reserve[3]} {reserve[1]}"
+    dt_reserve = dt.strptime(str_time, "%Y-%m-%d %H:%M")
+    dt_reserve = tehran_tz.localize(dt_reserve)
+    reservation_id = f"{name}_{str_time}_{reserve[-1]}"
+    return reservation_id, dt_reserve
 
 
 def get_data_in_check_session(reserve):
