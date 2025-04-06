@@ -65,8 +65,12 @@ def check_session_sending():
                     # reserve = [room.name, start_str, end, date, reserve.id]
                     reservation_id, dt_reserve = get_reservation_id(name, reserve)
                     diff = int((dt_reserve - now).total_seconds() / 60)
-                    condition_1 = f"{reservation_id}_first" not in processed_reservations
-                    condition_2 = f"{reservation_id}_second" not in processed_reservations
+                    condition_1 = (
+                        f"{reservation_id}_first" not in processed_reservations
+                    )
+                    condition_2 = (
+                        f"{reservation_id}_second" not in processed_reservations
+                    )
                     if condition_1 and diff == 120:
                         txt = get_text(BotText.REMINDER_MESSAGE, user.language).format(
                             reserve=reserve[0]
@@ -99,7 +103,7 @@ def get_schedule_in_check_session(room, schedule):
         now = dt.now(tehran_tz)
         str_date = f"{now.year}-{str(now.month).zfill(2)}-{str(now.day).zfill(2)}"
         end_day = tehran_tz.localize(
-            dt(year=now.year, month=now.month, day=now.day, hour=23, minute=1)
+            dt(year=now.year, month=now.month, day=now.day, hour=21, minute=1)
         )
         reserves = (
             session.query(Reservations).filter_by(status=CONFIRMED, date=str_date).all()
