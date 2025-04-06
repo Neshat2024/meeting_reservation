@@ -1,6 +1,6 @@
 from sqlalchemy.exc import SQLAlchemyError
 
-from functions.get_functions import generate_random_hex_color
+from functions.get_functions_reserves import generate_random_hex_color
 from models.users import Users
 from services.log import add_log
 

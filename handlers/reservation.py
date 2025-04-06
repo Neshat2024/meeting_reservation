@@ -1,14 +1,35 @@
 from telebot import TeleBot
 from telebot import types
 
-from functions.new_reserves import process_reservation, process_hour_selection, process_select_room, process_add_time, \
-    process_remove_time, process_back_date, process_confirm_selection, process_new_reservation, process_back_main, \
-    process_who_reserved
-from functions.old_reserves import process_user_reservations, process_future_reservations, process_past_reservations, \
-    process_delete_reservations, process_edit_reservations, process_edit_specific_reservation, \
-    process_edit_specific_date, process_edit_specific_room, \
-    process_edit_specific_hours, process_set_edit_date, process_set_edit_room, process_set_edit_hours, \
-    process_add_time_in_edit, process_remove_time_in_edit, process_delete_specific_reservation
+from functions.new_reserves import (
+    process_reservation,
+    process_hour_selection,
+    process_select_room,
+    process_add_time,
+    process_remove_time,
+    process_back_date,
+    process_confirm_selection,
+    process_new_reservation,
+    process_back_main,
+    process_who_reserved,
+)
+from functions.old_reserves import (
+    process_user_reservations,
+    process_future_reservations,
+    process_past_reservations,
+    process_delete_reservations,
+    process_edit_reservations,
+    process_edit_specific_reservation,
+    process_edit_specific_date,
+    process_edit_specific_room,
+    process_edit_specific_hours,
+    process_set_edit_date,
+    process_set_edit_room,
+    process_set_edit_hours,
+    process_add_time_in_edit,
+    process_remove_time_in_edit,
+    process_delete_specific_reservation,
+)
 from services.config import commands
 from services.wraps import set_command, check_name_in_db
 
@@ -28,7 +49,9 @@ def register_reservation_command(session, bot):
 
 
 def register_handle_new_reservation(session, bot):
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("new_reservation"))
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("new_reservation")
+    )
     def handle_new_reservation(call):
         return process_new_reservation(call, session, bot)
 
@@ -75,8 +98,29 @@ def register_handle_confirm_selection(session, bot):
         return process_confirm_selection(call, session, bot)
 
 
+def register_handle_who_reserved(session, bot):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("who_"))
+    def handle_who_reserved(call):
+        return process_who_reserved(call, session, bot)
+
+
+def register_new_reservations(bot, session):
+    register_reservation_command(session, bot)
+    register_handle_new_reservation(session, bot)
+    register_handle_back_main(session, bot)
+    register_handle_select_room(session, bot)
+    register_handle_back_date(session, bot)
+    register_handle_hour_selection(session, bot)
+    register_handle_add_time(session, bot)
+    register_handle_remove_time(session, bot)
+    register_handle_confirm_selection(session, bot)
+    register_handle_who_reserved(session, bot)
+
+
 def register_handle_user_reservations(session, bot):
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("user_reservations"))
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("user_reservations")
+    )
     def handle_user_reservations(call):
         return process_user_reservations(call, session, bot)
 
@@ -88,7 +132,9 @@ def register_handle_future_reservations(session, bot):
 
 
 def register_handle_edit_reservations(session, bot):
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("editreservation"))
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("editreservation")
+    )
     def handle_edit_reservations(call):
         return process_edit_reservations(call, session, bot)
 
@@ -160,7 +206,9 @@ def register_handle_back_edit(session, bot):
 
 
 def register_handle_delete_reservations(session, bot):
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("deletereservation"))
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("deletereservation")
+    )
     def handle_delete_reservations(call):
         return process_delete_reservations(call, session, bot)
 
@@ -178,7 +226,9 @@ def register_handle_back_future(session, bot):
 
 
 def register_handle_past_reservations(session, bot):
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("past_reservations_"))
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("past_reservations_")
+    )
     def handle_past_reservations(call):
         page = int(call.data.split("_")[-1])
         return process_past_reservations([call, page], session, bot)
@@ -190,23 +240,7 @@ def register_handle_back_user(session, bot):
         return process_user_reservations(call, session, bot)
 
 
-def register_handle_who_reserved(session, bot):
-    @bot.callback_query_handler(func=lambda call: call.data.startswith("who_"))
-    def handle_who_reserved(call):
-        return process_who_reserved(call, session, bot)
-
-
-def reservation_command_handler(bot: TeleBot, session):
-    add_reservation_command()
-    register_reservation_command(session, bot)
-    register_handle_new_reservation(session, bot)
-    register_handle_back_main(session, bot)
-    register_handle_select_room(session, bot)
-    register_handle_back_date(session, bot)
-    register_handle_hour_selection(session, bot)
-    register_handle_add_time(session, bot)
-    register_handle_remove_time(session, bot)
-    register_handle_confirm_selection(session, bot)
+def register_old_reservations(bot, session):
     register_handle_user_reservations(session, bot)
     register_handle_future_reservations(session, bot)
     register_handle_edit_reservations(session, bot)
@@ -226,4 +260,9 @@ def reservation_command_handler(bot: TeleBot, session):
     register_handle_back_future(session, bot)
     register_handle_past_reservations(session, bot)
     register_handle_back_user(session, bot)
-    register_handle_who_reserved(session, bot)
+
+
+def reservation_command_handler(bot: TeleBot, session):
+    add_reservation_command()
+    register_new_reservations(bot, session)
+    register_old_reservations(bot, session)

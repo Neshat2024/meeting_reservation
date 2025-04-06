@@ -11,7 +11,11 @@ class Rooms(Base):
     capacity = Column(Integer)
     facilities = Column(String)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at = Column(DateTime(timezone=True), server_default=func.timezone('Asia/Tehran', func.now()))
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.timezone("Asia/Tehran", func.now())
+    )
 
     def __repr__(self):
-        return f"room_id:'{self.id}', room_name:'{self.name}', admin_id:'{self.user_id}'"
+        return (
+            f"room_id:'{self.id}', room_name:'{self.name}', admin_id:'{self.user_id}'"
+        )
