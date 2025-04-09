@@ -1,3 +1,4 @@
+from sqlalchemy import asc
 from sqlalchemy.exc import SQLAlchemyError
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as Btn
 
@@ -127,7 +128,7 @@ def process_charge_user(call, session, bot):
         ch_id, msg_id = user.chat_id, str(call.message.id)
         txt = get_text(BotText.SELECTION_CHARGE_USER, user.language)
         key, buttons = InlineKeyboardMarkup(row_width=2), []
-        users = session.query(Users).all()
+        users = session.query(Users).order_by(asc(Users.username)).all()
         for u in users:
             if u.username:
                 buttons.append(

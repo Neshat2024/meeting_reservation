@@ -1,4 +1,4 @@
-from sqlalchemy import or_
+from sqlalchemy import or_, asc
 from sqlalchemy.exc import SQLAlchemyError
 from telebot import types
 from telebot.apihelper import ApiTelegramException
@@ -275,10 +275,10 @@ def process_delete_specific_room(call, session, bot):
             session.commit()
             txt, key = get_text_key_in_admin_commands(user, session)
             txt = (
-                get_text(BotText.ROOM_DELETED, user.language).format(
-                    room_name=room.name
-                )
-                + txt
+                    get_text(BotText.ROOM_DELETED, user.language).format(
+                        room_name=room.name
+                    )
+                    + txt
             )
             bot.edit_message_text(
                 chat_id=int(user.chat_id), message_id=msg_id, text=txt, reply_markup=key
@@ -341,7 +341,8 @@ def process_view_users(call, session, bot):
         user = get_user(call, session)
         ch_id, msg = user.chat_id, str(call.message.id)
         txt = get_text(BotText.VIEW_USERS_ONE, user.language)
-        for u in session.query(Users).all():
+        users = session.query(Users).order_by(asc(Users.username)).all()
+        for u in users:
             username = f"@{u.username}" if u.username else str(u.username)
             prefix = "*" if u.role else ""
             txt += f"{prefix}{u.name} 👉🏻 {username}\n"
