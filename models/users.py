@@ -11,7 +11,7 @@ class Users(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
     chat_id = Column(String, unique=True)
-    username = Column(String, unique=True)
+    username = Column(String)
     name = Column(String, unique=True)
     role = Column(String)
     command = Column(String)
