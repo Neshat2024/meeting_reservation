@@ -17,7 +17,7 @@ load_dotenv()
 
 def process_start(message, session, bot):
     try:
-        uname = message.chat.username
+        uname = message.chat.username if message.chat.username else ""
         user = get_user(message, session)
         if user:
             bot.reply_to(message, get_text(BotText.START, user.language))
