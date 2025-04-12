@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
-from models.reserve_bot import Base
+from models.reserve_bot import Base, SessionLocal
 from models.rooms import Rooms
 from models.reservations import Reservations
 

@@ -15,19 +15,19 @@ def process_settings(message, session, bot):
             key.add(btn(text="English", callback_data="en-lang"))
         else:
             key.add(btn(text="فارسی", callback_data="fa-lang"))
-        bot.send_message(chat_id=int(user.chat_id), text=txt, reply_markup=key)
+        bot.send_message(user.chat_id, txt, reply_markup=key)
     except Exception as e:
         add_log(f"Exception in process_settings: {e}")
 
 
 def process_set_language_to_persian(call, session, bot):
     try:
-        msg_id = call.message.id
         user = get_user(call, session)
+        ch_id, msg = user.chat_id, call.message.id
         user.language = "fa"
         session.commit()
         txt = get_text(BotText.PERSIAN_CALLBACK, user.language)
-        bot.edit_message_text(chat_id=int(user.chat_id), message_id=msg_id, text=txt)
+        bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt)
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in process_set_language_to_persian: {e}")
     except Exception as e:
@@ -36,12 +36,12 @@ def process_set_language_to_persian(call, session, bot):
 
 def process_set_language_to_english(call, session, bot):
     try:
-        msg_id = call.message.id
         user = get_user(call, session)
+        ch_id, msg = user.chat_id, call.message.id
         user.language = "en"
         session.commit()
         txt = get_text(BotText.PERSIAN_CALLBACK, user.language)
-        bot.edit_message_text(chat_id=int(user.chat_id), message_id=msg_id, text=txt)
+        bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt)
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in process_set_language_to_english: {e}")
     except Exception as e:

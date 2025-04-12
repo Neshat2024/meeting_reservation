@@ -7,25 +7,28 @@ class BotText(Enum):
         "fa": "سلام!\nاین بات برای رزرو اتاق جلسات ایجاد شده است 🚪",
     }
     HELP = {
-        "en": "🚪 Meeting Reservation Bot 🚪\n\n"
+        "en": "..:: Meeting Reservation Bot ::..\n\n"
+        "Keyboard Buttons:\n"
+        "🚪 Reservation - Submit-View-Edit Meeting Reservations\n"
+        "🔄 Continuous Reservation - 🔄 Submit a Continuous Reservation (up to a maximum of six months)\n"
+        "🗓 View Schedule - 🗓 View Schedule for Meeting Rooms (Daily-Custom Day-Weekly)\n\n"
         "Available Commands:\n"
         "/start - Start the bot to select from menu\n"
-        "/reservation - 🚪 Submit-View-Edit Meeting Reservations\n"
-        "/continuous_reservation - 🔄 Submit a Continuous Reservation (up to a maximum of six months)\n"
         "/admin_commands - 🔧 Admins can manage Meeting Rooms (view-add-edit)\n"
-        "/view_schedule - 🗓 View Schedule for Meeting Rooms (Daily-Custom Day-Weekly)\n"
         "/settings - ⚙️ Bot Settings (You can set Language of the bot)\n"
         "/help - ℹ️ Get help information",
-        "fa": "🚪 بات رزرو اتاق جلسات 🚪\n\n"
-        "دستور های در دسترس:\n"
-        "/start - دستور شروع بات برای دسترسی به منو\n"
-        "/reservation - 🚪 دستور رزرو، ویرایش و حذف رزرو ها\n"
-        "/continuous_reservation - 🔄 دستور رزرو دوره ای (تا سقف شش ماه)\n"
-        "/admin_commands - 🔧 دستور مدیریت اتاق جلسات توسط ادمین ها (مشاهده، ویرایش و حذف)\n"
-        "/view_schedule - 🗓 دستور مشاهده جدول رزرو اتاق ها (روزانه، روز خاص و هفتگی)\n"
-        "/settings - ⚙️ دستور تنظیمات بات (انتخاب زبان بات)\n"
-        "/help - ℹ️ راهنمای دستورات بات",
+        "fa": "..:: بات رزرو اتاق جلسات ::..\n\n"
+        "دکمه‌های کیبورد:\n"
+        "🚪 رزرو اتاق - ثبت و مشاهده و ویرایش یا حذف رزرو ها\n"
+        "🔄 رزرو دوره ای - ثبت یک رزرو دوره ای (حداکثر تا شش ماه)\n"
+        "🗓 مشاهده جدول رزرو ها - مشاهده برنامه اتاق‌ های جلسه (امروز-روز خاص-هفتگی)\n\n"
+        "دستورات موجود:\n"
+        "/start - شروع ربات برای انتخاب از منو\n"
+        "/admin_commands - 🔧 مدیران می ‌توانند اتاق‌ های جلسات را مدیریت کنند. (مشاهده-اضافه-ویرایش)\n"
+        "/settings - ⚙️ تنظیمات ربات (می‌توانید زبان ربات را انتخاب کنید)\n"
+        "/help - ℹ️ دریافت اطلاعات",
     }
+
     RESERVATION_TEXT = {
         "en": "Reserve a room anytime with «🚪 New Reservation» or manage reservations via «📝 My Reservations»",
         "fa": "شما می توانید یک اتاق را برای هر زمانی که تمایل داشتید، با دکمه «🚪 رزرو جدید» رزرو کنید و یا از طریق دکمه «👀 رزرو های من» رزرو های خود را مدیریت کنید.",
@@ -154,12 +157,12 @@ class BotText(Enum):
         "fa": "{last_data}\n❓ اتاق:",
     }
     CHOOSE_CHARGE_TEXT = {
-        "en": "{last_data}\n🚪 Room: {room}\n❓ Weeks:\n- 4 weeks ➡️ 1 month\n- 8 weeks ➡️ 2 months\n- 12 weeks ➡️ 3 months\n- 17 weeks ➡️ 4 months\n- 21 weeks ➡️ 5 months\n- 25 weeks ➡️ 6 months\n💡 Charge Rules:\n<= 1 hour 👉🏻 1 charge\n<= 2 hour 👉🏻 2 charge\n<= 3 hour 👉🏻 3 charge\n<= 4 hour 👉🏻 4 charge",
-        "fa": "{last_data}\n🚪 اتاق: {room}\n❓ هفته‌ها:\n- 4 هفته ⬅️ 1 ماه\n- 8 هفته ⬅️ 2 ماه\n- 12 هفته ⬅️ 3 ماه\n- 17 هفته ⬅️ 4 ماه\n- 21 هفته ⬅️ 5 ماه\n- 25 هفته ⬅️ 6 ماه\n💡 قواعد مصرف شارژ:\n1 شارژ 👉🏻 1 ساعت =>\n2 شارژ 👉🏻 2 ساعت =>\n3 شارژ 👉🏻 3 ساعت =>\n4 شارژ 👉🏻 4 ساعت =>",
+        "en": "{last_data}\n🚪 Room: {room}\n❓ Weeks:\n- 4 weeks ➡️ 1 month\n- 8 weeks ➡️ 2 months\n- 12 weeks ➡️ 3 months\n- 17 weeks ➡️ 4 months\n- 21 weeks ➡️ 5 months\n- 25 weeks ➡️ 6 months",
+        "fa": "{last_data}\n🚪 اتاق: {room}\n❓ هفته‌ها:\n- 4 هفته ⬅️ 1 ماه\n- 8 هفته ⬅️ 2 ماه\n- 12 هفته ⬅️ 3 ماه\n- 17 هفته ⬅️ 4 ماه\n- 21 هفته ⬅️ 5 ماه\n- 25 هفته ⬅️ 6 ماه",
     }
     SECOND_CHARGE_TEXT = {
-        "en": "{last_data}\n❓ Weeks: {weeks}\n- 4 weeks ➡️ 1 month\n- 8 weeks ➡️ 2 months\n- 12 weeks ➡️ 3 months\n- 17 weeks ➡️ 4 months\n- 21 weeks ➡️ 5 months\n- 25 weeks ➡️ 6 months\n💡 Charge Rules:\n<= 1 hour 👉🏻 1 charge\n<= 2 hour 👉🏻 2 charge\n<= 3 hour 👉🏻 3 charge\n<= 4 hour 👉🏻 4 charge",
-        "fa": "{last_data}\n❓ هفته‌ها: {weeks}\n- 4 هفته ⬅️ 1 ماه\n- 8 هفته ⬅️ 2 ماه\n- 12 هفته ⬅️ 3 ماه\n- 17 هفته ⬅️ 4 ماه\n- 21 هفته ⬅️ 5 ماه\n- 25 هفته ⬅️ 6 ماه\n💡 قواعد مصرف شارژ:\n1 شارژ 👉🏻 1 ساعت =>\n2 شارژ 👉🏻 2 ساعت =>\n3 شارژ 👉🏻 3 ساعت =>\n4 شارژ 👉🏻 4 ساعت =>",
+        "en": "{last_data}\n❓ Weeks: {weeks}\n- 4 weeks ➡️ 1 month\n- 8 weeks ➡️ 2 months\n- 12 weeks ➡️ 3 months\n- 17 weeks ➡️ 4 months\n- 21 weeks ➡️ 5 months\n- 25 weeks ➡️ 6 months",
+        "fa": "{last_data}\n❓ هفته‌ها: {weeks}\n- 4 هفته ⬅️ 1 ماه\n- 8 هفته ⬅️ 2 ماه\n- 12 هفته ⬅️ 3 ماه\n- 17 هفته ⬅️ 4 ماه\n- 21 هفته ⬅️ 5 ماه\n- 25 هفته ⬅️ 6 ماه",
     }
     WEEKS_TEXT = {
         "en": "{last_data}\n🗓️ Weeks: {weeks}\n{week_as_date}",
@@ -170,6 +173,7 @@ class BotText(Enum):
     EDIT_ROOM_ADMIN = {"en": "✏️ Edit Rooms", "fa": "✏️ ویرایش اتاق ها"}
     DELETE_ROOM_ADMIN = {"en": "🗑 Delete Rooms", "fa": "🗑 حذف اتاق ها"}
     VIEW_USERS_BUTTON = {"en": "🔍 View All Users", "fa": "🔍 مشاهده همه کاربران"}
+    DELETE_USERS_BUTTON = {"en": "🗑 Delete Users", "fa": "🗑 حذف کاربران"}
     CHARGE_USER = {"en": "🔋Charge User", "fa": "🔋شارژ کاربر"}
     NO_MEETING_ROOMS = {
         "en": "No meeting room has been added yet 🙁",
@@ -216,16 +220,16 @@ class BotText(Enum):
         "fa": "اتاق با نام «{room_name}» با موفقیت حذف شد 🗑\n",
     }
     USERS_ROOM_DELETED = {
-        "en": "🗑 The Room with the name «{room_name}» has been deleted.\nUnfortunately your reservation at this room canceled 🙏🏻\n\nIf you want to reserve a new room for your meeting tap on /reservation",
-        "fa": "🗑 اتاق با نام «{room_name}» حذف شده است.\nمتأسفانه رزرو شما در این اتاق لغو شد 🙏🏻\n\nاگر می‌خواهید اتاق جدیدی برای جلسه خود رزرو کنید، روی /reservation کلیک کنید.",
+        "en": "🗑 The Room with the name «{room_name}» has been deleted.\nUnfortunately your reservation at this room canceled 🙏🏻\n\nIf you want to reserve a new room for your meeting tap on «🚪 Reservation»",
+        "fa": "🗑 اتاق با نام «{room_name}» حذف شده است.\nمتأسفانه رزرو شما در این اتاق لغو شد 🙏🏻\n\nاگر می‌خواهید اتاق جدیدی برای جلسه خود رزرو کنید، روی «🚪 رزرو اتاق» کلیک کنید.",
     }
     UPDATE_ROOM_NAME = {
         "en": "🚪 Enter the new Name for «{room_name}»:\n\nIf you want to cancel the operation tap on /cancel",
         "fa": "🚪 نام جدید را برای اتاق «{room_name}» وارد کنید:\n\nاگر می‌خواهید عملیات را لغو کنید، روی /cancel کلیک کنید.",
     }
     VIEW_USERS_ONE = {
-        "en": "👥 Users:\nName | TG Username\n\n",
-        "fa": "👥 کاربران:\nنام | یوزرنیم تلگرام\n\n",
+        "en": "👥 Users:\nName | TG Username | Chat_id (Optional)\n\n",
+        "fa": "👥 کاربران:\nنام | یوزرنیم تلگرام | چت آیدی (اگر نیاز باشد)\n\n",
     }
     VIEW_USERS_TWO = {
         "en": "\n(* before user's name means that he is admin)",
@@ -236,19 +240,55 @@ class BotText(Enum):
         "en": "✏️ Select the TG username whose name you want to edit:",
         "fa": "✏️ یوزرنیم تلگرام کاربری که می‌ خواهید نام او را ویرایش کنید انتخاب کنید:",
     }
-    EDIT_USERS_OLD_NAME = {
+    EDIT_USERS_OLD_NAME_USERNAME = {
         "en": "Enter the New Name for @{username} (Old Name👉🏻{name}):\n\nIf you want to cancel the operation tap on /cancel",
         "fa": "نام جدید را برای @{username} وارد کنید (نام قبل👈🏻{name}):\n\nاگر می‌خواهید عملیات را لغو کنید، روی /cancel کلیک کنید.",
+    }
+    EDIT_USERS_OLD_NAME = {
+        "en": "Enter the New Name for «{name}»:\n\nIf you want to cancel the operation tap on /cancel",
+        "fa": "نام جدید را برای «{name}» وارد کنید:\n\nاگر می‌خواهید عملیات را لغو کنید، روی /cancel کلیک کنید.",
+    }
+    EDIT_USERS_OLD_NAME_CHAT_ID = {
+        "en": "Enter the New Name for the user with chat_id {chat_id}:\n\nIf you want to cancel the operation tap on /cancel",
+        "fa": "نام جدید را برای کاربر با چت آیدی {chat_id} وارد کنید:\n\nاگر می‌خواهید عملیات را لغو کنید، روی /cancel کلیک کنید.",
     }
     YOUR_NAME_UPDATED = {
         "en": "🔄 Your name updated to «{name}» by @{admin}",
         "fa": "🔄 اسم شما توسط @{admin} به «{name}» بروزرسانی شد.",
     }
-    NAME_UPDATED = {
+    NAME_UPDATED_USERNAME = {
         "en": "🔄 The name for @{username} updated to «{new_name}» successfully 👍🏻",
         "fa": "🔄 نام @{username} به «{new_name}» با موفقیت بروزرسانی شد 👍🏻",
     }
+    NAME_UPDATED_CHAT_ID = {
+        "en": "🔄 The name for the user with chat_id {chat_id} updated to «{name}» successfully 👍🏻",
+        "fa": "🔄 نام کاربر با چت آیدی {chat_id} به «{name}» با موفقیت بروزرسانی شد 👍🏻",
+    }
     RETRY = {"en": "🆕 Retry", "fa": "🆕 تلاش دوباره"}
+    DELETE_USERS_NAME = {
+        "en": "🗑 Select the TG username whose name you want to delete:",
+        "fa": "🗑 یوزرنیم تلگرام کاربری که می‌ خواهید نام او را حذف کنید انتخاب کنید:",
+    }
+    USER_DELETED_USERNAME = {
+        "en": "The User with the TG username @{uname} deleted successfully 🗑\n",
+        "fa": "کاربر با یوزرنیم تلگرام @{uname} با موفقیت حذف شد 🗑\n",
+    }
+    USER_DELETED_NAME = {
+        "en": "The User with the name «{name}» deleted successfully 🗑\n",
+        "fa": "کاربر با نام «{name}» با موفقیت حذف شد 🗑\n",
+    }
+    USER_DELETED_CHAT_ID = {
+        "en": "The User with chat_id {chat_id} deleted successfully 🗑\n",
+        "fa": "کاربر با چت آیدی {chat_id} با موفقیت حذف شد 🗑\n",
+    }
+    ADMIN_DELETED_USER = {
+        "en": "You have been removed from the bot by admin 🙋🏻‍♂️",
+        "fa": "شما توسط ادمین از بات حذف شدید 🙋🏻‍♂️",
+    }
+    ADMIN_NOT_ALLOWED_FOR_DELETE = {
+        "en": "You are not allowed to delete admins ⛔️",
+        "fa": "شما اجازه ندارید ادمین ها را حذف کنید ⛔️",
+    }
     SELECTION_CHARGE_USER = {
         "en": "🔋 Select the TG username whose name you want to charge:",
         "fa": "🔋 یوزرنیم تلگرام کاربری که می‌ خواهید حساب او را شارژ کنید، انتخاب کنید:",
@@ -261,6 +301,10 @@ class BotText(Enum):
         "en": "Enter the charge quantity for «{name}» (current charge 👉🏻 {charge}):\n\nIf you want to cancel the operation tap on /cancel",
         "fa": "تعداد شارژ را برای «{name}» وارد کنید (شارژ فعلی 👈🏻 {charge}):\n\nاگر می‌ خواهید عملیات را لغو کنید، روی /cancel کلیک کنید.",
     }
+    GET_CHARGE_CHAT_ID = {
+        "en": "Enter the charge quantity for the user with chat_id {chat_id} (current charge 👉🏻 {charge}):\n\nIf you want to cancel the operation tap on /cancel",
+        "fa": "تعداد شارژ را برای کاربر با چت آیدی {chat_id} وارد کنید (شارژ فعلی 👈🏻 {charge}):\n\nاگر می‌ خواهید عملیات را لغو کنید، روی /cancel کلیک کنید.",
+    }
     USER_CHARGE_MESSAGE = {
         "en": "🔋 Your account charged 🔋\n♻️ Amount: {charge}\n💰 Current Charge: {new_charge}",
         "fa": "🔋 حساب شما شارژ شد 🔋\n♻️ مقدار شارژ: {charge}\n💰 شارژ فعلی: {new_charge}",
@@ -269,9 +313,17 @@ class BotText(Enum):
         "en": "🔋 User's account charged 🔋\n👤 User: {user}\n♻️ Amount: {charge}\n💰 Current Charge: {new_charge}",
         "fa": "🔋 حساب کاربر شارژ شد 🔋\n👤 کاربر: {user}\n♻️ مقدار شارژ: {charge}\n💰 شارژ فعلی: {new_charge}",
     }
-    MESSAGE_NOT_SENT = {
-        "en": "An error occurred while sending charge message to «{user}»:\n{error}",
-        "fa": "مشکلی در ارسال پیام شارژ به «{user}» پیش آمد:\n{error}",
+    MESSAGE_NOT_SENT_USERNAME = {
+        "en": "An error occurred while sending charge message to @{username}:\n{error}",
+        "fa": "مشکلی در ارسال پیام شارژ به @{username} پیش آمد:\n{error}",
+    }
+    MESSAGE_NOT_SENT_NAME = {
+        "en": "An error occurred while sending charge message to «{name}»:\n{error}",
+        "fa": "مشکلی در ارسال پیام شارژ به «{name}» پیش آمد:\n{error}",
+    }
+    MESSAGE_NOT_SENT_CHAT_ID = {
+        "en": "An error occurred while sending charge message to the user with chat_id {chat_id}:\n{error}",
+        "fa": "مشکلی در ارسال پیام شارژ به کاربر با چت آیدی {chat_id} پیش آمد:\n{error}",
     }
     EDIT_WEEKS_BUTTON = {"en": "✏️ Edit Weeks", "fa": "✏️ ویرایش هفته ها"}
     CHAT_WITH_BOOKER_BUTTON = {"en": "💬 Chat with Booker", "fa": "💬 صحبت با رزرو کننده"}
@@ -390,8 +442,8 @@ class BotText(Enum):
         "fa": "نام اتاق نباید شامل _ یا @ باشد ⛔️",
     }
     INVALID_END_RESERVATION = {
-        "en": "This reservation has finished and buttons doesn't work ⛔️",
-        "fa": "این رزرو به پایان رسیده و دکمه ها دیگر کاربردی ندارند ⛔️",
+        "en": "This reservation has finished ⛔️",
+        "fa": "این رزرو به پایان رسیده ⛔️",
     }
     INVALID_CANCEL_RESERVATION = {
         "en": "This reservation has finished and you can't cancel it ⛔️",
@@ -409,9 +461,13 @@ class BotText(Enum):
         "en": "Your name must be a string and should not contain any digits or symbols ⛔️",
         "fa": "نام شما باید یک متن باشد و نباید شامل عدد یا علامت های خاص باشد ⛔️",
     }
+    INVALID_ADMIN = {
+        "en": "You are not admin, and you can't access this command ⛔️",
+        "fa": "تنها ادمین های بات اجازه دسترسی به این بخش را دارند ⛔️",
+    }
     INVALID_CHARGE = {
-        "en": "To reserve a continuous reservation, you need to charge your account.\n💰 Please contact the admin to charge your account.\n\n❗️ Every continuous reservation:\n- less than 1 hour takes 1 charge.\n- less than 2 hours takes 2 charges.\n- less than 3 hours takes 3 charges.\n- less than 4 hours takes 4 charges.",
-        "fa": "برای رزرو دوره ای، لازم است اکانت خود را شارژ کنید.\n💰 لطفاً برای شارژ اکانت به ادمین پیام دهید.\n\n❗️ برای هر رزرو مداوم:\n- کمتر از 1 ساعت 1 شارژ نیاز است.\n- کمتر از 2 ساعت 2 شارژ نیاز است.\n- کمتر از 3 ساعت 3 شارژ نیاز است.\n- کمتر از 4 ساعت 4 شارژ نیاز است.",
+        "en": "To reserve a continuous reservation, you need to charge your account.\n💰 Please contact the admin to charge your account.",
+        "fa": "برای رزرو دوره ای، لازم است اکانت خود را شارژ کنید.\n💰 لطفاً برای شارژ اکانت به ادمین پیام دهید.",
     }
     INSUFFICIENT_CHARGE = {
         "en": "Insufficient charge ⛔️\nThis reservation requires {charge} charges.\nPlease contact the admin to charge your account 💰",

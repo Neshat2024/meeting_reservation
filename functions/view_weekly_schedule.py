@@ -56,12 +56,10 @@ def process_view_schedule(call_message, session, bot):
         )
     )
     if isinstance(call_message, types.Message):
-        bot.send_message(int(user.chat_id), txt, reply_markup=key)
+        bot.send_message(user.chat_id, txt, reply_markup=key)
     elif isinstance(call_message, types.CallbackQuery):
-        msg_id = call_message.message.id
-        bot.edit_message_text(
-            chat_id=int(user.chat_id), message_id=msg_id, text=txt, reply_markup=key
-        )
+        ch_id, msg = user.chat_id, call_message.message.id
+        bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
     change_command_to_none(user, session)
 
 

@@ -28,21 +28,19 @@ user_states = {}
 def process_continuous_reservation(call_message, session, bot):
     try:
         user = get_user(call_message, session)
-        ch_id = user.chat_id
+        c = user.chat_id
         if user.charge not in ["", None, 0]:
             t = get_text(BotText.CHOOSE_WEEKDAY_TEXT, user.language)
             k = get_weekday_buttons(user)
             if isinstance(call_message, types.Message):
-                msg = bot.send_message(chat_id=ch_id, text=t, reply_markup=k)
-                user_states[ch_id] = {"last_msg_id": msg.message_id}
+                msg = bot.send_message(c, t, reply_markup=k)
+                user_states[c] = {"last_msg_id": msg.message_id}
             else:
                 msg = call_message.message.id
-                bot.edit_message_text(
-                    chat_id=ch_id, message_id=msg, text=t, reply_markup=k
-                )
+                bot.edit_message_text(chat_id=c, message_id=msg, text=t, reply_markup=k)
         else:
             t = get_text(BotText.INVALID_CHARGE, user.language)
-            bot.send_message(chat_id=ch_id, text=t)
+            bot.send_message(c, t)
     except Exception as e:
         add_log(f"Exception in process_continuous_reservation: {e}")
 

@@ -50,14 +50,14 @@ tehran_tz = pytz.timezone("Asia/Tehran")
 
 def process_user_reservations(call, session, bot):
     try:
-        msg_id = call.message.id
         user = get_user(call, session)
+        ch_id, msg = user.chat_id, call.message.id
         reserves = (
             session.query(Reservations)
             .filter_by(user_id=user.id, status=CONFIRMED)
             .all()
         )
-        markup, row = InlineKeyboardMarkup(row_width=2), []
+        key, row = InlineKeyboardMarkup(row_width=2), []
         if len(reserves) > 0:
             txt = get_text(BotText.USER_RESERVATIONS_TEXT, user.language)
             row.append(
@@ -72,10 +72,10 @@ def process_user_reservations(call, session, bot):
                     callback_data="past_reservations_0",
                 )
             )
-            markup.row(*row)
+            key.row(*row)
         else:
             txt = get_text(BotText.NO_RESERVATIONS_TEXT, user.language)
-        markup.add(
+        key.add(
             btn(
                 text=get_text(BotText.BACK_BUTTON, user.language),
                 callback_data="backmain",
@@ -83,28 +83,26 @@ def process_user_reservations(call, session, bot):
         )
         if user.command == BACK_USER:
             change_command_to_none(user, session)
-        bot.edit_message_text(
-            chat_id=int(user.chat_id), message_id=msg_id, text=txt, reply_markup=markup
-        )
+        bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
     except Exception as e:
         add_log(f"Exception in process_user_reservations: {e}")
 
 
 def process_future_reservations(call, session, bot):
     try:
-        msg_id = call.message.id
         user = get_user(call, session)
+        ch_id, msg = user.chat_id, call.message.id
         txt_2 = get_future_text(call, session)
-        markup = InlineKeyboardMarkup()
+        key = InlineKeyboardMarkup()
         if len(txt_2) > 0:
             txt = get_text(BotText.FUTURE_RESERVATIONS_HEADER, user.language) + txt_2
-            markup.add(
+            key.add(
                 btn(
                     text=get_text(BotText.EDIT_RESERVATION_BUTTON, user.language),
                     callback_data="editreservation",
                 )
             )
-            markup.add(
+            key.add(
                 btn(
                     text=get_text(BotText.DELETE_RESERVATION_BUTTON, user.language),
                     callback_data="deletereservation",
@@ -112,31 +110,29 @@ def process_future_reservations(call, session, bot):
             )
         else:
             txt = get_text(BotText.NO_FUTURE_RESERVATIONS_TEXT, user.language)
-        markup.add(
+        key.add(
             btn(
                 text=get_text(BotText.BACK_BUTTON, user.language),
                 callback_data="backuser",
             )
         )
         txt = change_num_as_lang(txt, user.language)
-        bot.edit_message_text(
-            chat_id=int(user.chat_id), message_id=msg_id, text=txt, reply_markup=markup
-        )
+        bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
     except Exception as e:
         add_log(f"Exception in process_future_reservations: {e}")
 
 
 def process_edit_reservations(call, session, bot):
     try:
-        msg_id = call.message.id
         user = get_user(call, session)
+        ch_id, msg = user.chat_id, call.message.id
         uid = user.id
         confs = (
             session.query(Reservations).filter_by(user_id=uid, status=CONFIRMED).all()
         )
         future_reserves = [reserve for reserve in confs if future_date(reserve)]
         txt = get_text(BotText.EDIT_RESERVATIONS_TEXT, user.language)
-        markup = InlineKeyboardMarkup()
+        key = InlineKeyboardMarkup()
         for reserve in future_reserves:
             date, str_hour = reserve.date, f"{reserve.start_time}-{reserve.end_time}"
             if user.language == "fa":
@@ -146,24 +142,22 @@ def process_edit_reservations(call, session, bot):
                 t = f"📅 {date[5:7]}{date[7:]}  {str_hour}"
             else:
                 t = f"📅 {date[5:7]}/{date[8:]}  {str_hour}"
-            markup.add(btn(text=t, callback_data=f"e_r_{reserve.id}"))
-        markup.add(
+            key.add(btn(text=t, callback_data=f"e_r_{reserve.id}"))
+        key.add(
             btn(
                 text=get_text(BotText.BACK_BUTTON, user.language),
                 callback_data="backfuture",
             )
         )
-        bot.edit_message_text(
-            chat_id=int(user.chat_id), message_id=msg_id, text=txt, reply_markup=markup
-        )
+        bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
     except Exception as e:
         add_log(f"Exception in process_edit_reservations: {e}")
 
 
 def process_edit_specific_reservation(call, session, bot):
     try:
-        msg_id = call.message.id
         user = get_user(call, session)
+        ch_id, msg = user.chat_id, call.message.id
         db_id = call.data.split("_")[2]
         reserve = session.query(Reservations).filter_by(id=db_id).first()
         room_name = get_room_name(reserve.room_id, session)
@@ -180,42 +174,40 @@ def process_edit_specific_reservation(call, session, bot):
             end_time=reserve.end_time,
         )
         txt = change_num_as_lang(txt, user.language)
-        markup = InlineKeyboardMarkup()
-        markup.add(
+        key = InlineKeyboardMarkup()
+        key.add(
             btn(
                 text=get_text(BotText.EDIT_DATE_BUTTON, user.language),
                 callback_data=f"e_date_{reserve.id}",
             )
         )
-        markup.add(
+        key.add(
             btn(
                 text=get_text(BotText.EDIT_ROOM_BUTTON, user.language),
                 callback_data=f"e_room_{reserve.id}",
             )
         )
-        markup.add(
+        key.add(
             btn(
                 text=get_text(BotText.EDIT_HOURS_BUTTON, user.language),
                 callback_data=f"e_hours_{reserve.id}",
             )
         )
-        markup.add(
+        key.add(
             btn(
                 text=get_text(BotText.BACK_BUTTON, user.language),
                 callback_data="backedit",
             )
         )
-        bot.edit_message_text(
-            chat_id=int(user.chat_id), message_id=msg_id, text=txt, reply_markup=markup
-        )
+        bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
     except Exception as e:
         add_log(f"Exception in process_edit_specific_reservation: {e}")
 
 
 def process_edit_specific_date(call, session, bot):
     try:
-        msg_id = call.message.id
         user = get_user(call, session)
+        ch_id, msg = user.chat_id, call.message.id
         db_id = call.data.split("_")[2]
         reserve = session.query(Reservations).filter_by(id=db_id).first()
         room_name = get_room_name(reserve.room_id, session)
@@ -225,16 +217,14 @@ def process_edit_specific_date(call, session, bot):
             end_time=reserve.end_time,
         )
         txt = change_num_as_lang(txt, user.language)
-        markup = create_date_buttons_in_edit(f"set_e_{db_id}", user)
-        markup.add(
+        key = create_date_buttons_in_edit(f"set_e_{db_id}", user)
+        key.add(
             btn(
                 text=get_text(BotText.BACK_BUTTON, user.language),
                 callback_data=f"backspecific__{db_id}",
             )
         )
-        bot.edit_message_text(
-            chat_id=int(user.chat_id), message_id=msg_id, text=txt, reply_markup=markup
-        )
+        bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
     except Exception as e:
         add_log(f"Exception in process_edit_specific_date: {e}")
 
@@ -267,8 +257,8 @@ def process_set_edit_date(call, session, bot):
 
 def process_edit_specific_room(call, session, bot):
     try:
-        msg_id = call.message.id
         user = get_user(call, session)
+        ch_id, msg = user.chat_id, call.message.id
         db_id = int(call.data.split("_")[2])
         reserve = session.query(Reservations).filter_by(id=db_id).first()
         weekday = dt.strptime(reserve.date, "%Y-%m-%d").strftime("%A")
@@ -283,10 +273,8 @@ def process_edit_specific_room(call, session, bot):
             end_time=reserve.end_time,
         )
         txt = change_num_as_lang(txt, user.language)
-        markup = add_room_buttons_in_edit(call, session)
-        bot.edit_message_text(
-            chat_id=int(user.chat_id), message_id=msg_id, text=txt, reply_markup=markup
-        )
+        key = add_room_buttons_in_edit(call, session)
+        bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
     except Exception as e:
         add_log(f"Exception in process_edit_specific_room: {e}")
 
@@ -322,8 +310,8 @@ def process_set_edit_room(call, session, bot):
 
 def process_edit_specific_hours(call, session, bot):
     try:
-        msg_id = call.message.id
         user = get_user(call, session)
+        ch_id, msg = user.chat_id, call.message.id
         db_id = call.data.split("_")[2]
         reserve = session.query(Reservations).filter_by(id=db_id).first()
         room_name = get_room_name(reserve.room_id, session)
@@ -337,9 +325,7 @@ def process_edit_specific_hours(call, session, bot):
         )
         txt = change_num_as_lang(txt, user.language)
         key = create_hour_buttons_in_edit(call, session)
-        bot.edit_message_text(
-            chat_id=int(user.chat_id), message_id=msg_id, text=txt, reply_markup=key
-        )
+        bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
     except Exception as e:
         add_log(f"Exception in process_edit_specific_hours: {e}")
 
@@ -358,8 +344,8 @@ def create_hour_buttons_in_edit(call, session):
 
 
 def process_add_time_in_edit(call, session, bot):
-    msg_id = call.message.id
     user = get_user(call, session)
+    ch_id, msg = user.chat_id, call.message.id
     db_id, str_time = int(call.data.split("_")[2]), call.data.split("_")[3]
     change_status_as_selection(call, session, bot)
     reserve = session.query(Reservations).filter_by(id=db_id).first()
@@ -390,9 +376,7 @@ def process_add_time_in_edit(call, session, bot):
     txt = change_num_as_lang(txt, user.language)
     key = create_hour_buttons_in_edit(call, session)
     try:
-        bot.edit_message_text(
-            chat_id=int(user.chat_id), message_id=msg_id, text=txt, reply_markup=key
-        )
+        bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
     except ApiTelegramException:
         bot.answer_callback_query(
             call.id,
@@ -516,8 +500,8 @@ def process_start_hour_in_edit(call, session, reserve_bot):
 
 def process_remove_time_in_edit(call, session, bot):
     try:
-        msg_id = call.message.id
         user = get_user(call, session)
+        ch_id, msg = user.chat_id, call.message.id
         db_id, selected_time = int(call.data.split("_")[2]), call.data.split("_")[3]
         reserve = session.query(Reservations).filter_by(id=db_id).first()
         room_name = get_room_name(reserve.room_id, session)
@@ -547,19 +531,17 @@ def process_remove_time_in_edit(call, session, bot):
             )
         txt = change_num_as_lang(txt, user.language)
         key = create_hour_buttons_in_edit(call, session)
-        bot.edit_message_text(
-            chat_id=int(user.chat_id), message_id=msg_id, text=txt, reply_markup=key
-        )
+        bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
     except Exception as e:
         add_log(f"Exception in process_remove_time_in_edit: {e}")
 
 
 def process_set_edit_hours(call, session, bot):
     try:
-        msg_id = call.message.id
         db_id = int(call.data.split("_")[2])
         reserve = session.query(Reservations).filter_by(id=db_id).first()
         user = get_user(call, session)
+        ch_id, m = user.chat_id, call.message.id
         if reserve.status == FIRST or reserve.status == SECOND:
             reserve.status = CONFIRMED
             session.commit()
@@ -571,45 +553,40 @@ def process_set_edit_hours(call, session, bot):
                 else gregorian_to_jalali(reserve.date)
             )
             weekday = weekday if user.language == "en" else day_in_persian[weekday]
-            txt = get_text(BotText.CONFIRM_RESERVATION_TEXT, user.language).format(
+            t = get_text(BotText.CONFIRM_RESERVATION_TEXT, user.language).format(
                 date=date,
                 weekday=weekday,
                 room_name=room_name,
                 start_time=reserve.start_time,
                 end_time=reserve.end_time,
             )
-            txt = change_num_as_lang(txt, user.language)
-            markup = InlineKeyboardMarkup()
-            markup.add(
+            t = change_num_as_lang(t, user.language)
+            key = InlineKeyboardMarkup()
+            key.add(
                 btn(
                     text=get_text(BotText.EDIT_DATE_BUTTON, user.language),
                     callback_data=f"e_date_{reserve.id}",
                 )
             )
-            markup.add(
+            key.add(
                 btn(
                     text=get_text(BotText.EDIT_ROOM_BUTTON, user.language),
                     callback_data=f"e_room_{reserve.id}",
                 )
             )
-            markup.add(
+            key.add(
                 btn(
                     text=get_text(BotText.EDIT_HOURS_BUTTON, user.language),
                     callback_data=f"e_hours_{reserve.id}",
                 )
             )
-            markup.add(
+            key.add(
                 btn(
                     text=get_text(BotText.BACK_BUTTON, user.language),
                     callback_data="backedit",
                 )
             )
-            bot.edit_message_text(
-                chat_id=int(user.chat_id),
-                message_id=msg_id,
-                text=txt,
-                reply_markup=markup,
-            )
+            bot.edit_message_text(chat_id=ch_id, message_id=m, text=t, reply_markup=key)
         else:
             bot.answer_callback_query(
                 call.id,
@@ -624,8 +601,8 @@ def process_set_edit_hours(call, session, bot):
 
 def process_delete_reservations(call, session, bot):
     try:
-        msg_id = call.message.id
         user = get_user(call, session)
+        ch_id, msg = user.chat_id, call.message.id
         confs = (
             session.query(Reservations)
             .filter_by(user_id=user.id, status=CONFIRMED)
@@ -633,7 +610,7 @@ def process_delete_reservations(call, session, bot):
         )
         future_reserves = [reserve for reserve in confs if future_date(reserve)]
         txt = get_text(BotText.DELETE_RESERVATIONS_TEXT, user.language)
-        markup = InlineKeyboardMarkup()
+        key = InlineKeyboardMarkup()
         for reserve in future_reserves:
             date, str_hour = reserve.date, f"{reserve.start_time}-{reserve.end_time}"
             if user.language == "fa":
@@ -643,25 +620,23 @@ def process_delete_reservations(call, session, bot):
                 t = f"📅 {date[5:7]}{date[7:]}  {str_hour}"
             else:
                 t = f"📅 {date[5:7]}/{date[8:]}  {str_hour}"
-            markup.add(btn(text=t, callback_data=f"d_r_{reserve.id}"))
+            key.add(btn(text=t, callback_data=f"d_r_{reserve.id}"))
         txt = change_num_as_lang(txt, user.language)
-        markup.add(
+        key.add(
             btn(
                 text=get_text(BotText.BACK_BUTTON, user.language),
                 callback_data="backfuture",
             )
         )
-        bot.edit_message_text(
-            chat_id=int(user.chat_id), message_id=msg_id, text=txt, reply_markup=markup
-        )
+        bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
     except Exception as e:
         add_log(f"Exception in process_delete_reservations: {e}")
 
 
 def process_delete_specific_reservation(call, session, bot):
     try:
-        msg_id = call.message.id
         user = get_user(call, session)
+        ch_id, msg = user.chat_id, call.message.id
         db_id = int(call.data.split("_")[2])
         reserve = session.query(Reservations).filter_by(id=db_id).first()
         uid = reserve.user_id
@@ -684,24 +659,22 @@ def process_delete_specific_reservation(call, session, bot):
             session.query(Reservations).filter_by(user_id=uid, status=CONFIRMED).all()
         )
         txt = change_num_as_lang(txt, user.language)
-        markup = InlineKeyboardMarkup()
+        key = InlineKeyboardMarkup()
         if len(users_reservations) > 0:
-            markup.add(
+            key.add(
                 btn(
                     text=get_text(BotText.BACK_BUTTON, user.language),
                     callback_data="backfuture",
                 )
             )
         else:
-            markup.add(
+            key.add(
                 btn(
                     text=get_text(BotText.BACK_BUTTON, user.language),
                     callback_data="backmain",
                 )
             )
-        bot.edit_message_text(
-            chat_id=int(user.chat_id), message_id=msg_id, text=txt, reply_markup=markup
-        )
+        bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
     except Exception as e:
         add_log(f"Exception in process_delete_specific_reservation: {e}")
 
@@ -709,8 +682,8 @@ def process_delete_specific_reservation(call, session, bot):
 def process_past_reservations(call_page, session, bot):
     try:
         call, page = call_page
-        msg_id = call.message.id
         user = get_user(call, session)
+        ch_id, msg = user.chat_id, call.message.id
         past_reserves = get_past_reserves(int(user.chat_id), session)
         start_idx, end_idx, paginated_reserves = get_start_end_paginate(
             page, past_reserves
@@ -735,30 +708,28 @@ def process_past_reservations(call_page, session, bot):
                 )
                 + "\n\n"
             )
-        txt, markup = get_txt_markup_in_past_reservations(past_reserves, txt_2, user)
+        txt, key = get_txt_markup_in_past_reservations(past_reserves, txt_2, user)
         if page > 0:
-            markup.add(
+            key.add(
                 btn(
                     text=get_text(BotText.PREVIOUS_BUTTON, user.language),
                     callback_data=f"past_reservations_{page - 1}",
                 )
             )
         if end_idx < len(past_reserves):
-            markup.add(
+            key.add(
                 btn(
                     text=get_text(BotText.NEXT_BUTTON, user.language),
                     callback_data=f"past_reservations_{page + 1}",
                 )
             )
         txt = change_num_as_lang(txt, user.language)
-        markup.add(
+        key.add(
             btn(
                 text=get_text(BotText.BACK_BUTTON, user.language),
                 callback_data="backuser",
             )
         )
-        bot.edit_message_text(
-            chat_id=int(user.chat_id), message_id=msg_id, text=txt, reply_markup=markup
-        )
+        bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
     except Exception as e:
         add_log(f"Exception in process_past_reservations: {e}")

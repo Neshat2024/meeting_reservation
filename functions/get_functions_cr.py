@@ -2,6 +2,7 @@ import re
 from datetime import datetime, timedelta
 
 import pytz
+from sqlalchemy import asc
 from sqlalchemy.exc import SQLAlchemyError
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as Btn
 
@@ -304,3 +305,25 @@ def get_booker_id(booker_name, session):
         add_log(f"SQLAlchemyError in get_booker_id: {e}")
     except Exception as e:
         add_log(f"Exception in get_booker_id: {e}")
+
+
+def get_users_in_buttons(user, session, cb):
+    key, buttons = InlineKeyboardMarkup(row_width=2), []
+    users = session.query(Users).order_by(asc(Users.username)).all()
+    for u in users:
+        if u.username:
+            buttons.append(Btn(text=f"@{u.username}", callback_data=f"{cb}_{u.id}"))
+        elif u.name and user.language == "en":
+            buttons.append(Btn(text=f"name={u.name}", callback_data=f"{cb}_{u.id}"))
+        elif u.name:
+            buttons.append(Btn(text=f"نام={u.name}", callback_data=f"{cb}_{u.id}"))
+        elif user.language == "en":
+            buttons.append(Btn(text=f"chat_id={u.chat_id}", callback_data=f"{cb}_{u.id}"))
+        else:
+            buttons.append(Btn(text=f"چت آیدی={u.chat_id}", callback_data=f"{cb}_{u.id}"))
+        if len(buttons) == 2:
+            key.row(*buttons)
+            buttons = []
+    if buttons:
+        key.row(*buttons)
+    return key

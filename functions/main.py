@@ -48,8 +48,8 @@ def process_help(message, session, bot):
 
 def process_ok_reservation(call, session, bot):
     try:
-        msg_id = call.message.id
         user = get_user(call, session)
+        ch_id, msg = user.chat_id, call.message.id
         now = dt.now(tehran_tz)
         book = session.query(Reservations).filter_by(id=call.data.split("_")[1]).first()
         if book:
@@ -57,6 +57,7 @@ def process_ok_reservation(call, session, bot):
             start_time = get_time_as_tehran_tz(book, book.start_time)
             txt = ""
             if now > end_time:
+                bot.edit_message_reply_markup(chat_id=ch_id, message_id=msg)
                 bot.answer_callback_query(
                     call.id,
                     get_text(BotText.INVALID_END_RESERVATION, user.language),
@@ -73,10 +74,9 @@ def process_ok_reservation(call, session, bot):
                     start_time=book.end_time
                 )
                 txt = change_num_as_lang(txt, user.language)
-            bot.edit_message_text(
-                chat_id=int(user.chat_id), message_id=msg_id, text=txt
-            )
+            bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt)
         else:
+            bot.edit_message_reply_markup(chat_id=ch_id, message_id=msg)
             bot.answer_callback_query(
                 call.id,
                 get_text(BotText.RESERVE_NOT_EXISTS, user.language),
@@ -88,14 +88,15 @@ def process_ok_reservation(call, session, bot):
 
 def process_cancel_reservation(call, session, bot):
     try:
-        msg_id = call.message.id
         user = get_user(call, session)
+        ch_id, msg = user.chat_id, call.message.id
         now = dt.now(tehran_tz)
         book = session.query(Reservations).filter_by(id=call.data.split("_")[1]).first()
         if book:
             end_time = get_time_as_tehran_tz(book, book.end_time)
             start_time = get_time_as_tehran_tz(book, book.start_time)
             if now > end_time:
+                bot.edit_message_reply_markup(chat_id=ch_id, message_id=msg)
                 bot.answer_callback_query(
                     call.id,
                     get_text(BotText.INVALID_CANCEL_RESERVATION, user.language),
@@ -108,10 +109,9 @@ def process_cancel_reservation(call, session, bot):
             elif now < end_time:
                 txt = cancel_after_start_time(session, [book, user], now)
                 txt = change_num_as_lang(txt, user.language)
-            bot.edit_message_text(
-                chat_id=int(user.chat_id), message_id=msg_id, text=txt
-            )
+            bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt)
         else:
+            bot.edit_message_reply_markup(chat_id=ch_id, message_id=msg)
             bot.answer_callback_query(
                 call.id,
                 get_text(BotText.RESERVE_NOT_EXISTS, user.language),
@@ -155,8 +155,8 @@ def cancel_after_start_time(session, book_user, now):
 
 def process_checkout_reservation(call, session, bot):
     try:
-        msg_id = call.message.id
         user = get_user(call, session)
+        ch_id, msg = user.chat_id, call.message.id
         now = dt.now(tehran_tz)
         db_id = call.data.split("_")[1]
         reserve = session.query(Reservations).filter_by(id=db_id).first()
@@ -170,16 +170,16 @@ def process_checkout_reservation(call, session, bot):
                     str_time=str_time
                 )
                 txt = change_num_as_lang(txt, user.language)
-                bot.edit_message_text(
-                    chat_id=int(user.chat_id), message_id=msg_id, text=txt
-                )
+                bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt)
             else:
+                bot.edit_message_reply_markup(chat_id=ch_id, message_id=msg)
                 bot.answer_callback_query(
                     call.id,
                     get_text(BotText.INVALID_CHECKOUT_RESERVATION, user.language),
                     show_alert=True,
                 )
         else:
+            bot.edit_message_reply_markup(chat_id=ch_id, message_id=msg)
             bot.answer_callback_query(
                 call.id,
                 get_text(BotText.RESERVE_NOT_EXISTS, user.language),

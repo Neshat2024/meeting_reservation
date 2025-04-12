@@ -1,5 +1,4 @@
 from telebot import TeleBot
-from telebot import types
 
 from functions.new_reserves import (
     process_reservation,
@@ -30,18 +29,14 @@ from functions.old_reserves import (
     process_remove_time_in_edit,
     process_delete_specific_reservation,
 )
-from services.config import commands
 from services.wraps import set_command, check_name_in_db
 
 
-def add_reservation_command():
-    commands.append(
-        types.BotCommand(command="/reservation", description="🚪 Reserve Meeting Room")
-    )
-
-
 def register_reservation_command(session, bot):
-    @bot.message_handler(commands=["reservation"])
+    @bot.message_handler(
+        func=lambda message: message.text.startswith("🚪 Reservation")
+        or message.text.startswith("🚪 رزرو اتاق")
+    )
     @set_command("reservation", session)
     @check_name_in_db(session, bot)
     def reservation_command(message):
@@ -263,6 +258,5 @@ def register_old_reservations(bot, session):
 
 
 def reservation_command_handler(bot: TeleBot, session):
-    add_reservation_command()
     register_new_reservations(bot, session)
     register_old_reservations(bot, session)

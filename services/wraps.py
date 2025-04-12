@@ -5,6 +5,7 @@ from functions.get_functions_reserves import generate_random_hex_color
 from functions.name import process_name
 from models.users import Users
 from services.config import get_user, add_user, set_command_in_wraps, check_role
+from services.language import BotText, get_text
 from services.log import add_log
 
 
@@ -60,10 +61,10 @@ def check_admin(session, bot):
                 user = get_user(message, session)
                 if user.role in ["admin", "manager"]:
                     return handler(message)
-                text = "You are not admin, and you can't access this command ⛔️"
+                text = get_text(BotText.INVALID_ADMIN, user.language)
                 user.command = None
                 session.commit()
-                bot.send_message(int(user.chat_id), text)
+                bot.send_message(user.chat_id, text)
             except SQLAlchemyError as e:
                 add_log(f"SQLAlchemyError in check_admin: {e}")
             except Exception as e:

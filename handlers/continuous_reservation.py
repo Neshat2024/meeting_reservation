@@ -1,5 +1,3 @@
-from telebot import types
-
 from functions.continuous_reservation_one import (
     process_continuous_reservation,
     process_cr_weekday,
@@ -20,21 +18,14 @@ from functions.continuous_reservation_two import (
     process_cr_cancel_reserve,
     process_cr_reserve_weeks,
 )
-from services.config import commands
 from services.wraps import set_command, check_name_in_db
 
 
-def add_continuous_reservation_command():
-    commands.append(
-        types.BotCommand(
-            command="/continuous_reservation",
-            description="🔄 Continuous Reserve Meeting Room",
-        )
-    )
-
-
 def register_continuous_reservation_command(session, bot):
-    @bot.message_handler(commands=["continuous_reservation"])
+    @bot.message_handler(
+        func=lambda message: message.text.startswith("🔄 Continuous Reservation")
+        or message.text.startswith("🔄 رزرو دوره ای")
+    )
     @set_command("continuous_reservation", session)
     @check_name_in_db(session, bot)
     def continuous_reservation_command(message):
@@ -173,6 +164,5 @@ def part_two_cr(bot, session):
 
 
 def continuous_reservation_command_handler(bot, session):
-    add_continuous_reservation_command()
     part_one_cr(bot, session)
     part_two_cr(bot, session)

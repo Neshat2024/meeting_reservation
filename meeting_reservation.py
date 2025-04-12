@@ -2,7 +2,6 @@ import os
 
 import telebot
 from dotenv import load_dotenv
-from telebot import TeleBot
 
 from handlers.admin_commands import admin_commands_handler
 from handlers.continuous_reservation import continuous_reservation_command_handler
@@ -12,12 +11,12 @@ from handlers.set_color import set_color_for_all_users
 from handlers.settings import settings_command_handler
 from handlers.view_weekly_schedule import view_weekly_schedule_command_handler
 from models.reserve_bot import init_db, SessionLocal
-from services.bot_runner import runner
+from services.bot_runner import runner, MyBot
 from services.config import commands
 
 load_dotenv()
 
-bot = TeleBot(os.getenv("TOKEN_RESERVE"))
+bot = MyBot(os.getenv("TOKEN_RESERVE"))
 session = SessionLocal()
 
 # Initialize Database
