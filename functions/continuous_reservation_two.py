@@ -6,18 +6,23 @@ from functions.get_functions_cr import (
     get_room_id_as_name,
     get_start_end_charge,
     get_date_as_txt,
+    is_billable,
 )
 from models.reservations import Reservations
-from services.config import get_user, CONFIRMED
+from services.config import get_user
 from services.language import change_num_as_lang, get_text, BotText
 from services.log import add_log
+from settings import CONFIRMED
 
 
 def process_cr_edit_weeks(call, session, bot):
     try:
         ch_id, msg = call.message.chat.id, call.message.id
         user = get_user(call, session)
-        week_dates = call.message.text.split("\n")[6:]
+        if is_billable():
+            week_dates = call.message.text.split("\n")[6:]
+        else:
+            week_dates = call.message.text.split("\n")[5:]
         key = get_week_date_buttons(week_dates, user)
         bot.edit_message_reply_markup(chat_id=ch_id, message_id=msg, reply_markup=key)
     except Exception as e:
@@ -50,7 +55,10 @@ def process_cr_edit_week_selection(call, session, bot):
                 idx = txt.index(line)
                 txt[idx] = line.replace("🗑", "🟢")
         t = "\n".join(txt)
-        week_dates = t.split("\n")[6:]
+        if is_billable():
+            week_dates = t.split("\n")[6:]
+        else:
+            week_dates = t.split("\n")[5:]
         key = get_week_date_buttons(week_dates, user)
         bot.edit_message_text(chat_id=ch_id, message_id=msg, text=t, reply_markup=key)
     except Exception as e:
@@ -62,7 +70,10 @@ def process_cr_confirm_edited_weeks(call, session, bot):
         ch_id, msg = call.message.chat.id, call.message.id
         user = get_user(call, session)
         txt = call.message.text.split("\n")
-        weeks = int(change_num_as_lang(txt[5].split(":")[1].strip(), "en"))
+        if is_billable():
+            weeks = int(change_num_as_lang(txt[5].split(":")[1].strip(), "en"))
+        else:
+            weeks = int(change_num_as_lang(txt[4].split(":")[1].strip(), "en"))
         for line in txt:
             if "🗑" in line:
                 txt.remove(line)
@@ -90,20 +101,29 @@ def process_cr_cancel_reserve(call, session, bot):
 
 
 def process_cr_reserve_weeks(call, session, bot):
+    if is_billable():
+        billable_reserve_weeks(call, session, bot)
+    else:
+        free_reserve_weeks(call, session, bot)
+
+
+def billable_reserve_weeks(call, session, bot):
     try:
         ch_id, msg = call.message.chat.id, call.message.id
         user = get_user(call, session)
         txt = change_num_as_lang(call.message.text, "en")
         txt = txt.split("\n")
+
         last_charge = txt[1].split(":")[1].strip()
         txt.pop(1)
+
         txt = [line for line in txt if "🔴" not in line]
         if len(txt) < 6:
             t = get_text(BotText.INVALID_NONE_WEEKS, user.language)
             bot.answer_callback_query(call.id, t, show_alert=True)
             return
         update_txt_as_weeks(txt)
-        charge = add_cr_to_db(txt, user, session)
+        charge = billable_add_cr_to_db(txt, user, session)
         txt = "\n".join(txt)
         billing_charge = int(last_charge) - charge
         t = get_text(BotText.CONFIRMED_COUNTINUOUS_RESERVATION, user.language).format(
@@ -112,7 +132,30 @@ def process_cr_reserve_weeks(call, session, bot):
         t = change_num_as_lang(t, user.language)
         bot.edit_message_text(chat_id=ch_id, message_id=msg, text=t)
     except Exception as e:
-        add_log(f"Exception in process_cr_reserve_weeks: {e}")
+        add_log(f"Exception in billable_reserve_weeks: {e}")
+
+
+def free_reserve_weeks(call, session, bot):
+    try:
+        ch_id, msg = call.message.chat.id, call.message.id
+        user = get_user(call, session)
+        txt = change_num_as_lang(call.message.text, "en")
+        txt = txt.split("\n")
+        txt = [line for line in txt if "🔴" not in line]
+        if len(txt) < 6:
+            t = get_text(BotText.INVALID_NONE_WEEKS, user.language)
+            bot.answer_callback_query(call.id, t, show_alert=True)
+            return
+        update_txt_as_weeks(txt)
+        free_add_cr_to_db(txt, user, session)
+        txt = "\n".join(txt)
+        t = get_text(
+            BotText.FREE_CONFIRMED_COUNTINUOUS_RESERVATION, user.language
+        ).format(last_data=txt)
+        t = change_num_as_lang(t, user.language)
+        bot.edit_message_text(chat_id=ch_id, message_id=msg, text=t)
+    except Exception as e:
+        add_log(f"Exception in free_reserve_weeks: {e}")
 
 
 def update_txt_as_weeks(txt):
@@ -123,7 +166,7 @@ def update_txt_as_weeks(txt):
             txt[idx] = f"{line.split(':')[0]}: {new_weeks}"
 
 
-def add_cr_to_db(txt, user, session):
+def billable_add_cr_to_db(txt, user, session):
     start, end, charge = get_start_end_charge(txt)
     try:
         new_charge = user.charge - charge
@@ -144,6 +187,29 @@ def add_cr_to_db(txt, user, session):
         session.commit()
         return new_charge
     except SQLAlchemyError as e:
-        add_log(f"SQLAlchemyError in add_cr_to_db: {e}")
+        add_log(f"SQLAlchemyError in billable_add_cr_to_db: {e}")
     except Exception as e:
-        add_log(f"Exception in add_cr_to_db: {e}")
+        add_log(f"Exception in billable_add_cr_to_db: {e}")
+
+
+def free_add_cr_to_db(txt, user, session):
+    start, end = txt[1].split(": ")[1], txt[2].split(": ")[1]
+    try:
+        room_name = txt[3].split(": ")[1]
+        room_id = get_room_id_as_name(room_name, session)
+        for line in txt[5:]:
+            date = get_date_as_txt(line)
+            new_reserve = Reservations(
+                room_id=room_id,
+                user_id=user.id,
+                date=date,
+                start_time=start,
+                end_time=end,
+                status=CONFIRMED,
+            )
+            session.add(new_reserve)
+        session.commit()
+    except SQLAlchemyError as e:
+        add_log(f"SQLAlchemyError in free_add_cr_to_db: {e}")
+    except Exception as e:
+        add_log(f"Exception in free_add_cr_to_db: {e}")

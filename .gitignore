@@ -1,4 +1,5 @@
-/.env
+/.env.daftar
+/.env.irac
 /.idea
 /.venv
 /*.log

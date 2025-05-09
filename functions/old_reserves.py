@@ -26,17 +26,7 @@ from functions.get_functions_reserves import (
 )
 from models.reservations import Reservations
 from models.rooms import Rooms
-from services.config import (
-    change_command_to_none,
-    CONFIRMED,
-    BACK_USER,
-    FIRST,
-    SECOND,
-    gregorian_to_jalali,
-    day_in_persian,
-    FARSI,
-    get_user,
-)
+from services.config import change_command_to_none, gregorian_to_jalali, get_user
 from services.language import (
     convert_to_persian_numerals,
     get_text,
@@ -44,6 +34,14 @@ from services.language import (
     change_num_as_lang,
 )
 from services.log import add_log
+from settings import (
+    CONFIRMED,
+    BACK_USER,
+    FIRST,
+    SECOND,
+    day_in_persian,
+    FARSI,
+)
 
 tehran_tz = pytz.timezone("Asia/Tehran")
 
@@ -131,9 +129,15 @@ def process_edit_reservations(call, session, bot):
             session.query(Reservations).filter_by(user_id=uid, status=CONFIRMED).all()
         )
         future_reserves = [reserve for reserve in confs if future_date(reserve)]
+        sorted_reserves = sorted(
+            future_reserves,
+            key=lambda reserve: dt.strptime(
+                f"{reserve.date} {reserve.start_time}", "%Y-%m-%d %H:%M"
+            ),
+        )
         txt = get_text(BotText.EDIT_RESERVATIONS_TEXT, user.language)
         key = InlineKeyboardMarkup()
-        for reserve in future_reserves:
+        for reserve in sorted_reserves:
             date, str_hour = reserve.date, f"{reserve.start_time}-{reserve.end_time}"
             if user.language == "fa":
                 date = gregorian_to_jalali(date)
@@ -609,9 +613,15 @@ def process_delete_reservations(call, session, bot):
             .all()
         )
         future_reserves = [reserve for reserve in confs if future_date(reserve)]
+        sorted_reserves = sorted(
+            future_reserves,
+            key=lambda reserve: dt.strptime(
+                f"{reserve.date} {reserve.start_time}", "%Y-%m-%d %H:%M"
+            ),
+        )
         txt = get_text(BotText.DELETE_RESERVATIONS_TEXT, user.language)
         key = InlineKeyboardMarkup()
-        for reserve in future_reserves:
+        for reserve in sorted_reserves:
             date, str_hour = reserve.date, f"{reserve.start_time}-{reserve.end_time}"
             if user.language == "fa":
                 date = gregorian_to_jalali(date)

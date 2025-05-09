@@ -11,6 +11,7 @@ from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
 from models.users import Users, SessionLocal
 from services.log import add_log
+from settings import settings
 
 session = SessionLocal()
 tehran_tz = pytz.timezone("Asia/Tehran")
@@ -25,7 +26,7 @@ def backup_command(backup_file):
         "-p",
         "5432",
         "-U",
-        os.getenv("POSTGRES_USER"),
+        settings.POSTGRES_USER,
         db_name,
         "-f",
         backup_file,
@@ -33,7 +34,7 @@ def backup_command(backup_file):
 
 
 def backup_database(bot):
-    os.environ["PGPASSWORD"] = os.getenv("POSTGRES_PASSWORD")
+    os.environ["PGPASSWORD"] = settings.POSTGRES_PASSWORD
     backup_dir = "backups"
     if not os.path.exists(backup_dir):
         os.makedirs(backup_dir)
@@ -41,13 +42,16 @@ def backup_database(bot):
     bot_username = bot.get_me().username
     backup_file = os.path.join(backup_dir, f"{bot_username}_{timestamp}.sql")
     command = backup_command(backup_file)
+    flag = True
     try:
         subprocess.run(command, check=True)
         txt = f"Backup created at: {backup_file}"
-        add_log(txt, backup_file)
-        flag = True
+        add_log(txt, file_path=backup_file)
     except subprocess.CalledProcessError as e:
         add_log(f"Error during backup: {e}")
+        flag = False
+    except Exception as e:
+        add_log(f"Exception during backup: {e}")
         flag = False
     finally:
         if "PGPASSWORD" in os.environ:
@@ -75,18 +79,45 @@ class MyBot(telebot.TeleBot):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Create your fixed keyboard
+        # self.fixed_keyboard_en = ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+        # self.fixed_keyboard_en.add(
+        #     KeyboardButton("🚪 Reservation"),
+        #     KeyboardButton("🗓 View Schedule"),
+        # )
+        #
+        # self.fixed_keyboard_fa = ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
+        # self.fixed_keyboard_fa.add(
+        #     KeyboardButton("🚪 رزرو اتاق"),
+        #     KeyboardButton("🗓 مشاهده جدول رزرو ها"),
+        # )
+        #
+        # if settings.IS_CONTINUOUS_RESERVE_AVAILABLE.lower() == "true":
+        #     self.fixed_keyboard_en.add(KeyboardButton("🔄 Continuous Reservation"))
+        #     self.fixed_keyboard_fa.add(KeyboardButton("🔄 رزرو دوره ای"))
+
         self.fixed_keyboard_en = ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-        self.fixed_keyboard_en.add(
-            KeyboardButton("🚪 Reservation"),
-            KeyboardButton("🔄 Continuous Reservation"),
-            KeyboardButton("🗓 View Schedule"),
-        )
         self.fixed_keyboard_fa = ReplyKeyboardMarkup(row_width=1, resize_keyboard=True)
-        self.fixed_keyboard_fa.add(
+
+        # English buttons
+        en_buttons = [
+            KeyboardButton("🚪 Reservation"),
+            KeyboardButton("🗓 View Schedule"),
+        ]
+
+        # Farsi buttons
+        fa_buttons = [
             KeyboardButton("🚪 رزرو اتاق"),
-            KeyboardButton("🔄 رزرو دوره ای"),
             KeyboardButton("🗓 مشاهده جدول رزرو ها"),
-        )
+        ]
+
+        if settings.IS_CONTINUOUS_RESERVE_AVAILABLE.lower() == "true":
+            # Insert the continuous reservation button in the middle (index 1)
+            en_buttons.insert(1, KeyboardButton("🔄 Continuous Reservation"))
+            fa_buttons.insert(1, KeyboardButton("🔄 رزرو دوره ای"))
+
+        # Add all buttons at once
+        self.fixed_keyboard_en.add(*en_buttons)
+        self.fixed_keyboard_fa.add(*fa_buttons)
 
     def _add_keyboard_if_needed(self, chat_id, kwargs):
         """Helper method to add keyboard to kwargs if not specified"""

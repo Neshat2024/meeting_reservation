@@ -19,8 +19,8 @@ from functions.admin_commands_two import (
     process_get_charge_for_user,
     process_delete_specific_user,
 )
-from services.config import commands
 from services.wraps import set_command, check_name_in_db, check_admin
+from settings import commands
 
 
 def add_admin_commands():

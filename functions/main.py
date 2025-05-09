@@ -1,18 +1,17 @@
 from datetime import datetime as dt
 
 import pytz
-from dotenv import load_dotenv
 from sqlalchemy.exc import SQLAlchemyError
 
 from functions.name import process_name
 from models.reservations import Reservations
-from services.config import add_user, get_user, ENGLISH, FARSI
+from services.config import add_user, get_user
 from services.language import get_text, BotText, change_num_as_lang
 from services.log import add_log
 from services.wraps import get_user_in_wraps
+from settings import settings, ENGLISH, FARSI
 
 tehran_tz = pytz.timezone("Asia/Tehran")
-load_dotenv()
 
 
 def process_start(message, session, bot):
@@ -39,10 +38,14 @@ def process_start(message, session, bot):
 
 def process_help(message, session, bot):
     user = get_user(message, session)
-    if user:
+    if user and settings.IS_CONTINUOUS_RESERVE_AVAILABLE.lower() == "true":
+        text = get_text(BotText.HELP_CONTINUOUS_RESERVE_AVAILABLE, user.language)
+    elif user:
         text = get_text(BotText.HELP, user.language)
+    elif settings.IS_CONTINUOUS_RESERVE_AVAILABLE.lower() == "true":
+        text = get_text(BotText.HELP_CONTINUOUS_RESERVE_AVAILABLE, FARSI)
     else:
-        text = get_text(BotText.HELP, ENGLISH)
+        text = get_text(BotText.HELP, user.language)
     bot.reply_to(message, text)
 
 

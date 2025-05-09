@@ -1,13 +1,13 @@
 from telebot import TeleBot
 from telebot import types
 
-from functions.settings import (
+from functions.settings_func import (
     process_settings,
     process_set_language_to_persian,
     process_set_language_to_english,
 )
-from services.config import commands
-from services.wraps import set_command, check_name_in_db
+from services.wraps import set_command
+from settings import commands
 
 
 def add_settings_command():

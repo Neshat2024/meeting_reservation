@@ -20,13 +20,8 @@ from functions.get_functions_reserves import (
 )
 from models.reservations import Reservations
 from models.rooms import Rooms
-from services.config import (
-    CONFIRMED,
-    day_in_persian,
-    change_command_to_none,
-    gregorian_to_jalali,
-    get_user,
-)
+from services.config import change_command_to_none, gregorian_to_jalali, get_user
+from settings import CONFIRMED, day_in_persian
 from services.log import add_log
 import pytz
 

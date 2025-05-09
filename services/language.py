@@ -6,7 +6,7 @@ class BotText(Enum):
         "en": "Hello!\nI can help you to Reserve a Meeting Room 🚪",
         "fa": "سلام!\nاین بات برای رزرو اتاق جلسات ایجاد شده است 🚪",
     }
-    HELP = {
+    HELP_CONTINUOUS_RESERVE_AVAILABLE = {
         "en": "..:: Meeting Reservation Bot ::..\n\n"
         "Keyboard Buttons:\n"
         "🚪 Reservation - Submit-View-Edit Meeting Reservations\n"
@@ -28,7 +28,26 @@ class BotText(Enum):
         "/settings - ⚙️ تنظیمات ربات (می‌توانید زبان ربات را انتخاب کنید)\n"
         "/help - ℹ️ دریافت اطلاعات",
     }
-
+    HELP = {
+        "en": "..:: Meeting Reservation Bot ::..\n\n"
+        "Keyboard Buttons:\n"
+        "🚪 Reservation - Submit-View-Edit Meeting Reservations\n"
+        "🗓 View Schedule - 🗓 View Schedule for Meeting Rooms (Daily-Custom Day-Weekly)\n\n"
+        "Available Commands:\n"
+        "/start - Start the bot to select from menu\n"
+        "/admin_commands - 🔧 Admins can manage Meeting Rooms (view-add-edit)\n"
+        "/settings - ⚙️ Bot Settings (You can set Language of the bot)\n"
+        "/help - ℹ️ Get help information",
+        "fa": "..:: بات رزرو اتاق جلسات ::..\n\n"
+        "دکمه‌های کیبورد:\n"
+        "🚪 رزرو اتاق - ثبت و مشاهده و ویرایش یا حذف رزرو ها\n"
+        "🗓 مشاهده جدول رزرو ها - مشاهده برنامه اتاق‌ های جلسه (امروز-روز خاص-هفتگی)\n\n"
+        "دستورات موجود:\n"
+        "/start - شروع ربات برای انتخاب از منو\n"
+        "/admin_commands - 🔧 مدیران می ‌توانند اتاق‌ های جلسات را مدیریت کنند. (مشاهده-اضافه-ویرایش)\n"
+        "/settings - ⚙️ تنظیمات ربات (می‌توانید زبان ربات را انتخاب کنید)\n"
+        "/help - ℹ️ دریافت اطلاعات",
+    }
     RESERVATION_TEXT = {
         "en": "Reserve a room anytime with «🚪 New Reservation» or manage reservations via «📝 My Reservations»",
         "fa": "شما می توانید یک اتاق را برای هر زمانی که تمایل داشتید، با دکمه «🚪 رزرو جدید» رزرو کنید و یا از طریق دکمه «👀 رزرو های من» رزرو های خود را مدیریت کنید.",
@@ -137,18 +156,34 @@ class BotText(Enum):
         "fa": "📅 روز جلسه دوره ای خود را انتخاب کنید:",
     }
     CHOOSE_HOURS_TEXT = {
+        "en": "📅 Weekday: {weekday}\n❓ From:",
+        "fa": "📅 روز هفته: {weekday}\n❓ از:",
+    }
+    START_HOURS_TEXT = {
+        "en": "{weekday}\n❓ From:",
+        "fa": "{weekday}\n❓ از:",
+    }
+    FIRST_HOURS_TEXT = {
+        "en": "{weekday}\n▶️ From: {start}\n◀️ To: {end}\n(You can change the end time)",
+        "fa": "{weekday}\n▶️ از: {start}\n◀️ تا: {end}\n(می توانید زمان پایان را تغییر دهید)",
+    }
+    SECOND_HOURS_TEXT = {
+        "en": "{weekday}\n▶️ From: {start}\n◀️ To: {end}",
+        "fa": "{weekday}\n▶️ از: {start}\n◀️ تا: {end}",
+    }
+    CHOOSE_HOURS_TEXT_CHARGE = {
         "en": "📅 Weekday: {weekday}\n🔋 Charge: {charge}\n❓ From:",
         "fa": "📅 روز هفته: {weekday}\n🔋 شارژ: {charge}\n❓ از:",
     }
-    START_HOURS_TEXT = {
+    START_HOURS_TEXT_CHARGE = {
         "en": "{weekday}\n🔋 Charge: {charge}\n❓ From:",
         "fa": "{weekday}\n🔋 شارژ: {charge}\n❓ از:",
     }
-    FIRST_HOURS_TEXT = {
+    FIRST_HOURS_TEXT_CHARGE = {
         "en": "{weekday}\n🔋 Charge: {charge}\n▶️ From: {start}\n◀️ To: {end}\n(You can change the end time)",
         "fa": "{weekday}\n🔋 شارژ: {charge}\n▶️ از: {start}\n◀️ تا: {end}\n(می توانید زمان پایان را تغییر دهید)",
     }
-    SECOND_HOURS_TEXT = {
+    SECOND_HOURS_TEXT_CHARGE = {
         "en": "{weekday}\n🔋 Charge: {charge}\n▶️ From: {start}\n◀️ To: {end}",
         "fa": "{weekday}\n🔋 شارژ: {charge}\n▶️ از: {start}\n◀️ تا: {end}",
     }
@@ -339,6 +374,10 @@ class BotText(Enum):
     CONFIRMED_COUNTINUOUS_RESERVATION = {
         "en": "✅ Your request for a continuous reservation has been submitted successfully.\n💰 Billing Charge: {billing_charge}\n🔋 Current Charge: {charge}\n\n{last_data}",
         "fa": "✅ درخواست شما برای رزرو دوره ای با موفقیت ثبت شد.\n💰 مقدار شارژ مصرف شده: {billing_charge}\n🔋 شارژ فعلی: {charge}\n\n{last_data}",
+    }
+    FREE_CONFIRMED_COUNTINUOUS_RESERVATION = {
+        "en": "✅ Your request for a continuous reservation has been submitted successfully.\n\n{last_data}",
+        "fa": "✅ درخواست شما برای رزرو دوره ای با موفقیت ثبت شد.\n\n{last_data}",
     }
     SCHEDULE_SELECTION = {
         "en": "🗓 Choose Your Schedule:",

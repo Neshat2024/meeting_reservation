@@ -24,9 +24,6 @@ def create_database_if_not_exists(database_url, bot):
                     sql.SQL("CREATE DATABASE{}").format(sql.Identifier(database_name))
                 )
     except psycopg2.Error as e:
-        add_log(
-            f"An error occurred in create_database_if_not_exists: {e}",
-            bot.get_me().username,
-        )
+        add_log(f"An error occurred in create_database_if_not_exists: {e}")
     finally:
         conn.close()

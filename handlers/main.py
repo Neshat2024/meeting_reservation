@@ -7,7 +7,7 @@ from functions.main import (
     process_cancel_reservation,
     process_ok_reservation,
 )
-from services.config import commands
+from settings import commands
 
 
 def add_main_commands_report():

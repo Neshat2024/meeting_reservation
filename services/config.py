@@ -1,56 +1,14 @@
-import os
 import re
 from datetime import datetime as dt
 
 import jdatetime
-from dotenv import load_dotenv
 from sqlalchemy.exc import SQLAlchemyError
 from telebot import types
 
 from models.users import Users
 from services.language import change_num_as_lang
 from services.log import add_log
-
-load_dotenv()
-
-commands = [types.BotCommand(command="/start", description="Start menu")]
-
-CANCEL, SELECT, REMOVE = "/cancel", "select", "remove"
-BACK_DATE, BACK_MAIN, BACK_USER = "backdate", "backmain", "backuser"
-BACK_ROOM = "backroom"
-FIRST, SECOND, CONFIRMED = "first", "second", "confirmed"
-DAYS_FOR_HEADERS = ["SA", "SU", "MO", "TU", "WE", "TH", "FR"]
-DAYS_FOR_HEADERS_FA = ["ش", "۱ش", "۲ش", "۳ش", "۴ش", "۵ش", "ج"]
-day_in_persian = {
-    "Friday": "جمعه",
-    "Thursday": "پنج‌شنبه",
-    "Wednesday": "چهارشنبه",
-    "Tuesday": "سه‌شنبه",
-    "Monday": "دوشنبه",
-    "Sunday": "یکشنبه",
-    "Saturday": "شنبه",
-}
-WEEKDAYS_LIST = [
-    ["شنبه", "Saturday"],
-    ["یکشنبه", "Sunday"],
-    ["دوشنبه", "Monday"],
-    ["سه‌شنبه", "Tuesday"],
-    ["چهارشنبه", "Wednesday"],
-    ["پنج‌شنبه", "Thursday"],
-    ["جمعه", "Friday"],
-]
-weekday_map = {
-    "monday": 0,
-    "tuesday": 1,
-    "wednesday": 2,
-    "thursday": 3,
-    "friday": 4,
-    "saturday": 5,
-    "sunday": 6,
-}
-ONE, TWO, THREE = 1, 2, 3
-CHECKOUT = "checkout"
-FARSI, ENGLISH = "fa", "en"
+from settings import CANCEL, settings
 
 
 def get_user(call_or_message, session):
@@ -109,8 +67,8 @@ def contains_only_numbers(text):
 def add_user(message, session):
     try:
         chat_id, uname = str(message.chat.id), message.chat.username
-        admins = os.getenv("ADMINS").split("-")
-        managers = os.getenv("MANAGERS").split("-")
+        admins = settings.ADMINS.split("-")
+        managers = settings.MANAGERS.split("-")
         if uname in managers:
             user = Users(chat_id=chat_id, username=uname, role="manager")
         elif uname in admins:
@@ -136,8 +94,8 @@ def telegram_api_exception(func, error):
 
 def check_role(user, session):
     try:
-        admins = os.getenv("ADMINS").split("-")
-        managers = os.getenv("MANAGERS").split("-")
+        admins = settings.ADMINS.split("-")
+        managers = settings.MANAGERS.split("-")
         uname, user_role = user.username, user.role
         if uname in admins and uname not in managers and user_role != "admin":
             user.role = "admin"

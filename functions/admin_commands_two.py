@@ -5,14 +5,7 @@ from functions.admin_commands_one import get_text_key_in_admin_commands
 from functions.get_functions_cr import get_users_in_buttons
 from models.reservations import Reservations
 from models.users import Users
-from services.config import (
-    get_user,
-    check_text_in_name,
-    ONE,
-    TWO,
-    THREE,
-    check_text_in_charge,
-)
+from services.config import get_user, check_text_in_name, check_text_in_charge
 from services.language import (
     get_text,
     BotText,
@@ -20,6 +13,7 @@ from services.language import (
     change_num_as_lang_and_username,
 )
 from services.log import add_log
+from settings import ONE, TWO, THREE
 
 
 def process_edit_users_name(call, session, bot):
@@ -41,15 +35,19 @@ def process_edit_specific_name(call, session, bot):
     user = get_user(call, session)
     chat_id, msg_id = int(user.chat_id), str(call.message.id)
     if s_user.username:
-        txt = get_text(BotText.EDIT_USERS_OLD_NAME_USERNAME, user.language).format(username=s_user.username, name=s_user.name)
+        txt = get_text(BotText.EDIT_USERS_OLD_NAME_USERNAME, user.language).format(
+            username=s_user.username, name=s_user.name
+        )
     elif s_user.name:
-        txt = get_text(BotText.EDIT_USERS_OLD_NAME, user.language).format(name=s_user.name)
+        txt = get_text(BotText.EDIT_USERS_OLD_NAME, user.language).format(
+            name=s_user.name
+        )
     else:
-        txt = get_text(BotText.EDIT_USERS_OLD_NAME_CHAT_ID, user.language).format(chat_id=s_user.chat_id)
+        txt = get_text(BotText.EDIT_USERS_OLD_NAME_CHAT_ID, user.language).format(
+            chat_id=s_user.chat_id
+        )
     bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt)
-    bot.register_next_step_handler(
-        call.message, change_name, session, [s_user, bot]
-    )
+    bot.register_next_step_handler(call.message, change_name, session, [s_user, bot])
 
 
 def change_name(message, session, user_bot):
@@ -129,11 +127,17 @@ def process_delete_specific_user(call, session, bot):
         if d_user and not d_user.role:
             t, k = get_text_key_in_admin_commands(user, session)
             if d_user.username:
-                d_txt = get_text(BotText.USER_DELETED_USERNAME, user.language).format(uname=d_user.username)
+                d_txt = get_text(BotText.USER_DELETED_USERNAME, user.language).format(
+                    uname=d_user.username
+                )
             elif d_user.name:
-                d_txt = get_text(BotText.USER_DELETED_NAME, user.language).format(name=d_user.name)
+                d_txt = get_text(BotText.USER_DELETED_NAME, user.language).format(
+                    name=d_user.name
+                )
             else:
-                d_txt = get_text(BotText.USER_DELETED_CHAT_ID, user.language).format(chat_id=d_user.chat_id)
+                d_txt = get_text(BotText.USER_DELETED_CHAT_ID, user.language).format(
+                    chat_id=d_user.chat_id
+                )
             t = d_txt + t
             bot.edit_message_text(chat_id=ch_id, message_id=msg, text=t, reply_markup=k)
             delete_user_reservations(d_user, session)
@@ -230,11 +234,17 @@ def get_charge(message, session, user_bot):
 
 def get_text_for_error_charge_message(s_user, e, user):
     if s_user.username:
-        return get_text(BotText.MESSAGE_NOT_SENT_USERNAME, user.language).format(username=s_user.username, error=e)
+        return get_text(BotText.MESSAGE_NOT_SENT_USERNAME, user.language).format(
+            username=s_user.username, error=e
+        )
     elif s_user.name:
-        return get_text(BotText.MESSAGE_NOT_SENT_NAME, user.language).format(name=s_user.name, error=e)
+        return get_text(BotText.MESSAGE_NOT_SENT_NAME, user.language).format(
+            name=s_user.name, error=e
+        )
     else:
-        return get_text(BotText.MESSAGE_NOT_SENT_CHAT_ID, user.language).format(chat_id=s_user.chat_id, error=e)
+        return get_text(BotText.MESSAGE_NOT_SENT_CHAT_ID, user.language).format(
+            chat_id=s_user.chat_id, error=e
+        )
 
 
 def send_operation_canceled_in_charge(user, bot):

@@ -1,27 +1,16 @@
-import os
 import random
 from datetime import datetime as dt, timedelta
 
 import jdatetime
 import pytz
-from dotenv import load_dotenv
+from sqlalchemy import and_
 from sqlalchemy.exc import SQLAlchemyError
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as Btn
 
 from models.reservations import Reservations
 from models.rooms import Rooms
 from models.users import Users
-from services.config import (
-    DAYS_FOR_HEADERS,
-    CONFIRMED,
-    FIRST,
-    SECOND,
-    gregorian_to_jalali,
-    day_in_persian,
-    FARSI,
-    DAYS_FOR_HEADERS_FA,
-    get_user,
-)
+from services.config import gregorian_to_jalali, get_user
 from services.language import (
     get_text,
     BotText,
@@ -29,10 +18,19 @@ from services.language import (
     convert_to_persian_numerals,
 )
 from services.log import add_log
+from settings import (
+    DAYS_FOR_HEADERS,
+    CONFIRMED,
+    FIRST,
+    SECOND,
+    day_in_persian,
+    FARSI,
+    DAYS_FOR_HEADERS_FA,
+)
+from settings import settings
 
 tehran_tz = pytz.timezone("Asia/Tehran")
-load_dotenv()
-admins = os.getenv("ADMINS").split("-")
+admins = settings.ADMINS.split("-")
 
 
 def create_date_buttons(first_cb, user):
@@ -526,9 +524,11 @@ def get_reserved_hours_in_edit(call, session):
 
 
 def get_past_reserves(chat_id, session):
-    user = session.query(Users).filter_by(chat_id=str(chat_id)).first()
     reserves = (
-        session.query(Reservations).filter_by(user_id=user.id, status=CONFIRMED).all()
+        session.query(Reservations)
+        .join(Users, Users.id == Reservations.user_id)
+        .filter(and_(Users.chat_id == str(chat_id), Reservations.status == CONFIRMED))
+        .all()
     )
     past_reserves = [reserve for reserve in reserves if not future_date(reserve)]
     sorted_reserves = sorted(

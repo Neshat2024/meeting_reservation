@@ -3,6 +3,7 @@ from telebot import types
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as Btn
 
 from functions.get_functions_cr import (
+    is_billable,
     get_week_as_dates,
     get_final_week_buttons,
     get_weekday_buttons,
@@ -13,28 +14,23 @@ from functions.get_functions_cr import (
     add_confirm_back,
 )
 from models.rooms import Rooms
-from services.config import (
-    get_user,
-    FARSI,
-    day_in_persian,
-)
+from services.config import get_user
 from services.language import get_text, BotText, change_num_as_lang
 from services.log import add_log
+from settings import FARSI, day_in_persian
 
 tehran_tz = pytz.timezone("Asia/Tehran")
-user_states = {}
 
 
 def process_continuous_reservation(call_message, session, bot):
     try:
         user = get_user(call_message, session)
         c = user.chat_id
-        if user.charge not in ["", None, 0]:
+        if not is_billable() or user.charge not in ["", None, 0]:
             t = get_text(BotText.CHOOSE_WEEKDAY_TEXT, user.language)
             k = get_weekday_buttons(user)
             if isinstance(call_message, types.Message):
-                msg = bot.send_message(c, t, reply_markup=k)
-                user_states[c] = {"last_msg_id": msg.message_id}
+                bot.send_message(c, t, reply_markup=k)
             else:
                 msg = call_message.message.id
                 bot.edit_message_text(chat_id=c, message_id=msg, text=t, reply_markup=k)
@@ -54,9 +50,14 @@ def process_cr_weekday(call, session, bot):
             weekday = day_in_persian[weekday_str]
         else:
             weekday = weekday_str
-        t = get_text(BotText.CHOOSE_HOURS_TEXT, user.language).format(
-            weekday=weekday, charge=user.charge
-        )
+        if is_billable():
+            t = get_text(BotText.CHOOSE_HOURS_TEXT_CHARGE, user.language).format(
+                weekday=weekday, charge=user.charge
+            )
+        else:
+            t = get_text(BotText.CHOOSE_HOURS_TEXT, user.language).format(
+                weekday=weekday
+            )
         key = get_cr_hour_buttons(call, session)
         key = add_confirm_back(key, user, ["cr_confirm_hour", "cr_back_weekday"])
         bot.edit_message_text(chat_id=ch_id, message_id=msg, text=t, reply_markup=key)
@@ -111,18 +112,26 @@ def select_new_time(call, user):
     time = call.data.split("_")[3]
     weekday = call.message.text.split("\n")[0]
     start, end = get_time_and_15_min_later(time)
-    t = get_text(BotText.FIRST_HOURS_TEXT, user.language).format(
-        weekday=weekday, charge=user.charge, start=start, end=end
-    )
+    if is_billable():
+        t = get_text(BotText.FIRST_HOURS_TEXT_CHARGE, user.language).format(
+            weekday=weekday, charge=user.charge, start=start, end=end
+        )
+    else:
+        t = get_text(BotText.FIRST_HOURS_TEXT, user.language).format(
+            weekday=weekday, start=start, end=end
+        )
     txt = change_num_as_lang(t, user.language)
     return txt, start, end
 
 
 def remove_start_hour(call, user):
     weekday = call.message.text.split("\n")[0]
-    txt = get_text(BotText.START_HOURS_TEXT, user.language).format(
-        weekday=weekday, charge=user.charge
-    )
+    if is_billable():
+        txt = get_text(BotText.START_HOURS_TEXT_CHARGE, user.language).format(
+            weekday=weekday, charge=user.charge
+        )
+    else:
+        txt = get_text(BotText.START_HOURS_TEXT, user.language).format(weekday=weekday)
     return txt, "", ""
 
 
@@ -131,23 +140,37 @@ def set_new_end_hour(call, user):
     _, end_time = get_time_and_15_min_later(time)
     txt = call.message.text.split("\n")
     weekday = txt[0]
-    start_time = txt[2].split(": ")[1]
-    start, end = start_time, end_time
-    t = get_text(BotText.SECOND_HOURS_TEXT, user.language).format(
-        weekday=weekday, charge=user.charge, start=start, end=end
-    )
+    if is_billable():
+        start_time = txt[2].split(": ")[1]
+        t = get_text(BotText.SECOND_HOURS_TEXT_CHARGE, user.language).format(
+            weekday=weekday, charge=user.charge, start=start_time, end=end_time
+        )
+    else:
+        start_time = txt[1].split(": ")[1]
+        t = get_text(BotText.SECOND_HOURS_TEXT, user.language).format(
+            weekday=weekday, start=start_time, end=end_time
+        )
     txt = change_num_as_lang(t, user.language)
-    return txt, start, end
+    return txt, start_time, end_time
 
 
 def remove_end_hour(call, user):
     txt = call.message.text.split("\n")
     weekday = txt[0]
-    start_time = txt[2].split(": ")[1]
+    billable = is_billable()
+    if billable:
+        start_time = txt[2].split(": ")[1]
+    else:
+        start_time = txt[1].split(": ")[1]
     start, end = get_time_and_15_min_later(start_time)
-    t = get_text(BotText.FIRST_HOURS_TEXT, user.language).format(
-        weekday=weekday, charge=user.charge, start=start, end=end
-    )
+    if billable:
+        t = get_text(BotText.FIRST_HOURS_TEXT_CHARGE, user.language).format(
+            weekday=weekday, charge=user.charge, start=start, end=end
+        )
+    else:
+        t = get_text(BotText.FIRST_HOURS_TEXT, user.language).format(
+            weekday=weekday, start=start, end=end
+        )
     txt = change_num_as_lang(t, user.language)
     return txt, start, end
 
@@ -155,7 +178,8 @@ def remove_end_hour(call, user):
 def process_confirm_cr_hour(call, session, bot):
     txt = call.message.text.split("\n")
     user = get_user(call, session)
-    if len(txt) < 4:
+    billable = is_billable()
+    if (billable and len(txt) < 4) or (not billable and len(txt) < 3):
         txt = get_text(BotText.INCOMPLETE_HOURS_ALERT, user.language)
         bot.answer_callback_query(call.id, txt, show_alert=True)
     else:
@@ -166,7 +190,10 @@ def process_show_rooms(call, session, bot):
     try:
         ch_id, msg = call.message.chat.id, call.message.id
         user = get_user(call, session)
-        last_data = "\n".join(call.message.text.split("\n")[:4])
+        if is_billable():
+            last_data = "\n".join(call.message.text.split("\n")[:4])
+        else:
+            last_data = "\n".join(call.message.text.split("\n")[:3])
         txt = get_text(BotText.CHOOSE_ROOM_TEXT, user.language).format(
             last_data=last_data
         )
@@ -187,9 +214,14 @@ def process_cr_back_hours(call, session, bot):
         ch_id, msg = call.message.chat.id, call.message.id
         user = get_user(call, session)
         txt = call.message.text.split("\n")
-        start = txt[2].split(": ")[1]
-        end = txt[3].split(": ")[1]
-        t = "\n".join(txt[:4])
+        if is_billable():
+            start = txt[2].split(": ")[1]
+            end = txt[3].split(": ")[1]
+            t = "\n".join(txt[:4])
+        else:
+            start = txt[1].split(": ")[1]
+            end = txt[2].split(": ")[1]
+            t = "\n".join(txt[:3])
         start = change_num_as_lang(start, "en")
         end = change_num_as_lang(end, "en")
         key = get_cr_hour_buttons(call, session, [start, end])
@@ -204,7 +236,10 @@ def process_room_selection(call, session, bot):
         ch_id, msg = call.message.chat.id, call.message.id
         user = get_user(call, session)
         txt = call.message.text.split("\n")
-        last_data = "\n".join(txt[:4])
+        if is_billable():
+            last_data = "\n".join(txt[:4])
+        else:
+            last_data = "\n".join(txt[:3])
         t = get_text(BotText.CHOOSE_CHARGE_TEXT, user.language).format(
             last_data=last_data, room=call.data.split("_")[2]
         )
@@ -222,16 +257,23 @@ def process_cr_week_selection(call, session, bot):
         status, week = call.data.split("_")[2:]
         txt = call.message.text.split("\n")
         user = get_user(call, session)
-        if status == "select":
-            if user.language == "en":
-                txt[5] = f"❓ Weeks: {week}"
-            else:
-                txt[5] = f"❓ هفته‌ها: {change_num_as_lang(week, user.language)}"
+        billable = is_billable()
+        if billable and status == "select" and user.language == "en":
+            txt[5] = f"❓ Weeks: {week}"
+        elif billable and status == "select":
+            txt[5] = f"❓ هفته‌ها: {change_num_as_lang(week, user.language)}"
+        elif status == "select" and user.language == "en":
+            txt[4] = f"❓ Weeks: {week}"
+        elif status == "select":
+            txt[4] = f"❓ هفته‌ها: {change_num_as_lang(week, user.language)}"
+        elif billable and user.language == "en":
+            txt[5] = "❓ Weeks:"
+        elif billable:
+            txt[5] = "❓ هفته‌ها:"
+        elif user.language == "en":
+            txt[4] = "❓ Weeks:"
         else:
-            if user.language == "en":
-                txt[5] = "❓ Weeks:"
-            else:
-                txt[5] = "❓ هفته‌ها:"
+            txt[4] = "❓ هفته‌ها:"
         t = "\n".join(txt)
         key = get_weeks_buttons(user, t)
         key = add_confirm_back(key, user, ["cr_confirm_weeks", "cr_back_rooms"])
@@ -245,13 +287,20 @@ def process_confirm_cr_week(call, session, bot):
         ch_id, msg = call.message.chat.id, call.message.id
         user = get_user(call, session)
         txt = change_num_as_lang(call.message.text, "en").split("\n")
-        weeks = txt[5].split(":")[1].strip()
+        billable = is_billable()
+        if billable:
+            weeks = txt[5].split(":")[1].strip()
+        else:
+            weeks = txt[4].split(":")[1].strip()
         if not weeks:
             t = get_text(BotText.INVALID_WEEK_SELECTION, user.language)
             bot.answer_callback_query(call.id, t, show_alert=True)
             return
         week_as_date = get_week_as_dates(txt, session, user)
-        last_data = "\n".join(call.message.text.split("\n")[:5])
+        if billable:
+            last_data = "\n".join(call.message.text.split("\n")[:5])
+        else:
+            last_data = "\n".join(call.message.text.split("\n")[:4])
         t = get_text(BotText.WEEKS_TEXT, user.language).format(
             last_data=last_data, weeks=weeks, week_as_date=week_as_date
         )
@@ -267,8 +316,12 @@ def process_cr_back_weeks(call, session, bot):
         ch_id, msg = call.message.chat.id, call.message.id
         user = get_user(call, session)
         txt = call.message.text.split("\n")
-        last_data = "\n".join(txt[:5])
-        weeks = txt[5].split(":")[1].strip()
+        if is_billable():
+            last_data = "\n".join(txt[:5])
+            weeks = txt[5].split(":")[1].strip()
+        else:
+            last_data = "\n".join(txt[:4])
+            weeks = txt[4].split(":")[1].strip()
         t = get_text(BotText.SECOND_CHARGE_TEXT, user.language).format(
             last_data=last_data, weeks=weeks
         )

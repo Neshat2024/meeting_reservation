@@ -10,24 +10,27 @@ from functions.get_functions_reserves import get_txt_in_cb
 from models.reservations import Reservations
 from models.rooms import Rooms
 from models.users import Users
-from services.config import (
-    CONFIRMED,
-    gregorian_to_jalali,
-    day_in_persian,
-    FARSI,
-    weekday_map,
-    WEEKDAYS_LIST,
-    time_difference,
-    jalali_to_gregorian,
-)
+from services.config import gregorian_to_jalali, time_difference, jalali_to_gregorian
 from services.language import (
     get_text,
     BotText,
     change_num_as_lang,
 )
 from services.log import add_log
+from settings import (
+    settings,
+    CONFIRMED,
+    day_in_persian,
+    FARSI,
+    weekday_map,
+    WEEKDAYS_LIST,
+)
 
 tehran_tz = pytz.timezone("Asia/Tehran")
+
+
+def is_billable():
+    return settings.IS_CONTINUOUS_RESERVE_BILLABLE.lower() == "true"
 
 
 def get_weekday_buttons(user):
@@ -80,7 +83,7 @@ def get_status(call, user):
     txt = call.message.text.split("\n")
     mode, s_time = call.data.split("_")[2:]
     # mode: select/remove/first-remove
-    if len(txt) == 3:
+    if (is_billable() and len(txt) == 3) or (not is_billable() and len(txt) == 2):
         return "start"
     start_time, start_to_end, diff = process_txt_message(call, s_time)
     if mode == "first-remove":
@@ -90,14 +93,20 @@ def get_status(call, user):
     elif diff == 15 and mode == "select" and time_difference(s_time, start_time) > 0:
         return "error-past"
     elif (
-        diff == 15
+        is_billable()
+        and diff == 15
         and mode == "select"
         and start_to_end > user.charge * 60
         and start_to_end not in [60, 120, 180, 240]
     ):
         charge = (start_to_end // 60) + 1
         return f"error-charge_{charge}"
-    elif diff == 15 and mode == "select" and start_to_end > user.charge * 60:
+    elif (
+        is_billable()
+        and diff == 15
+        and mode == "select"
+        and start_to_end > user.charge * 60
+    ):
         charge = start_to_end // 60
         return f"error-charge_{charge}"
     elif diff == 15 and mode == "select":
@@ -110,8 +119,12 @@ def get_status(call, user):
 
 def process_txt_message(call, s_time):
     txt = change_num_as_lang(call.message.text, "en").split("\n")
-    start_time = txt[2].split(": ")[1]
-    end_time = txt[3].split(": ")[1]
+    if is_billable():
+        start_time = txt[2].split(": ")[1]
+        end_time = txt[3].split(": ")[1]
+    else:
+        start_time = txt[1].split(": ")[1]
+        end_time = txt[2].split(": ")[1]
     diff = time_difference(start_time, end_time)
     _, time_end = get_time_and_15_min_later(s_time)
     start_to_end = time_difference(start_time, time_end)
@@ -129,7 +142,10 @@ def get_time_and_15_min_later(time_str):
 def get_weeks_buttons(user, txt):
     txt = change_num_as_lang(txt, "en")
     txt = txt.split("\n")
-    week = txt[5].split(":")[1].strip()
+    if is_billable():
+        week = txt[5].split(":")[1].strip()
+    else:
+        week = txt[4].split(":")[1].strip()
     markup, buttons = InlineKeyboardMarkup(row_width=5), []
     for i in range(1, 26):
         if week and str(i) == week:
@@ -163,7 +179,10 @@ def get_final_week_buttons(user):
 
 
 def get_week_as_dates(txt, session, user):
-    weeks = int(txt[5].split(":")[1].strip())
+    if is_billable():
+        weeks = int(txt[5].split(":")[1].strip())
+    else:
+        weeks = int(txt[4].split(":")[1].strip())
     weekday = get_weekday_as_language(txt[0].split(": ")[1])
     target_weekday = weekday_map[weekday]
     today = datetime.now(tehran_tz).date()
@@ -205,8 +224,12 @@ def get_weekday_as_language(weekday):
 
 
 def get_booker_as_start_end(txt, date, session):
-    start, end = txt[2].split(": ")[1], txt[3].split(": ")[1]
-    room_name = txt[4].split(": ")[1]
+    if is_billable():
+        start, end = txt[2].split(": ")[1], txt[3].split(": ")[1]
+        room_name = txt[4].split(": ")[1]
+    else:
+        start, end = txt[1].split(": ")[1], txt[2].split(": ")[1]
+        room_name = txt[3].split(": ")[1]
     room_id = get_room_id_as_name(room_name, session)
     if room_id:
         reserves = (
@@ -318,9 +341,13 @@ def get_users_in_buttons(user, session, cb):
         elif u.name:
             buttons.append(Btn(text=f"نام={u.name}", callback_data=f"{cb}_{u.id}"))
         elif user.language == "en":
-            buttons.append(Btn(text=f"chat_id={u.chat_id}", callback_data=f"{cb}_{u.id}"))
+            buttons.append(
+                Btn(text=f"chat_id={u.chat_id}", callback_data=f"{cb}_{u.id}")
+            )
         else:
-            buttons.append(Btn(text=f"چت آیدی={u.chat_id}", callback_data=f"{cb}_{u.id}"))
+            buttons.append(
+                Btn(text=f"چت آیدی={u.chat_id}", callback_data=f"{cb}_{u.id}")
+            )
         if len(buttons) == 2:
             key.row(*buttons)
             buttons = []

@@ -14,15 +14,14 @@ from services.config import (
     send_cancel_message,
     telegram_api_exception,
     set_command_in_wraps,
-    BACK_ROOM,
     change_command_to_none,
-    CONFIRMED,
 )
 from services.language import (
     get_text,
     BotText,
 )
 from services.log import add_log
+from settings import settings, BACK_ROOM, CONFIRMED
 
 
 def process_admin_commands(message, session, bot):
@@ -59,7 +58,9 @@ def get_text_key_in_admin_commands(user, session):
     key.add(Btn(text=txt_view_users, callback_data="view_users"))
     txt_del_users = get_text(BotText.DELETE_USERS_BUTTON, user.language)
     key.add(Btn(text=txt_del_users, callback_data="del_users"))
-    if user.role == "manager":
+    cr_available = settings.IS_CONTINUOUS_RESERVE_AVAILABLE.lower() == "true"
+    cr_billable = settings.IS_CONTINUOUS_RESERVE_BILLABLE.lower() == "true"
+    if user.role == "manager" and cr_available and cr_billable:
         txt_charge_user = get_text(BotText.CHARGE_USER, user.language)
         key.add(Btn(text=txt_charge_user, callback_data="charge_user"))
     return txt, key
