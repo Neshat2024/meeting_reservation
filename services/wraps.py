@@ -29,12 +29,8 @@ def check_name_in_db(session, bot):
 
 
 def get_user_in_wraps(message, session):
-    chat_id, uname = str(message.chat.id), message.chat.username
-    return (
-        session.query(Users)
-        .filter(or_(Users.chat_id == chat_id, Users.username == uname))
-        .first()
-    )
+    chat_id = str(message.chat.id)
+    return session.query(Users).filter_by(chat_id=chat_id).first()
 
 
 def set_command(command, session):
