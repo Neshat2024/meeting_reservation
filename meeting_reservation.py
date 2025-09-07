@@ -20,27 +20,26 @@ def main():
     from handlers.set_color import set_color_for_all_users
     from handlers.setting_command import settings_command_handler
     from handlers.view_weekly_schedule import view_weekly_schedule_command_handler
-    from models.reserve_bot import init_db, SessionLocal
+    from models.reserve_bot import init_db
     from services.bot_runner import runner, MyBot
     from settings import commands
 
     # Initialize bot
     bot = MyBot(settings.TOKEN_RESERVE)
-    session = SessionLocal()
 
     # Initialize Database
     init_db(bot)
 
     # Register handlers
-    set_color_for_all_users(session)
-    reservation_command_handler(bot, session)
-    admin_commands_handler(bot, session)
-    view_weekly_schedule_command_handler(bot, session)
-    settings_command_handler(bot, session)
-    start_help_handler(bot, session)
+    set_color_for_all_users()
+    reservation_command_handler(bot)
+    admin_commands_handler(bot)
+    view_weekly_schedule_command_handler(bot)
+    settings_command_handler(bot)
+    start_help_handler(bot)
 
     if settings.IS_CONTINUOUS_RESERVE_AVAILABLE.lower() == "true":
-        continuous_reservation_command_handler(bot, session)
+        continuous_reservation_command_handler(bot)
 
     # Configure proxy
     if settings.PROXY_HOST and settings.PROXY_PORT:
