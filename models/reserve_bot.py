@@ -8,17 +8,17 @@ from services.database import create_database_if_not_exists
 from services.log import add_log
 from settings import settings
 
-# engine = create_engine(settings.DATABASE_URL_RESERVE)
-# SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-engine = create_engine(
-    settings.DATABASE_URL_RESERVE, echo=False, pool_pre_ping=True, pool_recycle=10
-)
-SessionLocal = sessionmaker(
-    autocommit=False,
-    autoflush=False,
-    bind=engine,
-    expire_on_commit=False,  # Prevents issues with accessing objects after commit
-)
+engine = create_engine(settings.DATABASE_URL_RESERVE)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+# engine = create_engine(
+#     settings.DATABASE_URL_RESERVE, echo=False, pool_pre_ping=True, pool_recycle=10
+# )
+# SessionLocal = sessionmaker(
+#     autocommit=False,
+#     autoflush=False,
+#     bind=engine,
+#     expire_on_commit=False,  # Prevents issues with accessing objects after commit
+# )
 Base = declarative_base()
 
 
