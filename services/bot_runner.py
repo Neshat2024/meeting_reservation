@@ -36,7 +36,7 @@ def backup_command(backup_file):
 
 def backup_database(bot):
     os.environ["PGPASSWORD"] = settings.POSTGRES_PASSWORD
-    backup_dir = f"{Path(__file__).resolve().parent}/backups"
+    backup_dir = f"{Path(__file__).resolve().parent.parent}/backups"
     if not os.path.exists(backup_dir):
         os.makedirs(backup_dir)
     timestamp = dt.now(tehran_tz).strftime("%Y%m%d_%H%M%S")
