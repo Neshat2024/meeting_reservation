@@ -3,6 +3,7 @@ import subprocess
 import threading
 import time
 from datetime import datetime as dt
+from pathlib import Path
 
 import pytz
 import schedule
@@ -35,7 +36,7 @@ def backup_command(backup_file):
 
 def backup_database(bot):
     os.environ["PGPASSWORD"] = settings.POSTGRES_PASSWORD
-    backup_dir = "backups"
+    backup_dir = f"{Path(__file__).resolve().parent}/backups"
     if not os.path.exists(backup_dir):
         os.makedirs(backup_dir)
     timestamp = dt.now(tehran_tz).strftime("%Y%m%d_%H%M%S")
@@ -149,7 +150,7 @@ class MyBot(telebot.TeleBot):
 
     # Message editing
     def edit_message_text(
-        self, chat_id=None, message_id=None, text=None, reply_markup=None, **kwargs
+            self, chat_id=None, message_id=None, text=None, reply_markup=None, **kwargs
     ):
         return super().edit_message_text(
             text=text,
@@ -160,7 +161,7 @@ class MyBot(telebot.TeleBot):
         )
 
     def edit_message_reply_markup(
-        self, chat_id=None, message_id=None, reply_markup=None, **kwargs
+            self, chat_id=None, message_id=None, reply_markup=None, **kwargs
     ):
         return super().edit_message_reply_markup(
             chat_id=chat_id, message_id=message_id, reply_markup=reply_markup, **kwargs
@@ -172,7 +173,7 @@ class MyBot(telebot.TeleBot):
 
     # Callback queries
     def answer_callback_query(
-        self, callback_query_id, text=None, show_alert=None, **kwargs
+            self, callback_query_id, text=None, show_alert=None, **kwargs
     ):
         return super().answer_callback_query(
             callback_query_id=callback_query_id,
