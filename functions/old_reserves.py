@@ -143,9 +143,9 @@ def process_edit_reservations(call, session, bot):
                 date = gregorian_to_jalali(date)
                 date = convert_to_persian_numerals(date)
                 str_hour = convert_to_persian_numerals(str_hour)
-                t = f"📅 {date[5:7]}{date[7:]}  {str_hour}"
+                t = f"🗓 {date[5:7]}{date[7:]}  {str_hour}"
             else:
-                t = f"📅 {date[5:7]}/{date[8:]}  {str_hour}"
+                t = f"🗓 {date[5:7]}/{date[8:]}  {str_hour}"
             key.add(btn(text=t, callback_data=f"e_r_{reserve.id}"))
         key.add(
             btn(
@@ -627,9 +627,9 @@ def process_delete_reservations(call, session, bot):
                 date = gregorian_to_jalali(date)
                 date = convert_to_persian_numerals(date)
                 str_hour = convert_to_persian_numerals(str_hour)
-                t = f"📅 {date[5:7]}{date[7:]}  {str_hour}"
+                t = f"🗓 {date[5:7]}{date[7:]}  {str_hour}"
             else:
-                t = f"📅 {date[5:7]}/{date[8:]}  {str_hour}"
+                t = f"🗓 {date[5:7]}/{date[8:]}  {str_hour}"
             key.add(btn(text=t, callback_data=f"d_r_{reserve.id}"))
         txt = change_num_as_lang(txt, user.language)
         key.add(

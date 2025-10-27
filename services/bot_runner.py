@@ -150,7 +150,7 @@ class MyBot(telebot.TeleBot):
 
     # Message editing
     def edit_message_text(
-            self, chat_id=None, message_id=None, text=None, reply_markup=None, **kwargs
+        self, chat_id=None, message_id=None, text=None, reply_markup=None, **kwargs
     ):
         return super().edit_message_text(
             text=text,
@@ -161,7 +161,7 @@ class MyBot(telebot.TeleBot):
         )
 
     def edit_message_reply_markup(
-            self, chat_id=None, message_id=None, reply_markup=None, **kwargs
+        self, chat_id=None, message_id=None, reply_markup=None, **kwargs
     ):
         return super().edit_message_reply_markup(
             chat_id=chat_id, message_id=message_id, reply_markup=reply_markup, **kwargs
@@ -173,7 +173,7 @@ class MyBot(telebot.TeleBot):
 
     # Callback queries
     def answer_callback_query(
-            self, callback_query_id, text=None, show_alert=None, **kwargs
+        self, callback_query_id, text=None, show_alert=None, **kwargs
     ):
         return super().answer_callback_query(
             callback_query_id=callback_query_id,
