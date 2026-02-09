@@ -403,7 +403,16 @@ def process_confirm_selection(call, session, bot):
         msg_id = call.message.id
         reserve = get_reservation_in_confirm(call, session)
         user = get_user(call, session)
-        if reserve and reserve.status:
+        if reserve == "Select-New":
+            bot.answer_callback_query(
+                call.id,
+                get_text(BotText.SELECT_AGAIN_HOURS_ALERT, user.language),
+                show_alert=True,
+            )
+            c, m = call.message.chat.id, call.message.id
+            key = create_hour_buttons(call, session)
+            bot.edit_message_reply_markup(chat_id=c, message_id=m, reply_markup=key)
+        elif reserve and reserve.status:
             reserve.status = CONFIRMED
             session.commit()
             room_name = get_room_name(reserve.room_id, session)

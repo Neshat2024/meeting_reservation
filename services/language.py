@@ -460,6 +460,10 @@ class BotText(Enum):
         "en": "The end time can't be before the start time 🗿",
         "fa": "زمان پایان نمی ‌تواند قبل از زمان شروع باشد 🗿",
     }
+    SELECT_AGAIN_HOURS_ALERT = {
+        "en": "This time slot got booked right before you confirmed ⛔️\n♻️ Pick a different one.",
+        "fa": "دقیقا قبل از تأیید شما این بازه زمانی رزرو شد ⛔️\n♻️ دوباره انتخاب کنید.",
+    }
     INCOMPLETE_HOURS_ALERT = {
         "en": "You can't confirm before completing the hours ⛔️",
         "fa": "قبل از تکمیل ساعات نمی ‌توانید تأیید کنید ⛔️",
