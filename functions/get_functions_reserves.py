@@ -171,9 +171,9 @@ def get_room_date_as_call(call):
 def get_reserved_hours_as_query(reserved_times):
     reserved_hours = []
     now = dt.now(tehran_tz)
-    for s_e in reserved_times:
-        start, end = s_e[0], s_e[1]
-        end_time = get_date_obj(s_e[2], end)
+    for row_data in reserved_times:
+        start, end, date = row_data
+        end_time = get_date_obj(date, end)
         s_hour, s_min = int(start.split(":")[0]), int(start.split(":")[1])
         e_hour, e_min = int(end.split(":")[0]), int(end.split(":")[1])
         s_time_min = (60 * s_hour) + s_min
@@ -365,16 +365,36 @@ def get_reservation_in_confirm(call, session):
     try:
         room, date = get_room_date_as_call(call)
         user = get_user(call, session)
-        return (
+        u_reserve = (
             session.query(Reservations)
             .filter(
-                (Reservations.room_id == room)
-                & (Reservations.user_id == user.id)
-                & (Reservations.date == date)
-                & ((Reservations.status == FIRST) | (Reservations.status == SECOND))
+                Reservations.room_id == room,
+                Reservations.user_id == user.id,
+                Reservations.date == date,
+                Reservations.status.in_([FIRST, SECOND]),
             )
             .first()
         )
+        if u_reserve and u_reserve.status:
+            selected_times = [
+                (u_reserve.start_time, u_reserve.end_time, u_reserve.date)
+            ]
+            u_hours = get_reserved_hours_as_query(selected_times)
+            date_reserves = (
+                session.query(Reservations)
+                .filter_by(room_id=room, date=date, status="confirmed")
+                .all()
+            )
+            reserved_times = [
+                (row.start_time, row.end_time, row.date) for row in date_reserves
+            ]
+            reserved_hours = get_reserved_hours_as_query(reserved_times)
+            for hour in u_hours:
+                if hour in reserved_hours:
+                    return "Select-New"
+            else:
+                return u_reserve
+        return None
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in get_reservation_in_confirm: {e}")
     except Exception as e:
@@ -591,10 +611,6 @@ def get_future_text(call, session):
     return txt_2
 
 
-def get_date_obj(date, time_str, add_a_minute=False):
-    if add_a_minute:
-        the_time = dt.strptime(time_str, "%H:%M")
-        the_time += timedelta(minutes=1)
-        time_str = the_time.strftime("%H:%M")
+def get_date_obj(date, time_str):
     dt_time = dt.strptime(f"{date} {time_str}", "%Y-%m-%d %H:%M")
     return tehran_tz.localize(dt_time)
