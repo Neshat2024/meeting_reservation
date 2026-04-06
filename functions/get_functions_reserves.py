@@ -441,16 +441,19 @@ def get_second_data_in_start(e_time_call, session, reserve):
     return s_in_min, e_in_min, e_min, e_hour, ok_duration, is_admin
 
 
-def future_date(reserve):
+def future_date(reserve, tomorrow=False):
     end_time = f"{reserve.date} {reserve.end_time}"
     reserve_date = dt.strptime(end_time, "%Y-%m-%d %H:%M")
     reserve_date = tehran_tz.localize(reserve_date)
     current_date = dt.now(tehran_tz)
+    current_date = current_date.replace(hour=0, minute=1, second=0, microsecond=0)
+    if tomorrow:
+        current_date += timedelta(days=1)
     return reserve_date > current_date
 
 
 def get_start_in_edit_data_one(call, session, reserve):
-    e_time = call.data.split("_")[3]
+    e_time = call.data.split("_")[-1]
     s_time = reserve.start_time
     reserved_times = [(s_time, e_time, reserve.date)]
     hours = get_reserved_hours_as_query(reserved_times)
@@ -502,9 +505,17 @@ def get_hours_and_reserved_in_edit(call, session):
 
 
 def get_callbacks_in_edit(call, str_time):
-    db_id = call.data.split("_")[2]
-    select_cb = f"e-t_select_{db_id}_{str_time}"
-    remove_cb = f"e-t_remove_{db_id}_{str_time}"
+    # db_id = call.data.split("_")[2]
+    # select_cb = f"e-t_select_{db_id}_{str_time}"
+    # remove_cb = f"e-t_remove_{db_id}_{str_time}"
+    parts = call.data.split("_")
+    db_id, suffix = int(parts[2]), ""
+    if len(parts) == 5:
+        suffix = "_td"
+    elif len(parts) == 4 and parts[3] == "td":
+        suffix = "_td"
+    select_cb = f"e-t_select_{db_id}{suffix}_{str_time}"
+    remove_cb = f"e-t_remove_{db_id}{suffix}_{str_time}"
     return [select_cb, remove_cb]
 
 
@@ -583,7 +594,9 @@ def get_future_text(call, session):
     confs = (
         session.query(Reservations).filter_by(user_id=user.id, status=CONFIRMED).all()
     )
-    future_reserves = [reserve for reserve in confs if future_date(reserve)]
+    future_reserves = [
+        reserve for reserve in confs if future_date(reserve, tomorrow=True)
+    ]
     sorted_reserves = sorted(
         future_reserves,
         key=lambda reserve: dt.strptime(

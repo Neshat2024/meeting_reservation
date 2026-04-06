@@ -1,7 +1,7 @@
 from telebot import types
 
 CANCEL, SELECT, REMOVE = "/cancel", "select", "remove"
-BACK_DATE, BACK_MAIN, BACK_USER = "backdate", "backmain", "backuser"
+BACK_DATE, BACK_MAIN = "backdate", "backmain"
 BACK_ROOM = "backroom"
 FIRST, SECOND, CONFIRMED = "first", "second", "confirmed"
 DAYS_FOR_HEADERS = ["SA", "SU", "MO", "TU", "WE", "TH", "FR"]

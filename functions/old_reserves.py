@@ -26,7 +26,7 @@ from functions.get_functions_reserves import (
 )
 from models.reservations import Reservations
 from models.rooms import Rooms
-from services.config import change_command_to_none, gregorian_to_jalali, get_user
+from services.config import gregorian_to_jalali, get_user
 from services.language import (
     convert_to_persian_numerals,
     get_text,
@@ -36,7 +36,6 @@ from services.language import (
 from services.log import add_log
 from settings import (
     CONFIRMED,
-    BACK_USER,
     FIRST,
     SECOND,
     day_in_persian,
@@ -50,14 +49,40 @@ def process_user_reservations(call, session, bot):
     try:
         user = get_user(call, session)
         ch_id, msg = user.chat_id, call.message.id
-        reserves = (
-            session.query(Reservations)
-            .filter_by(user_id=user.id, status=CONFIRMED)
-            .all()
-        )
+        query = session.query(Reservations).filter_by(user_id=user.id, status=CONFIRMED)
+        today_reserves, reserves = [], query.all()
         key, row = InlineKeyboardMarkup(row_width=2), []
-        if len(reserves) > 0:
+        if reserves:
             txt = get_text(BotText.USER_RESERVATIONS_TEXT, user.language)
+            now = dt.now(tehran_tz)
+            date = now.strftime("%Y-%m-%d")
+            today_reserves = query.filter_by(date=date).all()
+            if today_reserves:
+                t = get_text(BotText.TODAY_TEXT, user.language)
+                txt += f"\n\n{t}"
+            sorted_reserves = sorted(
+                today_reserves,
+                key=lambda reserve: dt.strptime(
+                    f"{reserve.date} {reserve.start_time}", "%Y-%m-%d %H:%M"
+                ),
+            )
+            for reserve in sorted_reserves:
+                room_name = get_room_name(reserve.room_id, session)
+                weekday = dt.strptime(reserve.date, "%Y-%m-%d").strftime("%A")
+                weekday = weekday if user.language == "en" else day_in_persian[weekday]
+                date = (
+                    reserve.date
+                    if user.language == "en"
+                    else gregorian_to_jalali(reserve.date)
+                )
+                t = get_text(BotText.ADD_TIME_SECOND_STATUS, user.language).format(
+                    date=date,
+                    weekday=weekday,
+                    room_name=room_name,
+                    start_time=reserve.start_time,
+                    end_time=reserve.end_time,
+                )
+                txt += f"\n\n{t}"
             row.append(
                 btn(
                     text=get_text(BotText.FUTURE_BUTTON, user.language),
@@ -73,14 +98,26 @@ def process_user_reservations(call, session, bot):
             key.row(*row)
         else:
             txt = get_text(BotText.NO_RESERVATIONS_TEXT, user.language)
+        if today_reserves:
+            key.add(
+                btn(
+                    text=get_text(BotText.EDIT_RESERVATION_BUTTON, user.language),
+                    callback_data="td-editreservation",
+                )
+            )
+            key.add(
+                btn(
+                    text=get_text(BotText.DELETE_RESERVATION_BUTTON, user.language),
+                    callback_data="td-deletereservation",
+                )
+            )
         key.add(
             btn(
                 text=get_text(BotText.BACK_BUTTON, user.language),
                 callback_data="backmain",
             )
         )
-        if user.command == BACK_USER:
-            change_command_to_none(user, session)
+        txt = change_num_as_lang(txt, user.language)
         bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
     except Exception as e:
         add_log(f"Exception in process_user_reservations: {e}")
@@ -120,6 +157,47 @@ def process_future_reservations(call, session, bot):
         add_log(f"Exception in process_future_reservations: {e}")
 
 
+def process_edit_today_reservations(call, session, bot):
+    try:
+        user = get_user(call, session)
+        ch_id, msg = user.chat_id, call.message.id
+        uid = user.id
+        date = dt.now(tehran_tz).strftime("%Y-%m-%d")
+        reserves = (
+            session.query(Reservations)
+            .filter_by(user_id=uid, status=CONFIRMED, date=date)
+            .all()
+        )
+        # future_reserves = [reserve for reserve in confs if future_date(reserve)]
+        sorted_reserves = sorted(
+            reserves,
+            key=lambda reserve: dt.strptime(
+                f"{reserve.date} {reserve.start_time}", "%Y-%m-%d %H:%M"
+            ),
+        )
+        txt = get_text(BotText.EDIT_RESERVATIONS_TEXT, user.language)
+        key = InlineKeyboardMarkup()
+        for reserve in sorted_reserves:
+            date, str_hour = reserve.date, f"{reserve.start_time}-{reserve.end_time}"
+            if user.language == "fa":
+                date = gregorian_to_jalali(date)
+                date = convert_to_persian_numerals(date)
+                str_hour = convert_to_persian_numerals(str_hour)
+                t = f"🗓 {date[5:7]}{date[7:]}  {str_hour}"
+            else:
+                t = f"🗓 {date[5:7]}/{date[8:]}  {str_hour}"
+            key.add(btn(text=t, callback_data=f"e_r_{reserve.id}_td"))
+        key.add(
+            btn(
+                text=get_text(BotText.BACK_BUTTON, user.language),
+                callback_data="user_reservations",
+            )
+        )
+        bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
+    except Exception as e:
+        add_log(f"Exception in process_edit_reservations: {e}")
+
+
 def process_edit_reservations(call, session, bot):
     try:
         user = get_user(call, session)
@@ -128,7 +206,9 @@ def process_edit_reservations(call, session, bot):
         confs = (
             session.query(Reservations).filter_by(user_id=uid, status=CONFIRMED).all()
         )
-        future_reserves = [reserve for reserve in confs if future_date(reserve)]
+        future_reserves = [
+            reserve for reserve in confs if future_date(reserve, tomorrow=True)
+        ]
         sorted_reserves = sorted(
             future_reserves,
             key=lambda reserve: dt.strptime(
@@ -162,7 +242,12 @@ def process_edit_specific_reservation(call, session, bot):
     try:
         user = get_user(call, session)
         ch_id, msg = user.chat_id, call.message.id
-        db_id = call.data.split("_")[2]
+        parts = call.data.split("_")
+        db_id, suffix = int(parts[2]), ""
+        if len(parts) == 5:
+            suffix = "_td"
+        elif len(parts) == 4 and parts[3] == "td":
+            suffix = "_td"
         reserve = session.query(Reservations).filter_by(id=db_id).first()
         room_name = get_room_name(reserve.room_id, session)
         weekday = dt.strptime(reserve.date, "%Y-%m-%d").strftime("%A")
@@ -182,25 +267,25 @@ def process_edit_specific_reservation(call, session, bot):
         key.add(
             btn(
                 text=get_text(BotText.EDIT_DATE_BUTTON, user.language),
-                callback_data=f"e_date_{reserve.id}",
+                callback_data=f"e_date_{reserve.id}{suffix}",
             )
         )
         key.add(
             btn(
                 text=get_text(BotText.EDIT_ROOM_BUTTON, user.language),
-                callback_data=f"e_room_{reserve.id}",
+                callback_data=f"e_room_{reserve.id}{suffix}",
             )
         )
         key.add(
             btn(
                 text=get_text(BotText.EDIT_HOURS_BUTTON, user.language),
-                callback_data=f"e_hours_{reserve.id}",
+                callback_data=f"e_hours_{reserve.id}{suffix}",
             )
         )
         key.add(
             btn(
                 text=get_text(BotText.BACK_BUTTON, user.language),
-                callback_data="backedit",
+                callback_data=f"backedit{suffix}",
             )
         )
         bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
@@ -212,7 +297,10 @@ def process_edit_specific_date(call, session, bot):
     try:
         user = get_user(call, session)
         ch_id, msg = user.chat_id, call.message.id
-        db_id = call.data.split("_")[2]
+        parts = call.data.split("_")
+        db_id, is_today = parts[2], False
+        if len(parts) > 3:
+            is_today = True
         reserve = session.query(Reservations).filter_by(id=db_id).first()
         room_name = get_room_name(reserve.room_id, session)
         txt = get_text(BotText.EDIT_DATE_TEXT, user.language).format(
@@ -221,11 +309,14 @@ def process_edit_specific_date(call, session, bot):
             end_time=reserve.end_time,
         )
         txt = change_num_as_lang(txt, user.language)
-        key = create_date_buttons_in_edit(f"set_e_{db_id}", user)
+        suffix = ""
+        if is_today:
+            suffix = "_td"
+        key = create_date_buttons_in_edit(f"set_e_{db_id}{suffix}", user)
         key.add(
             btn(
                 text=get_text(BotText.BACK_BUTTON, user.language),
-                callback_data=f"backspecific__{db_id}",
+                callback_data=f"backspecific__{db_id}{suffix}",
             )
         )
         bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
@@ -250,7 +341,8 @@ def add_row_buttons_in_edit(start_end_days, db_id, user):
 
 def process_set_edit_date(call, session, bot):
     try:
-        date, db_id = call.data.split("_")[3], int(call.data.split("_")[2])
+        parts = call.data.split("_")
+        db_id, date = parts[2], parts[-1]
         reserve = session.query(Reservations).filter_by(id=db_id).first()
         reserve.date = date
         session.commit()
@@ -263,7 +355,10 @@ def process_edit_specific_room(call, session, bot):
     try:
         user = get_user(call, session)
         ch_id, msg = user.chat_id, call.message.id
-        db_id = int(call.data.split("_")[2])
+        parts = call.data.split("_")
+        db_id, is_today = int(parts[2]), False
+        if len(parts) > 3:
+            is_today = True
         reserve = session.query(Reservations).filter_by(id=db_id).first()
         weekday = dt.strptime(reserve.date, "%Y-%m-%d").strftime("%A")
         date = (
@@ -277,23 +372,28 @@ def process_edit_specific_room(call, session, bot):
             end_time=reserve.end_time,
         )
         txt = change_num_as_lang(txt, user.language)
-        key = add_room_buttons_in_edit(call, session)
+        key = add_room_buttons_in_edit(call, session, is_today)
         bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
     except Exception as e:
         add_log(f"Exception in process_edit_specific_room: {e}")
 
 
-def add_room_buttons_in_edit(call, session):
+def add_room_buttons_in_edit(call, session, is_today):
     user = get_user(call, session)
     db_id = int(call.data.split("_")[2])
     rooms = session.query(Rooms).all()
     markup = InlineKeyboardMarkup()
+    suffix = ""
+    if is_today:
+        suffix = "_td"
     for room in rooms:
-        markup.add(btn(text=f"{room.name}", callback_data=f"set_r_{db_id}_{room.id}"))
+        markup.add(
+            btn(text=f"{room.name}", callback_data=f"set_r_{db_id}{suffix}_{room.id}")
+        )
     markup.add(
         btn(
             text=get_text(BotText.BACK_BUTTON, user.language),
-            callback_data=f"backspecific__{db_id}",
+            callback_data=f"backspecific__{db_id}{suffix}",
         )
     )
     return markup
@@ -301,7 +401,8 @@ def add_room_buttons_in_edit(call, session):
 
 def process_set_edit_room(call, session, bot):
     try:
-        room, db_id = int(call.data.split("_")[3]), int(call.data.split("_")[2])
+        parts = call.data.split("_")
+        db_id, room = parts[2], parts[-1]
         reserve = session.query(Reservations).filter_by(id=db_id).first()
         reserve.room_id = room
         session.commit()
@@ -316,7 +417,7 @@ def process_edit_specific_hours(call, session, bot):
     try:
         user = get_user(call, session)
         ch_id, msg = user.chat_id, call.message.id
-        db_id = call.data.split("_")[2]
+        db_id = int(call.data.split("_")[2])
         reserve = session.query(Reservations).filter_by(id=db_id).first()
         room_name = get_room_name(reserve.room_id, session)
         weekday = dt.strptime(reserve.date, "%Y-%m-%d").strftime("%A")
@@ -336,12 +437,17 @@ def process_edit_specific_hours(call, session, bot):
 
 def create_hour_buttons_in_edit(call, session):
     user = get_user(call, session)
-    db_id = int(call.data.split("_")[2])
+    parts = call.data.split("_")
+    db_id, suffix = int(parts[2]), ""
+    if len(parts) == 5:
+        suffix = "_td"
+    elif len(parts) == 4 and parts[3] == "td":
+        suffix = "_td"
     markup = get_hour_buttons_in_edit(call, session)
     markup.add(
         btn(
             text=get_text(BotText.CONFIRM_BUTTON, user.language),
-            callback_data=f"set_h_{db_id}",
+            callback_data=f"set_h_{db_id}{suffix}",
         )
     )
     return markup
@@ -350,7 +456,8 @@ def create_hour_buttons_in_edit(call, session):
 def process_add_time_in_edit(call, session, bot):
     user = get_user(call, session)
     ch_id, msg = user.chat_id, call.message.id
-    db_id, str_time = int(call.data.split("_")[2]), call.data.split("_")[3]
+    parts = call.data.split("_")
+    db_id, str_time = int(parts[2]), parts[-1]
     change_status_as_selection(call, session, bot)
     reserve = session.query(Reservations).filter_by(id=db_id).first()
     room_name = get_room_name(reserve.room_id, session)
@@ -394,7 +501,8 @@ def process_add_time_in_edit(call, session, bot):
 def change_status_as_selection(call, session, bot):
     try:
         user = get_user(call, session)
-        db_id, str_time = int(call.data.split("_")[2]), call.data.split("_")[3]
+        parts = call.data.split("_")
+        db_id, str_time = int(parts[2]), parts[-1]
         reserve = session.query(Reservations).filter_by(id=db_id).first()
         s_time, e_time = reserve.start_time, reserve.end_time
         now = dt.now(tehran_tz)
@@ -482,7 +590,7 @@ def process_start_hour_in_edit(call, session, reserve_bot):
                 ok_duration,
                 is_admin,
             ) = get_second_data_in_start(
-                [call.data.split("_")[3], call], session, reserve
+                [call.data.split("_")[-1], call], session, reserve
             )
             if s_in_min < e_in_min and (ok_duration or is_admin):
                 set_end_time_in_process_start(e_min, e_hour, reserve)
@@ -506,7 +614,7 @@ def process_remove_time_in_edit(call, session, bot):
     try:
         user = get_user(call, session)
         ch_id, msg = user.chat_id, call.message.id
-        db_id, selected_time = int(call.data.split("_")[2]), call.data.split("_")[3]
+        db_id, selected_time = int(call.data.split("_")[2]), call.data.split("_")[-1]
         reserve = session.query(Reservations).filter_by(id=db_id).first()
         room_name = get_room_name(reserve.room_id, session)
         weekday = dt.strptime(reserve.date, "%Y-%m-%d").strftime("%A")
@@ -542,7 +650,10 @@ def process_remove_time_in_edit(call, session, bot):
 
 def process_set_edit_hours(call, session, bot):
     try:
-        db_id = int(call.data.split("_")[2])
+        parts = call.data.split("_")
+        db_id, is_today = int(parts[2]), False
+        if len(parts) > 3:
+            is_today = True
         reserve = session.query(Reservations).filter_by(id=db_id).first()
         user = get_user(call, session)
         ch_id, m = user.chat_id, call.message.id
@@ -566,28 +677,31 @@ def process_set_edit_hours(call, session, bot):
             )
             t = change_num_as_lang(t, user.language)
             key = InlineKeyboardMarkup()
+            suffix = ""
+            if is_today:
+                suffix = "_td"
             key.add(
                 btn(
                     text=get_text(BotText.EDIT_DATE_BUTTON, user.language),
-                    callback_data=f"e_date_{reserve.id}",
+                    callback_data=f"e_date_{reserve.id}{suffix}",
                 )
             )
             key.add(
                 btn(
                     text=get_text(BotText.EDIT_ROOM_BUTTON, user.language),
-                    callback_data=f"e_room_{reserve.id}",
+                    callback_data=f"e_room_{reserve.id}{suffix}",
                 )
             )
             key.add(
                 btn(
                     text=get_text(BotText.EDIT_HOURS_BUTTON, user.language),
-                    callback_data=f"e_hours_{reserve.id}",
+                    callback_data=f"e_hours_{reserve.id}{suffix}",
                 )
             )
             key.add(
                 btn(
                     text=get_text(BotText.BACK_BUTTON, user.language),
-                    callback_data="backedit",
+                    callback_data=f"backedit{suffix}",
                 )
             )
             bot.edit_message_text(chat_id=ch_id, message_id=m, text=t, reply_markup=key)
@@ -603,6 +717,47 @@ def process_set_edit_hours(call, session, bot):
         add_log(f"Exception in process_set_edit_hours: {e}")
 
 
+def process_delete_today_reservations(call, session, bot):
+    try:
+        user = get_user(call, session)
+        ch_id, msg = user.chat_id, call.message.id
+        date = dt.now(tehran_tz).strftime("%Y-%m-%d")
+        reserves = (
+            session.query(Reservations)
+            .filter_by(user_id=user.id, status=CONFIRMED, date=date)
+            .all()
+        )
+        # future_reserves = [reserve for reserve in confs if future_date(reserve)]
+        sorted_reserves = sorted(
+            reserves,
+            key=lambda reserve: dt.strptime(
+                f"{reserve.date} {reserve.start_time}", "%Y-%m-%d %H:%M"
+            ),
+        )
+        txt = get_text(BotText.DELETE_RESERVATIONS_TEXT, user.language)
+        key = InlineKeyboardMarkup()
+        for reserve in sorted_reserves:
+            date, str_hour = reserve.date, f"{reserve.start_time}-{reserve.end_time}"
+            if user.language == "fa":
+                date = gregorian_to_jalali(date)
+                date = convert_to_persian_numerals(date)
+                str_hour = convert_to_persian_numerals(str_hour)
+                t = f"🗓 {date[5:7]}{date[7:]}  {str_hour}"
+            else:
+                t = f"🗓 {date[5:7]}/{date[8:]}  {str_hour}"
+            key.add(btn(text=t, callback_data=f"d_r_{reserve.id}_td"))
+        txt = change_num_as_lang(txt, user.language)
+        key.add(
+            btn(
+                text=get_text(BotText.BACK_BUTTON, user.language),
+                callback_data="user_reservations",
+            )
+        )
+        bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)
+    except Exception as e:
+        add_log(f"Exception in process_delete_reservations: {e}")
+
+
 def process_delete_reservations(call, session, bot):
     try:
         user = get_user(call, session)
@@ -612,7 +767,9 @@ def process_delete_reservations(call, session, bot):
             .filter_by(user_id=user.id, status=CONFIRMED)
             .all()
         )
-        future_reserves = [reserve for reserve in confs if future_date(reserve)]
+        future_reserves = [
+            reserve for reserve in confs if future_date(reserve, tomorrow=True)
+        ]
         sorted_reserves = sorted(
             future_reserves,
             key=lambda reserve: dt.strptime(
@@ -647,7 +804,11 @@ def process_delete_specific_reservation(call, session, bot):
     try:
         user = get_user(call, session)
         ch_id, msg = user.chat_id, call.message.id
-        db_id = int(call.data.split("_")[2])
+        parts = call.data.split("_")
+        db_id = int(parts[2])
+        back_to_main = False
+        if len(parts) > 3:
+            back_to_main = True
         reserve = session.query(Reservations).filter_by(id=db_id).first()
         uid = reserve.user_id
         room_name = get_room_name(reserve.room_id, session)
@@ -665,23 +826,31 @@ def process_delete_specific_reservation(call, session, bot):
         )
         session.delete(reserve)
         session.commit()
-        users_reservations = (
-            session.query(Reservations).filter_by(user_id=uid, status=CONFIRMED).all()
-        )
         txt = change_num_as_lang(txt, user.language)
         key = InlineKeyboardMarkup()
-        if len(users_reservations) > 0:
-            key.add(
-                btn(
-                    text=get_text(BotText.BACK_BUTTON, user.language),
-                    callback_data="backfuture",
-                )
+        if not back_to_main:
+            reserves = (
+                session.query(Reservations)
+                .filter_by(user_id=uid, status=CONFIRMED)
+                .all()
             )
-        else:
+            future_reserves = [
+                reserve for reserve in reserves if future_date(reserve, tomorrow=True)
+            ]
+            if len(future_reserves) > 0:
+                key.add(
+                    btn(
+                        text=get_text(BotText.BACK_BUTTON, user.language),
+                        callback_data="backfuture",
+                    )
+                )
+            else:
+                back_to_main = True
+        if back_to_main:
             key.add(
                 btn(
                     text=get_text(BotText.BACK_BUTTON, user.language),
-                    callback_data="backmain",
+                    callback_data="backmyreserves",
                 )
             )
         bot.edit_message_text(chat_id=ch_id, message_id=msg, text=txt, reply_markup=key)

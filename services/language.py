@@ -90,6 +90,10 @@ class BotText(Enum):
         "en": "View upcoming reservations with «🗓 Future» or past reservations using «🔍 Past»",
         "fa": "برای مشاهده رزرو های آینده از «🗓 آینده» و برای رزرو های گذشته از «🔍 گذشته» استفاده کنید.",
     }
+    TODAY_TEXT = {
+        "en": "Today Reservations:",
+        "fa": "رزرو های امروز:",
+    }
     NO_RESERVATIONS_TEXT = {
         "en": "You haven’t made any Reservations yet 🙁",
         "fa": "شما هنوز هیچ رزروی انجام نداده ‌اید 🙁",
