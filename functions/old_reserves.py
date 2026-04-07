@@ -162,7 +162,8 @@ def process_edit_today_reservations(call, session, bot):
         user = get_user(call, session)
         ch_id, msg = user.chat_id, call.message.id
         uid = user.id
-        date = dt.now(tehran_tz).strftime("%Y-%m-%d")
+        now = dt.now(tehran_tz)
+        date = now.strftime("%Y-%m-%d")
         reserves = (
             session.query(Reservations)
             .filter_by(user_id=uid, status=CONFIRMED, date=date)
@@ -175,18 +176,28 @@ def process_edit_today_reservations(call, session, bot):
                 f"{reserve.date} {reserve.start_time}", "%Y-%m-%d %H:%M"
             ),
         )
-        txt = get_text(BotText.EDIT_RESERVATIONS_TEXT, user.language)
+        flag = False
         key = InlineKeyboardMarkup()
         for reserve in sorted_reserves:
-            date, str_hour = reserve.date, f"{reserve.start_time}-{reserve.end_time}"
-            if user.language == "fa":
-                date = gregorian_to_jalali(date)
-                date = convert_to_persian_numerals(date)
-                str_hour = convert_to_persian_numerals(str_hour)
-                t = f"🗓 {date[5:7]}{date[7:]}  {str_hour}"
-            else:
-                t = f"🗓 {date[5:7]}/{date[8:]}  {str_hour}"
-            key.add(btn(text=t, callback_data=f"e_r_{reserve.id}_td"))
+            date, str_hour = reserve.date, f"{reserve.end_time}-{reserve.start_time}"
+            dt_end = f"{date} {reserve.end_time}"
+            end_time = dt.strptime(dt_end, "%Y-%m-%d %H:%M")
+            end_time = tehran_tz.localize(end_time)
+            if now < end_time:
+                room = get_room_name(reserve.room_id, session)
+                if user.language == "fa":
+                    date = gregorian_to_jalali(date)
+                    date = convert_to_persian_numerals(date)
+                    str_hour = convert_to_persian_numerals(str_hour)
+                    t = f"🚪 {room} {date[5:7]}{date[7:]}  {str_hour}"
+                else:
+                    t = f"🚪 {room} {date[5:7]}/{date[8:]}  {str_hour}"
+                key.add(btn(text=t, callback_data=f"e_r_{reserve.id}_td"))
+                flag = True
+        if flag:
+            txt = get_text(BotText.EDIT_RESERVATIONS_TEXT, user.language)
+        else:
+            txt = get_text(BotText.NO_ACTIVE_RESERVATIONS_TEXT, user.language)
         key.add(
             btn(
                 text=get_text(BotText.BACK_BUTTON, user.language),
@@ -218,14 +229,15 @@ def process_edit_reservations(call, session, bot):
         txt = get_text(BotText.EDIT_RESERVATIONS_TEXT, user.language)
         key = InlineKeyboardMarkup()
         for reserve in sorted_reserves:
-            date, str_hour = reserve.date, f"{reserve.start_time}-{reserve.end_time}"
+            date, str_hour = reserve.date, f"{reserve.end_time}-{reserve.start_time}"
+            room = get_room_name(reserve.room_id, session)
             if user.language == "fa":
                 date = gregorian_to_jalali(date)
                 date = convert_to_persian_numerals(date)
                 str_hour = convert_to_persian_numerals(str_hour)
-                t = f"🗓 {date[5:7]}{date[7:]}  {str_hour}"
+                t = f"🚪 {room} {date[5:7]}{date[7:]}  {str_hour}"
             else:
-                t = f"🗓 {date[5:7]}/{date[8:]}  {str_hour}"
+                t = f"🚪 {room} {date[5:7]}/{date[8:]}  {str_hour}"
             key.add(btn(text=t, callback_data=f"e_r_{reserve.id}"))
         key.add(
             btn(
@@ -721,7 +733,8 @@ def process_delete_today_reservations(call, session, bot):
     try:
         user = get_user(call, session)
         ch_id, msg = user.chat_id, call.message.id
-        date = dt.now(tehran_tz).strftime("%Y-%m-%d")
+        now = dt.now(tehran_tz)
+        date = now.strftime("%Y-%m-%d")
         reserves = (
             session.query(Reservations)
             .filter_by(user_id=user.id, status=CONFIRMED, date=date)
@@ -734,19 +747,28 @@ def process_delete_today_reservations(call, session, bot):
                 f"{reserve.date} {reserve.start_time}", "%Y-%m-%d %H:%M"
             ),
         )
-        txt = get_text(BotText.DELETE_RESERVATIONS_TEXT, user.language)
+        flag = False
         key = InlineKeyboardMarkup()
         for reserve in sorted_reserves:
-            date, str_hour = reserve.date, f"{reserve.start_time}-{reserve.end_time}"
-            if user.language == "fa":
-                date = gregorian_to_jalali(date)
-                date = convert_to_persian_numerals(date)
-                str_hour = convert_to_persian_numerals(str_hour)
-                t = f"🗓 {date[5:7]}{date[7:]}  {str_hour}"
-            else:
-                t = f"🗓 {date[5:7]}/{date[8:]}  {str_hour}"
-            key.add(btn(text=t, callback_data=f"d_r_{reserve.id}_td"))
-        txt = change_num_as_lang(txt, user.language)
+            date, str_hour = reserve.date, f"{reserve.end_time}-{reserve.start_time}"
+            dt_end = f"{date} {reserve.end_time}"
+            end_time = dt.strptime(dt_end, "%Y-%m-%d %H:%M")
+            end_time = tehran_tz.localize(end_time)
+            if now < end_time:
+                room = get_room_name(reserve.room_id, session)
+                if user.language == "fa":
+                    date = gregorian_to_jalali(date)
+                    date = convert_to_persian_numerals(date)
+                    str_hour = convert_to_persian_numerals(str_hour)
+                    t = f"🚪 {room} {date[5:7]}{date[7:]}  {str_hour}"
+                else:
+                    t = f"🚪 {room} {date[5:7]}/{date[8:]}  {str_hour}"
+                key.add(btn(text=t, callback_data=f"d_r_{reserve.id}_td"))
+                flag = True
+        if flag:
+            txt = get_text(BotText.DELETE_RESERVATIONS_TEXT, user.language)
+        else:
+            txt = get_text(BotText.NO_ACTIVE_RESERVATIONS_TEXT, user.language)
         key.add(
             btn(
                 text=get_text(BotText.BACK_BUTTON, user.language),
@@ -779,14 +801,15 @@ def process_delete_reservations(call, session, bot):
         txt = get_text(BotText.DELETE_RESERVATIONS_TEXT, user.language)
         key = InlineKeyboardMarkup()
         for reserve in sorted_reserves:
-            date, str_hour = reserve.date, f"{reserve.start_time}-{reserve.end_time}"
+            date, str_hour = reserve.date, f"{reserve.end_time}-{reserve.start_time}"
+            room = get_room_name(reserve.room_id, session)
             if user.language == "fa":
                 date = gregorian_to_jalali(date)
                 date = convert_to_persian_numerals(date)
                 str_hour = convert_to_persian_numerals(str_hour)
-                t = f"🗓 {date[5:7]}{date[7:]}  {str_hour}"
+                t = f"🚪 {room} {date[5:7]}{date[7:]}  {str_hour}"
             else:
-                t = f"🗓 {date[5:7]}/{date[8:]}  {str_hour}"
+                t = f"🚪 {room} {date[5:7]}/{date[8:]}  {str_hour}"
             key.add(btn(text=t, callback_data=f"d_r_{reserve.id}"))
         txt = change_num_as_lang(txt, user.language)
         key.add(

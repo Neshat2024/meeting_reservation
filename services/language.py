@@ -106,6 +106,10 @@ class BotText(Enum):
         "en": "You don't have any Future Reservation 🤲🏻",
         "fa": "شما هیچ رزروی برای آینده ندارید 🤲🏻",
     }
+    NO_ACTIVE_RESERVATIONS_TEXT = {
+        "en": "You don't have any Reservation for today 🤲🏻",
+        "fa": "شما هیچ رزرو فعالی برای امروز ندارید 🤲🏻",
+    }
     EDIT_RESERVATIONS_TEXT = {
         "en": "📝 Choose the Reservation you'd like to edit:",
         "fa": "📝 رزروی که می ‌خواهید ویرایش کنید را انتخاب کنید:",
@@ -386,6 +390,10 @@ class BotText(Enum):
     SCHEDULE_SELECTION = {
         "en": "🗓 Choose Your Schedule:",
         "fa": "🗓 قصد مشاهده کدام جدول را دارید؟",
+    }
+    SCHEDULE_TODAY = {
+        "en": "🗓️ Today schedule 👇🏻",
+        "fa": "🗓️ جدول امروز 👇🏻",
     }
     TODAY_BUTTON = {"en": "⏳ Today", "fa": "⏳ جدول امروز"}
     CUSTOM_SCHEDULE_BUTTON = {"en": "🔜 Custom Day", "fa": "🔜 جدول یک روز خاص"}
