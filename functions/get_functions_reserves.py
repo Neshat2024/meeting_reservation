@@ -191,6 +191,29 @@ def get_reserved_hours_as_query(reserved_times):
     return reserved_hours
 
 
+def get_reserved_hours_as_query_in_edit(reserved_times):
+    reserved_hours = []
+    now = dt.now(tehran_tz)
+    for row_data in reserved_times:
+        start, end, date, uid = row_data
+        end_time = get_date_obj(date, end)
+        s_hour, s_min = int(start.split(":")[0]), int(start.split(":")[1])
+        e_hour, e_min = int(end.split(":")[0]), int(end.split(":")[1])
+        s_time_min = (60 * s_hour) + s_min
+        e_time_min = (60 * e_hour) + e_min
+        for h in range(s_hour, e_hour + 1):
+            for m in range(0, 60 + 1, 15):
+                time_min = (60 * h) + m
+                condition = get_condition([s_time_min, time_min, e_time_min])
+                if condition and now < end_time:
+                    h_m = f"{str(h).zfill(2)}:{str(m).zfill(2)}"
+                    str_hour = h_m if m != 60 else f"{str(h + 1).zfill(2)}:00"
+                    reserved_hours.append((str_hour, uid))
+                else:
+                    pass
+    return reserved_hours
+
+
 def get_condition(s_t_e):
     s_time_min, time_min, e_time_min = s_t_e
     return s_time_min <= time_min < e_time_min

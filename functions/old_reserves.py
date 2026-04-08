@@ -23,9 +23,11 @@ from functions.get_functions_reserves import (
     get_txt_markup_in_past_reservations,
     get_future_text,
     get_date_buttons_in_persian,
+    get_reserved_hours_as_query_in_edit,
 )
 from models.reservations import Reservations
 from models.rooms import Rooms
+from models.users import Users
 from services.config import gregorian_to_jalali, get_user
 from services.language import (
     convert_to_persian_numerals,
@@ -356,9 +358,35 @@ def process_set_edit_date(call, session, bot):
         parts = call.data.split("_")
         db_id, date = parts[2], parts[-1]
         reserve = session.query(Reservations).filter_by(id=db_id).first()
-        reserve.date = date
-        session.commit()
-        return process_edit_specific_reservation(call, session, bot)
+        reserved_rows = (
+            session.query(Reservations)
+            .filter(
+                (Reservations.room_id == reserve.room_id)
+                & (Reservations.date == date)
+                & (Reservations.status == CONFIRMED)
+            )
+            .all()
+        )
+        reserved_times = [
+            (row.start_time, row.end_time, row.date, row.user_id)
+            for row in reserved_rows
+        ]
+        reserved_hours = get_reserved_hours_as_query_in_edit(reserved_times)
+        for r in reserved_hours:
+            if reserve.start_time in r[0]:
+                name = session.query(Users).filter_by(id=int(r[1])).first().name
+                name = name if name else None
+                user = get_user(call, session)
+                bot.answer_callback_query(
+                    call.id,
+                    get_text(BotText.WHO_RESERVED, user.language).format(name=name),
+                    show_alert=True,
+                )
+                break
+        else:
+            reserve.date = date
+            session.commit()
+            return process_edit_specific_reservation(call, session, bot)
     except Exception as e:
         add_log(f"Exception in process_set_edit_date: {e}")
 
@@ -416,9 +444,35 @@ def process_set_edit_room(call, session, bot):
         parts = call.data.split("_")
         db_id, room = parts[2], parts[-1]
         reserve = session.query(Reservations).filter_by(id=db_id).first()
-        reserve.room_id = room
-        session.commit()
-        return process_edit_specific_reservation(call, session, bot)
+        reserved_rows = (
+            session.query(Reservations)
+            .filter(
+                (Reservations.room_id == room)
+                & (Reservations.date == reserve.date)
+                & (Reservations.status == CONFIRMED)
+            )
+            .all()
+        )
+        reserved_times = [
+            (row.start_time, row.end_time, row.date, row.user_id)
+            for row in reserved_rows
+        ]
+        reserved_hours = get_reserved_hours_as_query_in_edit(reserved_times)
+        for r in reserved_hours:
+            if reserve.start_time in r[0]:
+                name = session.query(Users).filter_by(id=int(r[1])).first().name
+                name = name if name else None
+                user = get_user(call, session)
+                bot.answer_callback_query(
+                    call.id,
+                    get_text(BotText.WHO_RESERVED, user.language).format(name=name),
+                    show_alert=True,
+                )
+                break
+        else:
+            reserve.room_id = room
+            session.commit()
+            return process_edit_specific_reservation(call, session, bot)
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in process_set_edit_room: {e}")
     except Exception as e:
