@@ -68,11 +68,11 @@ class BotText(Enum):
     }
     ADD_TIME_FIRST_STATUS = {
         "en": "🗓 Date: {date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {start_time}\n◀️ To: {end_time}\n(You can change the end time)",
-        "fa": "🗓 تاریخ: {date} ({weekday})\n🚪 اتاق: {room_name}\n▶️ از: {start_time}\n◀️ تا: {end_time}\n(می توانید زمان پایان را تغییر دهید)",
+        "fa": "🗓 تاریخ: {date} ({weekday})\n🚪 اتاق: {room_name}\n◀️ از: {start_time}\n▶️ تا: {end_time}\n(می توانید زمان پایان را تغییر دهید)",
     }
     ADD_TIME_SECOND_STATUS = {
         "en": "🗓 Date: {date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {start_time}\n◀️ To: {end_time}",
-        "fa": "🗓 تاریخ: {date} ({weekday})\n🚪 اتاق: {room_name}\n▶️ از: {start_time}\n◀️ تا: {end_time}",
+        "fa": "🗓 تاریخ: {date} ({weekday})\n🚪 اتاق: {room_name}\n◀️ از: {start_time}\n▶️ تا: {end_time}",
     }
     ADD_TIME_DEFAULT = {
         "en": "🗓 Date: {date} ({weekday})\n🚪 Room: {room_name}\n❓ From:",
@@ -80,7 +80,7 @@ class BotText(Enum):
     }
     CONFIRM_RESERVATION_TEXT = {
         "en": "Your Reservation submitted ✅\n\n🗓 Date: {date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {start_time}\n◀️ To: {end_time}",
-        "fa": "رزرو شما ثبت شد ✅\n\n🗓 تاریخ: {date} ({weekday})\n🚪 اتاق: {room_name}\n▶️ از: {start_time}\n◀️ تا: {end_time}",
+        "fa": "رزرو شما ثبت شد ✅\n\n🗓 تاریخ: {date} ({weekday})\n🚪 اتاق: {room_name}\n◀️ از: {start_time}\n▶️ تا: {end_time}",
     }
     WHO_RESERVED = {
         "en": "❗️ User ({name}) has been reserved this hour.",
@@ -116,11 +116,11 @@ class BotText(Enum):
     }
     EDIT_DATE_TEXT = {
         "en": "🚪 Room: {room_name}\n▶️ From: {start_time}\n◀️ To: {end_time}\n❓ Date:",
-        "fa": "🚪 اتاق: {room_name}\n▶️ از: {start_time}\n◀️ تا: {end_time}\n❓ تاریخ:",
+        "fa": "🚪 اتاق: {room_name}\n◀️ از: {start_time}\n▶️ تا: {end_time}\n❓ تاریخ:",
     }
     EDIT_ROOM_TEXT = {
         "en": "🗓 Date: {date} ({weekday})\n▶️ From: {start_time}\n◀️ To: {end_time}\n❓ Room:",
-        "fa": "🗓 تاریخ: {date} ({weekday})\n▶️ از: {start_time}\n◀️ تا: {end_time}\n❓ اتاق:",
+        "fa": "🗓 تاریخ: {date} ({weekday})\n◀️ از: {start_time}\n▶️ تا: {end_time}\n❓ اتاق:",
     }
     EDIT_HOURS_TEXT = {
         "en": "🗓 Date: {date} ({weekday})\n🚪 Room: {room_name}\n❓ From:",
@@ -132,7 +132,7 @@ class BotText(Enum):
     }
     DELETE_SUCCESS_TEXT = {
         "en": "Your meeting deleted successfully ✅\n\n🗓 Date: {date} ({weekday})\n🚪 Room: {room_name}\n▶️ From: {start_time}\n◀️ To: {end_time}",
-        "fa": "رزرو شما با موفقیت حذف شد ✅\n\n🗓 تاریخ: {date} ({weekday})\n🚪 اتاق: {room_name}\n▶️ از: {start_time}\n◀️ تا: {end_time}",
+        "fa": "رزرو شما با موفقیت حذف شد ✅\n\n🗓 تاریخ: {date} ({weekday})\n🚪 اتاق: {room_name}\n◀️ از: {start_time}\n▶️ تا: {end_time}",
     }
     PAST_RESERVATIONS_HEADER = {
         "en": "🔍 Your Past Reservations are:\n\n",
@@ -173,11 +173,11 @@ class BotText(Enum):
     }
     FIRST_HOURS_TEXT = {
         "en": "{weekday}\n▶️ From: {start}\n◀️ To: {end}\n(You can change the end time)",
-        "fa": "{weekday}\n▶️ از: {start}\n◀️ تا: {end}\n(می توانید زمان پایان را تغییر دهید)",
+        "fa": "{weekday}\n◀️ از: {start}\n▶️ تا: {end}\n(می توانید زمان پایان را تغییر دهید)",
     }
     SECOND_HOURS_TEXT = {
         "en": "{weekday}\n▶️ From: {start}\n◀️ To: {end}",
-        "fa": "{weekday}\n▶️ از: {start}\n◀️ تا: {end}",
+        "fa": "{weekday}\n◀️ از: {start}\n▶️ تا: {end}",
     }
     CHOOSE_HOURS_TEXT_CHARGE = {
         "en": "🗓 Weekday: {weekday}\n🔋 Charge: {charge}\n❓ From:",
@@ -189,11 +189,11 @@ class BotText(Enum):
     }
     FIRST_HOURS_TEXT_CHARGE = {
         "en": "{weekday}\n🔋 Charge: {charge}\n▶️ From: {start}\n◀️ To: {end}\n(You can change the end time)",
-        "fa": "{weekday}\n🔋 شارژ: {charge}\n▶️ از: {start}\n◀️ تا: {end}\n(می توانید زمان پایان را تغییر دهید)",
+        "fa": "{weekday}\n🔋 شارژ: {charge}\n◀️ از: {start}\n▶️ تا: {end}\n(می توانید زمان پایان را تغییر دهید)",
     }
     SECOND_HOURS_TEXT_CHARGE = {
         "en": "{weekday}\n🔋 Charge: {charge}\n▶️ From: {start}\n◀️ To: {end}",
-        "fa": "{weekday}\n🔋 شارژ: {charge}\n▶️ از: {start}\n◀️ تا: {end}",
+        "fa": "{weekday}\n🔋 شارژ: {charge}\n◀️ از: {start}\n▶️ تا: {end}",
     }
     CHOOSE_ROOM_TEXT = {
         "en": "{last_data}\n❓ Room:",
@@ -275,8 +275,8 @@ class BotText(Enum):
         "fa": "👥 کاربران:\nنام | یوزرنیم تلگرام | چت آیدی (اگر نیاز باشد)\n\n",
     }
     VIEW_USERS_TWO = {
-        "en": "\n(* before user's name means that he is admin)",
-        "fa": "\n(* قبل از نام کاربر به معنای ادمین بودن است)",
+        "en": "\n(+ before user's name means that he is admin)",
+        "fa": "\n(+ قبل از نام کاربر به معنای ادمین بودن است)",
     }
     EDIT_NAME = {"en": "✏️ Edit Name", "fa": "✏️ ویرایش نام"}
     EDIT_USERS_NAME = {
@@ -396,27 +396,34 @@ class BotText(Enum):
         "fa": "🗓️ جدول امروز 👇🏻",
     }
     TODAY_BUTTON = {"en": "⏳ Today", "fa": "⏳ جدول امروز"}
-    CUSTOM_SCHEDULE_BUTTON = {"en": "🔜 Custom Day", "fa": "🔜 جدول یک روز خاص"}
-    WEEKLY_BUTTON = {"en": "🗓 Weekly", "fa": "🗓 جدول هفتگی"}
+    CUSTOM_SCHEDULE_BUTTON = {
+        "en": "🔜 View Custom Day Schedule",
+        "fa": "🔜 مشاهده جدول یک روز دیگر",
+    }
+    WEEKLY_BUTTON = {"en": "🗓 View Weekly Schedule", "fa": "🗓 مشاهده جدول هفتگی"}
     TODAY_SCHEDULE = {
-        "en": "📊 Today's Schedule for {room_name}",
-        "fa": "📊 جدول امروز برای {room_name}",
+        "en": "📊 Today's Schedule for «{room_name}»",
+        "fa": "📊 جدول «{room_name}» برای امروز",
     }
     CUSTOM_SCHEDULE = {
-        "en": "📊 Schedule for {custom_date} in {room_name}",
-        "fa": "📊 جدول {custom_date} روز برای {room_name}",
+        "en": "📊 Schedule for «{room_name}» at {custom_date}",
+        "fa": "📊 جدول «{room_name}» در {custom_date}",
     }
     EMPTY_DAY_SCHEDULE = {
-        "en": "No reservations for {room_name} 🕳",
-        "fa": "هیچ رزروی برای «{room_name}» ثبت نشده است 🕳",
+        "en": "No reservations for «{room_name}» on {custom_date} 🕳",
+        "fa": "هیچ رزروی برای «{room_name}» در {custom_date} ثبت نشده است 🕳",
+    }
+    EMPTY_TODAY_SCHEDULE = {
+        "en": "No reservations for «{room_name}» today 🕳",
+        "fa": "هیچ رزروی برای «{room_name}» در امروز ثبت نشده است 🕳",
     }
     WEEKLY_SCHEDULE = {
-        "en": "📊 Weekly schedule for {room_name}",
-        "fa": "📊 جدول هفتگی برای {room_name}",
+        "en": "📊 Weekly schedule for «{room_name}»",
+        "fa": "📊 جدول هفتگی برای «{room_name}»",
     }
     EMPTY_WEEKLY_SCHEDULE = {
-        "en": "No weekly reservations for {room_name} 🕳",
-        "fa": "هیچ رزروی در این هفته برای «{room_name}» ثبت نشده است 🕳",
+        "en": "No weekly reservations for «{room_name}» 🕳",
+        "fa": "هیچ رزروی برای «{room_name}» در این هفته ثبت نشده است 🕳",
     }
     CUSTOM_DATE_TEXT = {
         "en": "🗓 Choose a Date for View Meetings (Available up to Next Week):",
@@ -454,8 +461,8 @@ class BotText(Enum):
         "fa": "رزرو شما کنسل شد ✅\nزمان کنسل: {str_time}",
     }
     CHECKOUT_FIXED = {
-        "en": "Thanks for your attention 🙏🏻\nYou checked out your meeting at {str_time}",
-        "fa": "ممنونیم از حسن توجه شما 🙏🏻\n زمان پایان جلسه: {str_time}",
+        "en": "Thanks for your attention 🙏🏻\nYour meeting ended successfully.",
+        "fa": "ممنونیم از حسن توجه شما 🙏🏻\n جلسه شما پایان یافت.",
     }
     LANGUAGE_TEXT = {
         "en": "🗣 Language: English\nIf you'd like to change the bot's language tap on the button below.",

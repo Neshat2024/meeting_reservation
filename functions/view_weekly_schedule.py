@@ -80,7 +80,7 @@ def process_view_today_schedule(message, session, bot):
                     )
                 os.remove(image_path)
             else:
-                txt = get_text(BotText.EMPTY_DAY_SCHEDULE, user.language).format(
+                txt = get_text(BotText.EMPTY_TODAY_SCHEDULE, user.language).format(
                     room_name=room.name
                 )
                 bot.send_message(chat_id, txt)
@@ -155,13 +155,14 @@ def process_view_custom_schedule(call, session, bot):
         chat_id = call.message.chat.id
         for room in rooms:
             image_path = create_image_for_custom_day(session, room, custom_date)
+            date = (
+                custom_date
+                if user.language == "en"
+                else gregorian_to_jalali(custom_date)
+            )
+            date = change_num_as_lang(date, user.language)
             if image_path is not None:
                 with open(image_path, "rb") as photo:
-                    date = (
-                        custom_date
-                        if user.language == "en"
-                        else gregorian_to_jalali(custom_date)
-                    )
                     bot.send_photo(
                         chat_id=chat_id,
                         photo=photo,
@@ -175,7 +176,7 @@ def process_view_custom_schedule(call, session, bot):
                 os.remove(image_path)
             else:
                 txt = get_text(BotText.EMPTY_DAY_SCHEDULE, user.language).format(
-                    room_name=room.name
+                    room_name=room.name, custom_date=date
                 )
                 bot.send_message(chat_id, txt)
     except SQLAlchemyError as e:
