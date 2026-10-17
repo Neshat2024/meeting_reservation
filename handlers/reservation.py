@@ -28,6 +28,8 @@ from functions.old_reserves import (
     process_add_time_in_edit,
     process_remove_time_in_edit,
     process_delete_specific_reservation,
+    process_delete_today_reservations,
+    process_edit_today_reservations,
 )
 from models.reserve_bot import get_db_session
 from services.wraps import set_command, check_name_in_db
@@ -157,14 +159,20 @@ def register_handle_future_reservations(bot):
             return process_future_reservations(call, session, bot)
 
 
-def register_handle_edit_reservations(bot):
-    with get_db_session() as session:
+def register_handle_edit_today_reservations(session, bot):
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("td-editreservation")
+    )
+    def handle_edit_today_reservations(call):
+        return process_edit_today_reservations(call, session, bot)
 
-        @bot.callback_query_handler(
-            func=lambda call: call.data.startswith("editreservation")
-        )
-        def handle_edit_reservations(call):
-            return process_edit_reservations(call, session, bot)
+
+def register_handle_edit_reservations(session, bot):
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("editreservation")
+    )
+    def handle_edit_reservations(call):
+        return process_edit_reservations(call, session, bot)
 
 
 def register_handle_edit_specific_reservation(bot):
@@ -253,12 +261,21 @@ def register_handle_set_edit_hours(bot):
             return process_set_edit_hours(call, session, bot)
 
 
-def register_handle_back_edit(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(func=lambda call: call.data.startswith("backedit"))
-        def handle_back_edit(call):
+def register_handle_back_edit(session, bot):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("backedit"))
+    def handle_back_edit(call):
+        if call.data.endswith("_td"):
+            return process_edit_today_reservations(call, session, bot)
+        else:
             return process_edit_reservations(call, session, bot)
+
+
+def register_handle_delete_today_reservations(session, bot):
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("td-deletereservation")
+    )
+    def handle_delete_today_reservations(call):
+        return process_delete_today_reservations(call, session, bot)
 
 
 def register_handle_delete_reservations(bot):
@@ -289,15 +306,21 @@ def register_handle_back_future(bot):
             return process_future_reservations(call, session, bot)
 
 
-def register_handle_past_reservations(bot):
-    with get_db_session() as session:
+def register_handle_back_my_reservations(session, bot):
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("backmyreserves")
+    )
+    def handle_back_my_reservations(call):
+        return process_user_reservations(call, session, bot)
 
-        @bot.callback_query_handler(
-            func=lambda call: call.data.startswith("past_reservations_")
-        )
-        def handle_past_reservations(call):
-            page = int(call.data.split("_")[-1])
-            return process_past_reservations([call, page], session, bot)
+
+def register_handle_past_reservations(session, bot):
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("past_reservations_")
+    )
+    def handle_past_reservations(call):
+        page = int(call.data.split("_")[-1])
+        return process_past_reservations([call, page], session, bot)
 
 
 def register_handle_back_user(bot):
@@ -308,26 +331,29 @@ def register_handle_back_user(bot):
             return process_user_reservations(call, session, bot)
 
 
-def register_old_reservations(bot):
-    register_handle_user_reservations(bot)
-    register_handle_future_reservations(bot)
-    register_handle_edit_reservations(bot)
-    register_handle_edit_specific_reservation(bot)
-    register_handle_edit_specific_date(bot)
-    register_handle_set_edit_date(bot)
-    register_handle_back_specific(bot)
-    register_handle_edit_specific_room(bot)
-    register_handle_set_edit_room(bot)
-    register_handle_edit_specific_hours(bot)
-    register_handle_add_time_in_edit(bot)
-    register_handle_remove_time_in_edit(bot)
-    register_handle_set_edit_hours(bot)
-    register_handle_back_edit(bot)
-    register_handle_delete_reservations(bot)
-    register_handle_delete_specific_reservation(bot)
-    register_handle_back_future(bot)
-    register_handle_past_reservations(bot)
-    register_handle_back_user(bot)
+def register_old_reservations(bot, session):
+    register_handle_user_reservations(session, bot)
+    register_handle_future_reservations(session, bot)
+    register_handle_edit_today_reservations(session, bot)
+    register_handle_edit_reservations(session, bot)
+    register_handle_edit_specific_reservation(session, bot)
+    register_handle_edit_specific_date(session, bot)
+    register_handle_set_edit_date(session, bot)
+    register_handle_back_specific(session, bot)
+    register_handle_edit_specific_room(session, bot)
+    register_handle_set_edit_room(session, bot)
+    register_handle_edit_specific_hours(session, bot)
+    register_handle_add_time_in_edit(session, bot)
+    register_handle_remove_time_in_edit(session, bot)
+    register_handle_set_edit_hours(session, bot)
+    register_handle_back_edit(session, bot)
+    register_handle_delete_today_reservations(session, bot)
+    register_handle_delete_reservations(session, bot)
+    register_handle_delete_specific_reservation(session, bot)
+    register_handle_back_future(session, bot)
+    register_handle_back_my_reservations(session, bot)
+    register_handle_past_reservations(session, bot)
+    register_handle_back_user(session, bot)
 
 
 def reservation_command_handler(bot: TeleBot):

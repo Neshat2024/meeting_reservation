@@ -318,7 +318,9 @@ def send_delete_message_to_reserved_users(room, session, bot):
     for reserved_time in past_reserves:
         reserved_time.room_id = room.name
         session.commit()
-    future_reserves = [reserve for reserve in reserved_times if future_date(reserve)]
+    future_reserves = [
+        reserve for reserve in reserved_times if future_date(reserve, tomorrow=True)
+    ]
     for reserved_time in future_reserves:
         session.delete(reserved_time)
         session.commit()
