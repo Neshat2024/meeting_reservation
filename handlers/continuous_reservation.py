@@ -23,109 +23,90 @@ from services.wraps import set_command, check_name_in_db
 
 
 def register_continuous_reservation_command(bot):
-    with get_db_session() as session:
-
-        @bot.message_handler(
-            func=lambda message: message.text.startswith("🔄 Continuous Reservation")
-            or message.text.startswith("🔄 رزرو دوره ای")
-        )
-        @set_command("continuous_reservation", session)
-        @check_name_in_db(session, bot)
-        def continuous_reservation_command(message):
+    @bot.message_handler(
+        func=lambda message: message.text.startswith("🔄 Continuous Reservation")
+        or message.text.startswith("🔄 رزرو دوره ای")
+    )
+    @set_command("continuous_reservation")
+    @check_name_in_db(bot)
+    def continuous_reservation_command(message):
+        with get_db_session() as session:
             return process_continuous_reservation(message, session, bot)
 
 
 def register_handle_cr_weekday(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(
-            func=lambda call: call.data.startswith("cr_weekday_")
-        )
-        def handle_cr_weekday(call):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("cr_weekday_"))
+    def handle_cr_weekday(call):
+        with get_db_session() as session:
             return process_cr_weekday(call, session, bot)
 
 
 def register_handle_cr_back_weekday(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(
-            func=lambda call: call.data.startswith("cr_back_weekday")
-        )
-        def handle_cr_back_weekday(call):
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("cr_back_weekday")
+    )
+    def handle_cr_back_weekday(call):
+        with get_db_session() as session:
             return process_continuous_reservation(call, session, bot)
 
 
 def register_handle_cr_hour_selection(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(func=lambda call: call.data.startswith("cr_hr_"))
-        def handle_cr_hour_selection(call):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("cr_hr_"))
+    def handle_cr_hour_selection(call):
+        with get_db_session() as session:
             return process_cr_hour_selection(call, session, bot)
 
 
 def register_handle_confirm_cr_hour(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(
-            func=lambda call: call.data.startswith("cr_confirm_hour")
-        )
-        def handle_confirm_cr_hour(call):
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("cr_confirm_hour")
+    )
+    def handle_confirm_cr_hour(call):
+        with get_db_session() as session:
             return process_confirm_cr_hour(call, session, bot)
 
 
 def register_handle_cr_back_hours(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(
-            func=lambda call: call.data.startswith("cr_back_hours")
-        )
-        def handle_cr_back_hours(call):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("cr_back_hours"))
+    def handle_cr_back_hours(call):
+        with get_db_session() as session:
             return process_cr_back_hours(call, session, bot)
 
 
 def register_handle_room_selection(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(func=lambda call: call.data.startswith("cr_room_"))
-        def handle_room_selection(call):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("cr_room_"))
+    def handle_room_selection(call):
+        with get_db_session() as session:
             return process_room_selection(call, session, bot)
 
 
 def register_handle_cr_back_rooms(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(
-            func=lambda call: call.data.startswith("cr_back_rooms")
-        )
-        def handle_cr_back_rooms(call):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("cr_back_rooms"))
+    def handle_cr_back_rooms(call):
+        with get_db_session() as session:
             return process_show_rooms(call, session, bot)
 
 
 def register_handle_cr_week_selection(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(func=lambda call: call.data.startswith("cr_week_"))
-        def handle_cr_week_selection(call):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("cr_week_"))
+    def handle_cr_week_selection(call):
+        with get_db_session() as session:
             return process_cr_week_selection(call, session, bot)
 
 
 def register_handle_confirm_cr_week(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(
-            func=lambda call: call.data.startswith("cr_confirm_weeks")
-        )
-        def handle_confirm_cr_week(call):
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("cr_confirm_weeks")
+    )
+    def handle_confirm_cr_week(call):
+        with get_db_session() as session:
             return process_confirm_cr_week(call, session, bot)
 
 
 def register_handle_cr_back_weeks(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(
-            func=lambda call: call.data.startswith("cr_back_weeks")
-        )
-        def handle_cr_back_weeks(call):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("cr_back_weeks"))
+    def handle_cr_back_weeks(call):
+        with get_db_session() as session:
             return process_cr_back_weeks(call, session, bot)
 
 
@@ -144,60 +125,50 @@ def part_one_cr(bot):
 
 
 def register_handle_cr_edit_weeks(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(
-            func=lambda call: call.data.startswith("edit-weeks")
-        )
-        def handle_cr_edit_weeks(call):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("edit-weeks"))
+    def handle_cr_edit_weeks(call):
+        with get_db_session() as session:
             return process_cr_edit_weeks(call, session, bot)
 
 
 def register_handle_cr_back_final_week(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(
-            func=lambda call: call.data.startswith("cr_back_final_week")
-        )
-        def handle_cr_back_final_week(call):
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("cr_back_final_week")
+    )
+    def handle_cr_back_final_week(call):
+        with get_db_session() as session:
             return process_cr_back_final_week(call, session, bot)
 
 
 def register_handle_cr_edit_week_selection(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(func=lambda call: call.data.startswith("cr_ew_"))
-        def handle_cr_edit_week_selection(call):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("cr_ew_"))
+    def handle_cr_edit_week_selection(call):
+        with get_db_session() as session:
             return process_cr_edit_week_selection(call, session, bot)
 
 
 def register_handle_cr_confirm_edited_weeks(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(
-            func=lambda call: call.data.startswith("cr_confirm_edit_week")
-        )
-        def handle_cr_confirm_edited_weeks(call):
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("cr_confirm_edit_week")
+    )
+    def handle_cr_confirm_edited_weeks(call):
+        with get_db_session() as session:
             return process_cr_confirm_edited_weeks(call, session, bot)
 
 
 def register_handle_cr_cancel_reserve(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(
-            func=lambda call: call.data.startswith("cancel-reserve")
-        )
-        def handle_cr_cancel_reserve(call):
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("cancel-reserve")
+    )
+    def handle_cr_cancel_reserve(call):
+        with get_db_session() as session:
             return process_cr_cancel_reserve(call, session, bot)
 
 
 def register_handle_cr_reserve_weeks(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(
-            func=lambda call: call.data.startswith("reserve-weeks")
-        )
-        def handle_cr_reserve_weeks(call):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("reserve-weeks"))
+    def handle_cr_reserve_weeks(call):
+        with get_db_session() as session:
             return process_cr_reserve_weeks(call, session, bot)
 
 

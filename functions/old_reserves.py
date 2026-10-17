@@ -181,7 +181,7 @@ def process_edit_today_reservations(call, session, bot):
         flag = False
         key = InlineKeyboardMarkup()
         for reserve in sorted_reserves:
-            date, str_hour = reserve.date, f"{reserve.end_time}-{reserve.start_time}"
+            date, str_hour = reserve.date, f"{reserve.start_time}-{reserve.end_time}"
             dt_end = f"{date} {reserve.end_time}"
             end_time = dt.strptime(dt_end, "%Y-%m-%d %H:%M")
             end_time = tehran_tz.localize(end_time)
@@ -231,7 +231,7 @@ def process_edit_reservations(call, session, bot):
         txt = get_text(BotText.EDIT_RESERVATIONS_TEXT, user.language)
         key = InlineKeyboardMarkup()
         for reserve in sorted_reserves:
-            date, str_hour = reserve.date, f"{reserve.end_time}-{reserve.start_time}"
+            date, str_hour = reserve.date, f"{reserve.start_time}-{reserve.end_time}"
             room = get_room_name(reserve.room_id, session)
             if user.language == "fa":
                 date = gregorian_to_jalali(date)
@@ -804,7 +804,7 @@ def process_delete_today_reservations(call, session, bot):
         flag = False
         key = InlineKeyboardMarkup()
         for reserve in sorted_reserves:
-            date, str_hour = reserve.date, f"{reserve.end_time}-{reserve.start_time}"
+            date, str_hour = reserve.date, f"{reserve.start_time}-{reserve.end_time}"
             dt_end = f"{date} {reserve.end_time}"
             end_time = dt.strptime(dt_end, "%Y-%m-%d %H:%M")
             end_time = tehran_tz.localize(end_time)
@@ -855,7 +855,7 @@ def process_delete_reservations(call, session, bot):
         txt = get_text(BotText.DELETE_RESERVATIONS_TEXT, user.language)
         key = InlineKeyboardMarkup()
         for reserve in sorted_reserves:
-            date, str_hour = reserve.date, f"{reserve.end_time}-{reserve.start_time}"
+            date, str_hour = reserve.date, f"{reserve.start_time}-{reserve.end_time}"
             room = get_room_name(reserve.room_id, session)
             if user.language == "fa":
                 date = gregorian_to_jalali(date)

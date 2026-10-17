@@ -29,7 +29,7 @@ def process_start(message, session, bot):
             user_exists.username = uname
             session.commit()
         if user_exists and not user_exists.name:
-            return process_name(message, session, bot)
+            return process_name(message, bot)
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in process_start: {e}")
     except Exception as e:
@@ -45,7 +45,7 @@ def process_help(message, session, bot):
     elif settings.IS_CONTINUOUS_RESERVE_AVAILABLE.lower() == "true":
         text = get_text(BotText.HELP_CONTINUOUS_RESERVE_AVAILABLE, FARSI)
     else:
-        text = get_text(BotText.HELP, user.language)
+        text = get_text(BotText.HELP, FARSI)
     bot.reply_to(message, text)
 
 

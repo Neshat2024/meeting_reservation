@@ -18,27 +18,24 @@ def add_settings_command():
 
 
 def register_settings_command(bot):
-    with get_db_session() as session:
-
-        @bot.message_handler(commands=["settings"])
-        @set_command("settings", session)
-        def settings_command(message):
+    @bot.message_handler(commands=["settings"])
+    @set_command("settings")
+    def settings_command(message):
+        with get_db_session() as session:
             return process_settings(message, session, bot)
 
 
 def register_set_language_to_persian(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(func=lambda call: call.data.startswith("fa-lang"))
-        def set_language_to_persian(call):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("fa-lang"))
+    def set_language_to_persian(call):
+        with get_db_session() as session:
             return process_set_language_to_persian(call, session, bot)
 
 
 def register_set_language_to_english(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(func=lambda call: call.data.startswith("en-lang"))
-        def set_language_to_english(call):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("en-lang"))
+    def set_language_to_english(call):
+        with get_db_session() as session:
             return process_set_language_to_english(call, session, bot)
 
 

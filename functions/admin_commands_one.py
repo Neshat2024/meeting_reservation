@@ -6,6 +6,7 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as Btn
 
 from functions.get_functions_cr import get_users_in_buttons
 from functions.get_functions_reserves import future_date
+from models.reserve_bot import get_db_session
 from models.reservations import Reservations
 from models.rooms import Rooms
 from models.users import Users
@@ -78,30 +79,31 @@ def process_add_room(call_message, session, bot):
         msg_id = call_message.message.id
         txt = get_text(BotText.ADD_ROOM, user.language)
         bot.edit_message_text(chat_id=user.chat_id, message_id=msg_id, text=txt)
-    bot.register_next_step_handler(message, check_room, session, bot)
+    bot.register_next_step_handler(message, check_room, bot)
 
 
-def check_room(message, session, bot):
+def check_room(message, bot):
     try:
-        chat_id = str(message.chat.id)
-        user = get_user(message, session)
-        text = check_text_in_room(message)
-        if text is None:
-            change_command_to_none(user, session)
-            new_txt = get_text(BotText.OPERATION_CANCELED, user.language) + "\n"
-        elif text and user.command and user.command.startswith("edit_room"):
-            update_room_in_db(message, session, bot)
-            change_command_to_none(user, session)
-            new_txt = get_text(BotText.ROOM_UPDATED, user.language)
-        elif text:
-            add_room_in_db(message, session, bot)
-            new_txt = get_text(BotText.ROOM_ADDED, user.language)
-        else:
-            txt = get_text(BotText.INVALID_ROOM_NAME, user.language)
-            bot.send_message(chat_id, txt)
-            return process_add_room(message, session, bot)
-        txt, key = get_text_key_in_admin_commands(user, session)
-        bot.send_message(chat_id, new_txt + txt, reply_markup=key)
+        with get_db_session() as session:
+            chat_id = str(message.chat.id)
+            user = get_user(message, session)
+            text = check_text_in_room(message)
+            if text is None:
+                change_command_to_none(user, session)
+                new_txt = get_text(BotText.OPERATION_CANCELED, user.language) + "\n"
+            elif text and user.command and user.command.startswith("edit_room"):
+                update_room_in_db(message, session, bot)
+                change_command_to_none(user, session)
+                new_txt = get_text(BotText.ROOM_UPDATED, user.language)
+            elif text:
+                add_room_in_db(message, session, bot)
+                new_txt = get_text(BotText.ROOM_ADDED, user.language)
+            else:
+                txt = get_text(BotText.INVALID_ROOM_NAME, user.language)
+                bot.send_message(chat_id, txt)
+                return process_add_room(message, session, bot)
+            txt, key = get_text_key_in_admin_commands(user, session)
+            bot.send_message(chat_id, new_txt + txt, reply_markup=key)
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in check_room: {e}")
     except Exception as e:
@@ -237,7 +239,7 @@ def process_update_specific_room(call, session, bot):
     set_command_in_wraps(user, session, f"edit_room_{room_id}")
     txt = get_text(BotText.UPDATE_ROOM_NAME, user.language).format(room_name=room_name)
     bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt)
-    bot.register_next_step_handler(call.message, check_room, session, bot)
+    bot.register_next_step_handler(call.message, check_room, bot)
 
 
 def process_delete_room(call, session, bot):

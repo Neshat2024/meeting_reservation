@@ -10,11 +10,11 @@ import schedule
 import telebot
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
-from models.users import Users, SessionLocal
+from models.reserve_bot import get_db_session
+from models.users import Users
 from services.log import add_log
 from settings import settings
 
-session = SessionLocal()
 tehran_tz = pytz.timezone("Asia/Tehran")
 
 
@@ -123,15 +123,12 @@ class MyBot(telebot.TeleBot):
     def _add_keyboard_if_needed(self, chat_id, kwargs):
         """Helper method to add keyboard to kwargs if not specified"""
         if "reply_markup" not in kwargs or kwargs["reply_markup"] is None:
-            user = session.query(Users).filter_by(chat_id=str(chat_id)).first()
-            if user:
-                kwargs["reply_markup"] = (
-                    self.fixed_keyboard_en
-                    if user.language == "en"
-                    else self.fixed_keyboard_fa
-                )
-            else:
-                kwargs["reply_markup"] = self.fixed_keyboard_fa
+            with get_db_session() as session:
+                user = session.query(Users).filter_by(chat_id=str(chat_id)).first()
+                language = user.language if user else None
+            kwargs["reply_markup"] = (
+                self.fixed_keyboard_en if language == "en" else self.fixed_keyboard_fa
+            )
         return kwargs
 
     # Text messages

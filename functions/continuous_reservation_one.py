@@ -214,14 +214,17 @@ def process_cr_back_hours(call, session, bot):
         ch_id, msg = call.message.chat.id, call.message.id
         user = get_user(call, session)
         txt = call.message.text.split("\n")
-        if is_billable():
-            start = txt[2].split(": ")[1]
-            end = txt[3].split(": ")[1]
-            t = "\n".join(txt[:4])
-        else:
-            start = txt[1].split(": ")[1]
-            end = txt[2].split(": ")[1]
-            t = "\n".join(txt[:3])
+        try:
+            if is_billable():
+                start = txt[2].split(": ")[1]
+                end = txt[3].split(": ")[1]
+                t = "\n".join(txt[:4])
+            else:
+                start = txt[1].split(": ")[1]
+                end = txt[2].split(": ")[1]
+                t = "\n".join(txt[:3])
+        except IndexError:
+            return process_continuous_reservation(call, session, bot)
         start = change_num_as_lang(start, "en")
         end = change_num_as_lang(end, "en")
         key = get_cr_hour_buttons(call, session, [start, end])

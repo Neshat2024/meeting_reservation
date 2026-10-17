@@ -3,6 +3,7 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton as Btn
 
 from functions.admin_commands_one import get_text_key_in_admin_commands
 from functions.get_functions_cr import get_users_in_buttons
+from models.reserve_bot import get_db_session
 from models.reservations import Reservations
 from models.users import Users
 from services.config import get_user, check_text_in_name, check_text_in_charge
@@ -47,26 +48,31 @@ def process_edit_specific_name(call, session, bot):
             chat_id=s_user.chat_id
         )
     bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=txt)
-    bot.register_next_step_handler(call.message, change_name, session, [s_user, bot])
+    bot.register_next_step_handler(call.message, change_name, bot, s_user.id)
 
 
-def change_name(message, session, user_bot):
+def change_name(message, bot, s_user_id):
     try:
-        user = get_user(message, session)
-        selected_user, bot = user_bot
-        text = check_text_in_name(message)
-        if text is None:
-            txt, key = get_text_key_in_change_name(user, 1)
-        elif text:
-            name_exists = session.query(Users).filter_by(name=message.text).first()
-            if not name_exists:
-                update_users_name_in_db(message, session, user_bot)
-                txt, key = get_text_key_in_change_name(user, 2, selected_user)
+        with get_db_session() as session:
+            selected_user = session.query(Users).filter_by(id=s_user_id).first()
+            if not selected_user:
+                add_log(f"change_name: user {s_user_id} no longer exists")
+                return
+            user_bot = [selected_user, bot]
+            user = get_user(message, session)
+            text = check_text_in_name(message)
+            if text is None:
+                txt, key = get_text_key_in_change_name(user, 1)
+            elif text:
+                name_exists = session.query(Users).filter_by(name=message.text).first()
+                if not name_exists:
+                    update_users_name_in_db(message, session, user_bot)
+                    txt, key = get_text_key_in_change_name(user, 2, selected_user)
+                else:
+                    txt, key = get_text_key_in_change_name(user, 3, selected_user)
             else:
-                txt, key = get_text_key_in_change_name(user, 3, selected_user)
-        else:
-            txt, key = get_text_key_in_change_name(user, 4, selected_user)
-        bot.send_message(user.chat_id, txt, reply_markup=key)
+                txt, key = get_text_key_in_change_name(user, 4, selected_user)
+            bot.send_message(user.chat_id, txt, reply_markup=key)
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in change_name: {e}")
     except Exception as e:
@@ -201,31 +207,41 @@ def process_get_charge_for_user(call, session, bot):
             chat_id=s_user.chat_id, charge=s_user.charge
         )
     bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=t)
-    bot.register_next_step_handler(call.message, get_charge, session, [s_user, bot])
+    bot.register_next_step_handler(call.message, get_charge, bot, s_user.id)
 
 
-def get_charge(message, session, user_bot):
+def get_charge(message, bot, s_user_id):
     try:
-        user = get_user(message, session)
-        s_user, bot = user_bot
-        text = check_text_in_charge(message)
-        if text is None:
-            send_operation_canceled_in_charge(user, bot)
-        elif text:
-            charge, new_charge = update_charge_for_user(message, session, s_user)
-            manager_msg, key = get_manager_msg_key(user, [charge, new_charge], s_user)
-            bot.send_message(user.chat_id, manager_msg, reply_markup=key)
-            user_msg = get_text(BotText.USER_CHARGE_MESSAGE, s_user.language).format(
-                charge=charge, new_charge=new_charge
-            )
-            user_msg = change_num_as_lang(user_msg, s_user.language)
-            try:
-                bot.send_message(s_user.chat_id, user_msg)
-            except Exception as e:
-                txt = get_text_for_error_charge_message(s_user, e, user)
-                bot.send_message(user.chat_id, txt)
-        else:
-            send_invalid_entered_charge(user, s_user, bot)
+        with get_db_session() as session:
+            s_user = session.query(Users).filter_by(id=s_user_id).first()
+            if not s_user:
+                add_log(f"get_charge: user {s_user_id} no longer exists")
+                return
+            user = get_user(message, session)
+            text = check_text_in_charge(message)
+            if text is None:
+                send_operation_canceled_in_charge(user, bot)
+            elif text:
+                charges = update_charge_for_user(message, session, s_user)
+                if not charges:
+                    send_invalid_entered_charge(user, s_user, bot)
+                    return
+                charge, new_charge = charges
+                manager_msg, key = get_manager_msg_key(
+                    user, [charge, new_charge], s_user
+                )
+                bot.send_message(user.chat_id, manager_msg, reply_markup=key)
+                user_msg = get_text(
+                    BotText.USER_CHARGE_MESSAGE, s_user.language
+                ).format(charge=charge, new_charge=new_charge)
+                user_msg = change_num_as_lang(user_msg, s_user.language)
+                try:
+                    bot.send_message(s_user.chat_id, user_msg)
+                except Exception as e:
+                    txt = get_text_for_error_charge_message(s_user, e, user)
+                    bot.send_message(user.chat_id, txt)
+            else:
+                send_invalid_entered_charge(user, s_user, bot)
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in get_charge: {e}")
     except Exception as e:
@@ -258,12 +274,14 @@ def send_operation_canceled_in_charge(user, bot):
 def update_charge_for_user(message, session, s_user):
     try:
         charge = int(change_num_as_lang(message.text, "en"))
-        new_charge = s_user.charge + charge
+        new_charge = (s_user.charge or 0) + charge
         s_user.charge = new_charge
         session.commit()
         return charge, new_charge
     except SQLAlchemyError as e:
         add_log(f"SQLAlchemyError in update_charge_for_user: {e}")
+    except Exception as e:
+        add_log(f"Exception in update_charge_for_user: {e}")
 
 
 def get_manager_msg_key(user, charges, s_user):

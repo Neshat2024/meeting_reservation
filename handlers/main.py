@@ -18,44 +18,39 @@ def add_main_commands_report():
 
 
 def register_start_command(bot):
-    with get_db_session() as session:
-
-        @bot.message_handler(commands=["start"])
-        def start_command(message):
+    @bot.message_handler(commands=["start"])
+    def start_command(message):
+        with get_db_session() as session:
             return process_start(message, session, bot)
 
 
 def register_help_command(bot):
-    with get_db_session() as session:
-
-        @bot.message_handler(commands=["help"])
-        def help_command(message):
+    @bot.message_handler(commands=["help"])
+    def help_command(message):
+        with get_db_session() as session:
             return process_help(message, session, bot)
 
 
 def register_handle_ok_reservation(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(
-            func=lambda call: call.data.startswith("ok-before-meeting")
-        )
-        def handle_ok_reservation(call):
+    @bot.callback_query_handler(
+        func=lambda call: call.data.startswith("ok-before-meeting")
+    )
+    def handle_ok_reservation(call):
+        with get_db_session() as session:
             return process_ok_reservation(call, session, bot)
 
 
 def register_handle_cancel_reservation(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(func=lambda call: call.data.startswith("cancel_"))
-        def handle_cancel_reservation(call):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("cancel_"))
+    def handle_cancel_reservation(call):
+        with get_db_session() as session:
             return process_cancel_reservation(call, session, bot)
 
 
 def register_handle_checkout_reservation(bot):
-    with get_db_session() as session:
-
-        @bot.callback_query_handler(func=lambda call: call.data.startswith("checkout_"))
-        def handle_checkout_reservation(call):
+    @bot.callback_query_handler(func=lambda call: call.data.startswith("checkout_"))
+    def handle_checkout_reservation(call):
+        with get_db_session() as session:
             return process_checkout_reservation(call, session, bot)
 
 
