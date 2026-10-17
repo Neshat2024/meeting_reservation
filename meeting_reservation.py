@@ -27,6 +27,10 @@ def main():
     # Initialize bot
     bot = MyBot(settings.TOKEN_RESERVE)
 
+    import users_manager
+
+    users_manager.install(bot, bot_name="note_booking")  # telegram bots
+
     # Initialize Database
     init_db(bot)
 
